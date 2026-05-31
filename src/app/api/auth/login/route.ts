@@ -37,7 +37,7 @@ export async function POST(req: NextRequest) {
 
   // Timing-safe: siempre hacer bcrypt.compare para no revelar si el email existe
   const dummyHash = "$2a$12$dummyhashtopreventtimingattacksxxxxxxxxxxxxxxxxxxxxxxxxx";
-  const valid = admin
+  const valid = admin?.passwordHash
     ? await bcrypt.compare(password, admin.passwordHash)
     : await bcrypt.compare(password, dummyHash).then(() => false);
 
