@@ -47,7 +47,7 @@ export async function POST(req: NextRequest) {
 
   const token = await signToken({
     adminId: admin.id,
-    restaurantId: admin.restaurantId,
+    restaurantId: admin.restaurantId ?? "",
     role: admin.role,
   });
 
