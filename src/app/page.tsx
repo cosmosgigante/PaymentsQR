@@ -5,12 +5,49 @@ import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { createClient } from "@/lib/supabase/client";
 
+// Mesas decorativas para el fondo
+const TABLES = [
+  { id: 1, x: "8%",  y: "12%", rotate: -12, scale: 0.85 },
+  { id: 2, x: "72%", y: "8%",  rotate: 8,   scale: 0.9  },
+  { id: 3, x: "85%", y: "55%", rotate: -6,  scale: 0.75 },
+  { id: 4, x: "5%",  y: "65%", rotate: 15,  scale: 0.8  },
+  { id: 5, x: "55%", y: "78%", rotate: -10, scale: 0.7  },
+  { id: 6, x: "30%", y: "5%",  rotate: 5,   scale: 0.65 },
+];
+
+function TableIcon({ rotate, scale }: { rotate: number; scale: number }) {
+  return (
+    <div
+      style={{ transform: `rotate(${rotate}deg) scale(${scale})`, opacity: 0.07 }}
+      className="select-none pointer-events-none"
+    >
+      {/* Mesa con sillas */}
+      <svg width="120" height="100" viewBox="0 0 120 100" fill="white">
+        {/* Superficie mesa */}
+        <rect x="20" y="35" width="80" height="30" rx="6" />
+        {/* Pata central */}
+        <rect x="54" y="65" width="12" height="18" rx="3" />
+        {/* Base */}
+        <rect x="40" y="80" width="40" height="6" rx="3" />
+        {/* Silla arriba izq */}
+        <rect x="10" y="15" width="28" height="22" rx="5" />
+        {/* Silla arriba der */}
+        <rect x="82" y="15" width="28" height="22" rx="5" />
+        {/* Silla abajo izq */}
+        <rect x="10" y="63" width="28" height="22" rx="5" />
+        {/* Silla abajo der */}
+        <rect x="82" y="63" width="28" height="22" rx="5" />
+      </svg>
+    </div>
+  );
+}
+
 export default function LoginPage() {
   const router = useRouter();
-  const [email, setEmail] = useState("");
+  const [email, setEmail]       = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [error, setError]       = useState<string | null>(null);
+  const [loading, setLoading]   = useState(false);
 
   async function handleEmailLogin(e: React.FormEvent) {
     e.preventDefault();
@@ -31,47 +68,77 @@ export default function LoginPage() {
     const supabase = createClient();
     await supabase.auth.signInWithOAuth({
       provider: "google",
-      options: {
-        redirectTo: `${window.location.origin}/auth/callback`,
-      },
+      options: { redirectTo: `${window.location.origin}/auth/callback` },
     });
   }
 
-  const params = typeof window !== "undefined"
-    ? new URLSearchParams(window.location.search)
-    : null;
+  const params   = typeof window !== "undefined" ? new URLSearchParams(window.location.search) : null;
   const urlError = params?.get("error");
 
   return (
     <div
-      className="min-h-screen bg-zinc-950 flex items-center justify-center p-4"
+      className="min-h-screen bg-zinc-950 flex items-center justify-center p-4 relative overflow-hidden"
       style={{ paddingTop: "max(1rem, env(safe-area-inset-top))", paddingBottom: "max(1rem, env(safe-area-inset-bottom))" }}
     >
+      {/* Mesas decorativas en el fondo */}
+      {TABLES.map((table, i) => (
+        <motion.div
+          key={table.id}
+          className="absolute"
+          style={{ left: table.x, top: table.y }}
+          initial={{ opacity: 0, scale: 0.6 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ delay: i * 0.1, duration: 0.6, ease: "easeOut" }}
+        >
+          <TableIcon rotate={table.rotate} scale={table.scale} />
+        </motion.div>
+      ))}
+
+      {/* Glow sutil en el centro */}
+      <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+        <div className="w-[500px] h-[500px] rounded-full bg-zinc-800/20 blur-3xl" />
+      </div>
+
+      {/* Card de login */}
       <motion.div
-        initial={{ opacity: 0, y: 16 }}
+        initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="bg-zinc-900 border border-zinc-800 rounded-3xl p-6 sm:p-8 w-full max-w-sm"
+        transition={{ duration: 0.4, ease: "easeOut" }}
+        className="relative z-10 bg-zinc-900/90 border border-zinc-800 rounded-3xl p-6 sm:p-8 w-full max-w-sm shadow-2xl"
+        style={{ backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)" }}
       >
-        <div className="mb-7">
-          <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center mb-5 text-xl select-none">
+        {/* Header */}
+        <div className="mb-7 text-center">
+          <motion.div
+            initial={{ scale: 0.5, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ delay: 0.15, type: "spring", bounce: 0.4 }}
+            className="w-14 h-14 bg-white rounded-2xl flex items-center justify-center mx-auto mb-4 text-2xl shadow-lg select-none"
+          >
             🍽️
-          </div>
-          <h1 className="text-2xl font-bold text-white tracking-tight">Bienvenido</h1>
-          <p className="text-zinc-500 text-sm mt-1">Ingresá para continuar</p>
+          </motion.div>
+          <h1 className="text-2xl font-bold text-white tracking-tight">PaymentsQR</h1>
+          <p className="text-zinc-500 text-sm mt-1">Sistema de pedidos para restaurantes</p>
         </div>
 
+        {/* Error */}
         {(error || urlError) && (
-          <p className="text-red-400 text-xs text-center bg-red-950/40 border border-red-900/40 rounded-xl py-2.5 px-3 mb-4">
+          <motion.p
+            initial={{ opacity: 0, y: -6 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="text-red-400 text-xs text-center bg-red-950/40 border border-red-900/40 rounded-xl py-2.5 px-3 mb-4"
+          >
             {error || (urlError === "unauthorized" ? "Tu cuenta no tiene acceso." : "Error al iniciar sesión.")}
-          </p>
+          </motion.p>
         )}
 
+        {/* Google */}
         <button
           onClick={handleGoogleLogin}
           disabled={loading}
-          className="w-full flex items-center justify-center gap-3 bg-white hover:bg-zinc-100 disabled:opacity-50 text-zinc-900 font-semibold py-3.5 rounded-xl transition-all text-[15px] mb-4 min-h-[52px]"
+          className="w-full flex items-center justify-center gap-3 bg-white hover:bg-zinc-100 active:bg-zinc-200 disabled:opacity-50 text-zinc-900 font-semibold py-3.5 rounded-xl transition-all text-[15px] mb-4 min-h-[52px] shadow-sm"
         >
-          <svg className="w-5 h-5" viewBox="0 0 24 24">
+          <svg className="w-5 h-5 flex-shrink-0" viewBox="0 0 24 24">
             <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
             <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
             <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/>
@@ -82,10 +149,11 @@ export default function LoginPage() {
 
         <div className="flex items-center gap-3 mb-4">
           <div className="flex-1 h-px bg-zinc-800" />
-          <span className="text-zinc-600 text-xs">o</span>
+          <span className="text-zinc-600 text-[11px] uppercase tracking-widest">o</span>
           <div className="flex-1 h-px bg-zinc-800" />
         </div>
 
+        {/* Email/password */}
         <form onSubmit={handleEmailLogin} className="space-y-3">
           <input
             type="email"
@@ -95,7 +163,7 @@ export default function LoginPage() {
             autoComplete="email"
             inputMode="email"
             placeholder="Email"
-            className="w-full bg-zinc-800 border border-zinc-700 text-white rounded-xl px-4 py-3.5 text-[16px] focus:outline-none focus:ring-2 focus:ring-white/20 placeholder:text-zinc-600 min-h-[52px]"
+            className="w-full bg-zinc-800 border border-zinc-700 text-white rounded-xl px-4 py-3.5 text-[16px] focus:outline-none focus:ring-2 focus:ring-white/20 placeholder:text-zinc-600 min-h-[52px] transition-colors"
           />
           <input
             type="password"
@@ -104,16 +172,21 @@ export default function LoginPage() {
             required
             autoComplete="current-password"
             placeholder="Contraseña"
-            className="w-full bg-zinc-800 border border-zinc-700 text-white rounded-xl px-4 py-3.5 text-[16px] focus:outline-none focus:ring-2 focus:ring-white/20 placeholder:text-zinc-600 min-h-[52px]"
+            className="w-full bg-zinc-800 border border-zinc-700 text-white rounded-xl px-4 py-3.5 text-[16px] focus:outline-none focus:ring-2 focus:ring-white/20 placeholder:text-zinc-600 min-h-[52px] transition-colors"
           />
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-zinc-700 hover:bg-zinc-600 disabled:opacity-50 text-white font-bold py-4 rounded-xl transition-all text-[15px] min-h-[56px]"
+            className="w-full bg-zinc-700 hover:bg-zinc-600 active:bg-zinc-500 disabled:opacity-50 text-white font-bold py-4 rounded-xl transition-all text-[15px] min-h-[56px]"
           >
             {loading ? "Ingresando..." : "Ingresar"}
           </button>
         </form>
+
+        {/* Footer */}
+        <p className="text-zinc-700 text-[11px] text-center mt-5">
+          Solo usuarios autorizados pueden acceder
+        </p>
       </motion.div>
     </div>
   );
