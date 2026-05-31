@@ -1,0 +1,4 @@
+# Normalizar saltos de línea automáticamente
+# Windows usa CRLF, Mac/Linux usan LF — esto evita conflictos en pair programming
+* text=auto eol=lf
+*.bat text eol=crlf
