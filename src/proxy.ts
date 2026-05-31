@@ -8,7 +8,7 @@ const secret = new TextEncoder().encode(
 const PROTECTED_PREFIXES = ["/admin", "/cocina"];
 const PUBLIC_PATHS = ["/admin/login"];
 
-export async function middleware(req: NextRequest) {
+export async function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
   const needsAuth = PROTECTED_PREFIXES.some((p) => pathname.startsWith(p));
