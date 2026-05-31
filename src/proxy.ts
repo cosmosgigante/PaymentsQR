@@ -1,11 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { jwtVerify } from "jose";
+import { createServerClient } from "@supabase/ssr";
 
-const secret = new TextEncoder().encode(
-  process.env.JWT_SECRET || "fallback-secret-change-this"
-);
-
-const PROTECTED_PREFIXES = ["/admin", "/cocina"];
+const PROTECTED_PREFIXES = ["/admin", "/cocina", "/superadmin"];
 const PUBLIC_PATHS = ["/admin/login"];
 
 export async function proxy(req: NextRequest) {
@@ -14,25 +10,35 @@ export async function proxy(req: NextRequest) {
   const needsAuth = PROTECTED_PREFIXES.some((p) => pathname.startsWith(p));
   const isPublic = PUBLIC_PATHS.some((p) => pathname === p);
 
-  if (needsAuth && !isPublic) {
-    const token = req.cookies.get("admin_token")?.value;
+  if (!needsAuth || isPublic) return NextResponse.next();
 
-    if (!token) {
-      return NextResponse.redirect(new URL("/admin/login", req.url));
-    }
+  let res = NextResponse.next();
 
-    try {
-      await jwtVerify(token, secret);
-    } catch {
-      const res = NextResponse.redirect(new URL("/admin/login", req.url));
-      res.cookies.delete("admin_token");
-      return res;
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() { return req.cookies.getAll(); },
+        setAll(cookiesToSet) {
+          cookiesToSet.forEach(({ name, value, options }) => {
+            req.cookies.set(name, value);
+            res.cookies.set(name, value, options);
+          });
+        },
+      },
     }
+  );
+
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) {
+    return NextResponse.redirect(new URL("/", req.url));
   }
 
-  return NextResponse.next();
+  return res;
 }
 
 export const config = {
-  matcher: ["/admin/:path*", "/cocina/:path*"],
+  matcher: ["/admin/:path*", "/cocina/:path*", "/superadmin/:path*"],
 };
