@@ -28,13 +28,25 @@ export async function POST(req: NextRequest) {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
 
-  const { name } = await req.json();
-  if (!name) return NextResponse.json({ error: "Falta nombre" }, { status: 400 });
+  let body: { name?: unknown };
+  try {
+    body = await req.json();
+  } catch {
+    return NextResponse.json({ error: "Request inválido" }, { status: 400 });
+  }
+
+  const { name } = body;
+  if (!name || typeof name !== "string") {
+    return NextResponse.json({ error: "Falta nombre" }, { status: 400 });
+  }
+
+  const safeName = name.trim().slice(0, 100);
+  if (!safeName) return NextResponse.json({ error: "Nombre inválido" }, { status: 400 });
 
   const count = await db.menuCategory.count({ where: { restaurantId: session.restaurantId } });
 
   const category = await db.menuCategory.create({
-    data: { name, restaurantId: session.restaurantId, sortOrder: count },
+    data: { name: safeName, restaurantId: session.restaurantId, sortOrder: count },
   });
 
   return NextResponse.json(category, { status: 201 });
