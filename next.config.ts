@@ -31,9 +31,7 @@ const nextConfig: NextConfig = {
             value: [
               "default-src 'self'",
               // Next.js con Turbopack necesita unsafe-inline y unsafe-eval en dev
-              isProd
-                ? "script-src 'self'"
-                : "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
+              "script-src 'self' 'unsafe-inline'",
               "style-src 'self' 'unsafe-inline'",
               // Imágenes externas permitidas (URLs de platos del menú)
               "img-src 'self' data: https:",
