@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
-import { db } from "@/lib/db";
 
 export async function GET(req: NextRequest) {
   const { searchParams, origin } = new URL(req.url);
@@ -23,26 +22,18 @@ export async function GET(req: NextRequest) {
     }
   );
 
-  const { data, error } = await supabase.auth.exchangeCodeForSession(code);
-
-  if (error || !data.user?.email) {
+  try {
+    const { error } = await supabase.auth.exchangeCodeForSession(code);
+    if (error) {
+      return NextResponse.redirect(`${origin}/?error=auth`);
+    }
+  } catch {
     return NextResponse.redirect(`${origin}/?error=auth`);
   }
 
-  const admin = await db.admin.findUnique({
-    where: { email: data.user.email.toLowerCase() },
-  });
-
-  const destination = !admin
-    ? "/?error=unauthorized"
-    : admin.role === "SUPERADMIN"
-    ? "/setup"
-    : "/admin";
-
-  const res = NextResponse.redirect(`${origin}${destination}`);
+  const res = NextResponse.redirect(`${origin}/api/auth/session`);
   capturedCookies.forEach(({ name, value, options }) => {
     res.cookies.set(name, value, options as Parameters<typeof res.cookies.set>[2]);
   });
-
   return res;
 }

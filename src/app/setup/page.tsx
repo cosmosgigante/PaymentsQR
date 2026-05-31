@@ -41,7 +41,7 @@ export default function SetupPage() {
       const data = await res.json();
       if (!res.ok) { setError(data.error ?? "Error al crear el restaurante"); return; }
       setDone(true);
-      setTimeout(() => router.push("/admin/login"), 2000);
+      setTimeout(() => router.push("/"), 2000);
     } catch {
       setError("Error de conexión. Verificá que el servidor esté corriendo.");
     } finally {

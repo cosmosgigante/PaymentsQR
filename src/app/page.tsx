@@ -23,7 +23,7 @@ export default function LoginPage() {
       setLoading(false);
       return;
     }
-    router.push("/auth/redirect");
+    router.push("/api/auth/session");
   }
 
   async function handleGoogleLogin() {
