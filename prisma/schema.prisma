@@ -86,10 +86,10 @@ model OrderItem {
 
 model Admin {
   id           String     @id @default(cuid())
-  restaurantId String
-  restaurant   Restaurant @relation(fields: [restaurantId], references: [id])
-  email        String     @unique
-  passwordHash String
+  restaurantId String?
+  restaurant   Restaurant? @relation(fields: [restaurantId], references: [id])
+  email        String      @unique
+  passwordHash String?
   role         String     @default("STAFF")
   createdAt    DateTime   @default(now())
 }
