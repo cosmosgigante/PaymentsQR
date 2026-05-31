@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
+import { db } from "@/lib/db";
 
 export async function GET(req: NextRequest) {
   const { searchParams, origin } = new URL(req.url);
@@ -24,14 +25,35 @@ export async function GET(req: NextRequest) {
 
   try {
     const { error } = await supabase.auth.exchangeCodeForSession(code);
-    if (error) {
-      return NextResponse.redirect(`${origin}/?error=auth`);
-    }
+    if (error) return NextResponse.redirect(`${origin}/?error=auth`);
   } catch {
     return NextResponse.redirect(`${origin}/?error=auth`);
   }
 
-  const res = NextResponse.redirect(`${origin}/api/auth/session`);
+  // Verificar que el email esté registrado en la DB ANTES de dejarlo entrar
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user?.email) {
+    await supabase.auth.signOut();
+    return NextResponse.redirect(`${origin}/?error=unauthorized`);
+  }
+
+  const admin = await db.admin.findUnique({
+    where: { email: user.email.toLowerCase() },
+    select: { role: true },
+  });
+
+  if (!admin) {
+    // No está registrado — lo deslogueo inmediatamente
+    await supabase.auth.signOut();
+    const res = NextResponse.redirect(`${origin}/?error=unauthorized`);
+    // Limpiar cookies de sesión
+    capturedCookies.forEach(({ name }) => res.cookies.delete(name));
+    return res;
+  }
+
+  // Está registrado — lo dejamos pasar
+  const res = NextResponse.redirect(`${origin}/auth/redirect`);
   capturedCookies.forEach(({ name, value, options }) => {
     res.cookies.set(name, value, options as Parameters<typeof res.cookies.set>[2]);
   });
