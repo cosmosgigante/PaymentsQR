@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 
-const PROTECTED_PREFIXES = ["/admin", "/cocina", "/superadmin"];
+const PROTECTED_PREFIXES = ["/admin", "/cocina", "/superadmin", "/setup"];
 const PUBLIC_PATHS = ["/admin/login"];
 
 export async function proxy(req: NextRequest) {
@@ -40,5 +40,5 @@ export async function proxy(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/admin/:path*", "/cocina/:path*", "/superadmin/:path*"],
+  matcher: ["/admin/:path*", "/cocina/:path*", "/superadmin/:path*", "/setup"],
 };
