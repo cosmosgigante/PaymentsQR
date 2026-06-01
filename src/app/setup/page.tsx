@@ -314,12 +314,18 @@ export default function SuperAdminPage() {
 
                     {/* Acciones */}
                     <div className="flex flex-col gap-1.5 shrink-0">
-                      <a
-                        href={`/admin?restaurant=${r.slug}`}
-                        className="text-xs text-zinc-400 hover:text-white bg-zinc-800 hover:bg-zinc-700 px-3 py-1.5 rounded-lg transition-all text-center"
-                      >
-                        Ver panel
-                      </a>
+                      {owner?.hasPassword ? (
+                        <a
+                          href={`/api/setup/impersonate?restaurantId=${r.id}`}
+                          className="text-xs text-zinc-400 hover:text-white bg-zinc-800 hover:bg-zinc-700 px-3 py-1.5 rounded-lg transition-all text-center"
+                        >
+                          Ver panel
+                        </a>
+                      ) : (
+                        <span className="text-xs text-zinc-600 bg-zinc-800/50 px-3 py-1.5 rounded-lg text-center cursor-not-allowed" title="El dueño aún no activó su cuenta">
+                          Sin cuenta
+                        </span>
+                      )}
                       <button
                         onClick={() => handleToggle(r)}
                         disabled={togglingId === r.id}
