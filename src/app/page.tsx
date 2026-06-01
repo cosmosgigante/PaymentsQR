@@ -3,66 +3,25 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { createClient } from "@/lib/supabase/client";
+import { loginAction, registerAction } from "@/app/actions/auth";
 
 
 type Mode = "login" | "register" | "forgot";
 
 export default function LoginPage() {
-  const [mode, setMode]             = useState<Mode>("login");
-  const [email, setEmail]           = useState("");
-  const [password, setPassword]     = useState("");
-  const [confirm, setConfirm]       = useState("");
-  const [error, setError]           = useState<string | null>(null);
-  const [success, setSuccess]       = useState<string | null>(null);
-  const [loading, setLoading]       = useState(false);
+  const [mode, setMode]   = useState<Mode>("login");
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
 
-  function switchMode(m: Mode) {
-    setMode(m); setError(null); setSuccess(null);
-  }
-
-  function submitLoginForm(em: string, pw: string) {
-    const form = document.createElement("form");
-    form.method = "POST";
-    form.action = "/api/auth/login";
-    [["email", em], ["password", pw]].forEach(([name, value]) => {
-      const input = document.createElement("input");
-      input.type = "hidden"; input.name = name; input.value = value;
-      form.appendChild(input);
-    });
-    document.body.appendChild(form);
-    form.submit();
-  }
-
-  async function handleLogin(e: React.FormEvent) {
-    e.preventDefault();
-    setLoading(true); setError(null);
-    submitLoginForm(email, password);
-  }
-
-  async function handleRegister(e: React.FormEvent) {
-    e.preventDefault();
-    if (password !== confirm) { setError("Las contraseñas no coinciden"); return; }
-    if (password.length < 6) { setError("La contraseña debe tener al menos 6 caracteres"); return; }
-    setLoading(true); setError(null);
-
-    // Registrar server-side (crea el usuario en Supabase con email confirmado, solo si está pre-aprobado)
-    const res = await fetch("/api/auth/register", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, password }),
-    });
-    const data = await res.json();
-    if (!res.ok) { setError(data.error ?? "Error al registrar"); setLoading(false); return; }
-
-    // Después de registrar, hacer form submit para login
-    submitLoginForm(email, password);
-  }
+  function switchMode(m: Mode) { setMode(m); setError(null); setSuccess(null); }
 
   async function handleForgot(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true); setError(null);
+    const emailVal = (e.currentTarget as HTMLFormElement).querySelector<HTMLInputElement>('[name="email"]')?.value ?? "";
     const supabase = createClient();
-    const { error: err } = await supabase.auth.resetPasswordForEmail(email, {
+    const { error: err } = await supabase.auth.resetPasswordForEmail(emailVal, {
       redirectTo: `${window.location.origin}/auth/reset-password`,
     });
     setLoading(false);
@@ -215,16 +174,16 @@ export default function LoginPage() {
           <p className="text-emerald-400 text-xs text-center bg-emerald-950/40 border border-emerald-900/40 rounded-xl py-2.5 px-3 mb-3">{success}</p>
         )}
 
-        {/* Formulario login */}
+        {/* Formulario login — Server Action */}
         {mode === "login" && (
-          <form onSubmit={handleLogin} className="space-y-3">
-            <input type="email" value={email} onChange={e => setEmail(e.target.value)} required autoComplete="email" inputMode="email" placeholder="Email"
+          <form action={loginAction} className="space-y-3">
+            <input type="email" name="email" required autoComplete="email" inputMode="email" placeholder="Email"
               className="w-full bg-zinc-800 border border-zinc-700 text-white rounded-xl px-4 py-3.5 text-[16px] focus:outline-none focus:ring-2 focus:ring-white/20 placeholder:text-zinc-600 min-h-[52px]" />
-            <input type="password" value={password} onChange={e => setPassword(e.target.value)} required autoComplete="current-password" placeholder="Contraseña"
+            <input type="password" name="password" required autoComplete="current-password" placeholder="Contraseña"
               className="w-full bg-zinc-800 border border-zinc-700 text-white rounded-xl px-4 py-3.5 text-[16px] focus:outline-none focus:ring-2 focus:ring-white/20 placeholder:text-zinc-600 min-h-[52px]" />
-            <button type="submit" disabled={loading}
-              className="w-full bg-zinc-700 hover:bg-zinc-600 disabled:opacity-50 text-white font-bold py-4 rounded-xl transition-all text-[15px] min-h-[56px]">
-              {loading ? "Ingresando..." : "Ingresar"}
+            <button type="submit"
+              className="w-full bg-zinc-700 hover:bg-zinc-600 text-white font-bold py-4 rounded-xl transition-all text-[15px] min-h-[56px]">
+              Ingresar
             </button>
             <button type="button" onClick={() => switchMode("forgot")}
               className="w-full text-zinc-500 hover:text-zinc-300 text-xs text-center transition-colors pt-1">
@@ -233,18 +192,18 @@ export default function LoginPage() {
           </form>
         )}
 
-        {/* Formulario registro */}
+        {/* Formulario registro — Server Action */}
         {mode === "register" && (
-          <form onSubmit={handleRegister} className="space-y-3">
-            <input type="email" value={email} onChange={e => setEmail(e.target.value)} required autoComplete="email" inputMode="email" placeholder="Email"
+          <form action={registerAction} className="space-y-3">
+            <input type="email" name="email" required autoComplete="email" inputMode="email" placeholder="Email"
               className="w-full bg-zinc-800 border border-zinc-700 text-white rounded-xl px-4 py-3.5 text-[16px] focus:outline-none focus:ring-2 focus:ring-white/20 placeholder:text-zinc-600 min-h-[52px]" />
-            <input type="password" value={password} onChange={e => setPassword(e.target.value)} required autoComplete="new-password" placeholder="Contraseña"
+            <input type="password" name="password" required autoComplete="new-password" placeholder="Contraseña"
               className="w-full bg-zinc-800 border border-zinc-700 text-white rounded-xl px-4 py-3.5 text-[16px] focus:outline-none focus:ring-2 focus:ring-white/20 placeholder:text-zinc-600 min-h-[52px]" />
-            <input type="password" value={confirm} onChange={e => setConfirm(e.target.value)} required autoComplete="new-password" placeholder="Repetir contraseña"
+            <input type="password" name="confirm" required autoComplete="new-password" placeholder="Repetir contraseña"
               className="w-full bg-zinc-800 border border-zinc-700 text-white rounded-xl px-4 py-3.5 text-[16px] focus:outline-none focus:ring-2 focus:ring-white/20 placeholder:text-zinc-600 min-h-[52px]" />
-            <button type="submit" disabled={loading}
-              className="w-full bg-zinc-700 hover:bg-zinc-600 disabled:opacity-50 text-white font-bold py-4 rounded-xl transition-all text-[15px] min-h-[56px]">
-              {loading ? "Creando cuenta..." : "Crear cuenta"}
+            <button type="submit"
+              className="w-full bg-zinc-700 hover:bg-zinc-600 text-white font-bold py-4 rounded-xl transition-all text-[15px] min-h-[56px]">
+              Crear cuenta
             </button>
           </form>
         )}
@@ -253,7 +212,7 @@ export default function LoginPage() {
         {mode === "forgot" && (
           <form onSubmit={handleForgot} className="space-y-3">
             <p className="text-zinc-400 text-sm text-center mb-1">Ingresá tu email y te enviamos un link para restablecer tu contraseña.</p>
-            <input type="email" value={email} onChange={e => setEmail(e.target.value)} required autoComplete="email" inputMode="email" placeholder="Email"
+            <input type="email" name="email" required autoComplete="email" inputMode="email" placeholder="Email"
               className="w-full bg-zinc-800 border border-zinc-700 text-white rounded-xl px-4 py-3.5 text-[16px] focus:outline-none focus:ring-2 focus:ring-white/20 placeholder:text-zinc-600 min-h-[52px]" />
             <button type="submit" disabled={loading}
               className="w-full bg-zinc-700 hover:bg-zinc-600 disabled:opacity-50 text-white font-bold py-4 rounded-xl transition-all text-[15px] min-h-[56px]">
