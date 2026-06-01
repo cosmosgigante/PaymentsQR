@@ -35,8 +35,8 @@ const nextConfig: NextConfig = {
               "style-src 'self' 'unsafe-inline'",
               // Imágenes externas permitidas (URLs de platos del menú)
               "img-src 'self' data: https:",
-              // SSE y fetch al mismo origen
-              "connect-src 'self'",
+              // SSE, fetch al mismo origen + Supabase auth
+              "connect-src 'self' https://pywufvlnfpymwypblrfr.supabase.co",
               "font-src 'self'",
               // Nunca permitir embeber esta app en un iframe
               "frame-ancestors 'none'",

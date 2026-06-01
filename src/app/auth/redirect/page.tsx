@@ -2,18 +2,14 @@
 
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { createClient } from "@/lib/supabase/client";
 
 export default function AuthRedirect() {
   const router = useRouter();
 
   useEffect(() => {
     async function redirect() {
-      const supabase = createClient();
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) { router.push("/"); return; }
-
       const res = await fetch("/api/auth/role");
+      if (!res.ok) { router.push("/?error=unauthorized"); return; }
       const { role } = await res.json();
 
       if (role === "SUPERADMIN") router.push("/setup");
