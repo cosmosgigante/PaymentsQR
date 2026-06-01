@@ -63,13 +63,9 @@ export default function LoginPage() {
     router.push("/api/auth/session");
   }
 
-  async function handleGoogleLogin() {
+  function handleGoogleLogin() {
     setLoading(true);
-    const supabase = createClient();
-    await supabase.auth.signInWithOAuth({
-      provider: "google",
-      options: { redirectTo: `${window.location.origin}/auth/callback` },
-    });
+    window.location.href = "/api/auth/google";
   }
 
   const params   = typeof window !== "undefined" ? new URLSearchParams(window.location.search) : null;
