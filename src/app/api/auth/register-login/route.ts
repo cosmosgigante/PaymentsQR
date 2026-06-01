@@ -6,7 +6,7 @@ import { rateLimit } from "@/lib/rateLimit";
 
 export async function POST(req: NextRequest) {
   const ip = req.headers.get("x-forwarded-for") ?? "unknown";
-  if (!rateLimit(`register:${ip}`, 5, 60 * 1000)) {
+  if (!await rateLimit(`register:${ip}`, 5, 60 * 1000)) {
     return NextResponse.redirect(new URL("/?error=rate", req.url), 303);
   }
 
@@ -21,6 +21,9 @@ export async function POST(req: NextRequest) {
 
   const admin = await db.admin.findUnique({ where: { email } });
   if (!admin) return NextResponse.redirect(new URL("/?error=unauthorized", req.url), 303);
+
+  // Si ya tiene contraseña, no permitir registro — debe usar login
+  if (admin.passwordHash) return NextResponse.redirect(new URL("/?error=already-registered", req.url), 303);
 
   const hash = await bcrypt.hash(password, 12);
   await db.admin.update({ where: { email }, data: { passwordHash: hash } });

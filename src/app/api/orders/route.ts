@@ -27,7 +27,7 @@ export async function POST(req: NextRequest) {
   }
 
   // Rate limit por token de mesa (no por IP, para que funcione en redes compartidas del restaurant)
-  if (!rateLimit(`order:${tableToken}`, 5, 2 * 60 * 1000)) {
+  if (!await rateLimit(`order:${tableToken}`, 5, 2 * 60 * 1000)) {
     return NextResponse.json({ error: "Demasiados pedidos. Esperá un momento." }, { status: 429 });
   }
 

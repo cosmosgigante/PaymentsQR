@@ -1,26 +1,34 @@
-type Entry = { count: number; resetAt: number };
+import { db } from "@/lib/db";
 
-const store = new Map<string, Entry>();
+export async function rateLimit(key: string, max: number, windowMs: number): Promise<boolean> {
+  const now = new Date();
+  const resetAt = new Date(now.getTime() + windowMs);
 
-export function rateLimit(key: string, max: number, windowMs: number): boolean {
-  const now = Date.now();
-  const entry = store.get(key);
+  try {
+    const result = await db.$transaction(async (tx) => {
+      const existing = await tx.rateLimit.findUnique({ where: { id: key } });
 
-  if (!entry || now > entry.resetAt) {
-    store.set(key, { count: 1, resetAt: now + windowMs });
-    return true; // permitido
+      if (!existing || existing.resetAt < now) {
+        await tx.rateLimit.upsert({
+          where: { id: key },
+          create: { id: key, count: 1, resetAt },
+          update: { count: 1, resetAt },
+        });
+        return true;
+      }
+
+      if (existing.count >= max) return false;
+
+      await tx.rateLimit.update({
+        where: { id: key },
+        data: { count: { increment: 1 } },
+      });
+      return true;
+    });
+
+    return result;
+  } catch {
+    // Si la DB falla, dejar pasar para no bloquear usuarios legítimos
+    return true;
   }
-
-  if (entry.count >= max) return false; // bloqueado
-
-  entry.count++;
-  return true; // permitido
 }
-
-// Limpiar entradas viejas cada 5 minutos para no acumular memoria
-setInterval(() => {
-  const now = Date.now();
-  for (const [key, entry] of store) {
-    if (now > entry.resetAt) store.delete(key);
-  }
-}, 5 * 60 * 1000);

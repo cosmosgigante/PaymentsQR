@@ -8,7 +8,7 @@ export async function POST(req: NextRequest) {
   const ip = req.headers.get("x-forwarded-for") ?? req.headers.get("x-real-ip") ?? "unknown";
 
   // Max 10 intentos por IP cada 15 minutos
-  if (!rateLimit(`login:${ip}`, 10, 15 * 60 * 1000)) {
+  if (!await rateLimit(`login:${ip}`, 10, 15 * 60 * 1000)) {
     return NextResponse.json(
       { error: "Demasiados intentos. Esperá 15 minutos." },
       { status: 429 }

@@ -85,6 +85,14 @@ model OrderItem {
   notes      String?
 }
 
+model RateLimit {
+  id      String   @id
+  count   Int      @default(1)
+  resetAt DateTime
+
+  @@index([resetAt])
+}
+
 model Admin {
   id           String     @id @default(cuid())
   restaurantId String?

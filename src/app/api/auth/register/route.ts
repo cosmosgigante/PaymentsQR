@@ -5,7 +5,7 @@ import bcrypt from "bcryptjs";
 
 export async function POST(req: NextRequest) {
   const ip = req.headers.get("x-forwarded-for") ?? "unknown";
-  if (!rateLimit(`register:${ip}`, 5, 60 * 1000)) {
+  if (!await rateLimit(`register:${ip}`, 5, 60 * 1000)) {
     return NextResponse.json({ error: "Demasiados intentos" }, { status: 429 });
   }
 
@@ -19,10 +19,14 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Datos inválidos" }, { status: 400 });
   }
 
-  // Solo se puede registrar si el email fue pre-aprobado por el SUPERADMIN
-  const admin = await db.admin.findUnique({ where: { email }, select: { id: true } });
+  const admin = await db.admin.findUnique({ where: { email }, select: { id: true, passwordHash: true } });
   if (!admin) {
     return NextResponse.json({ error: "Tu cuenta no tiene acceso" }, { status: 403 });
+  }
+
+  // Si ya tiene contraseña, no permitir sobreescritura
+  if (admin.passwordHash) {
+    return NextResponse.json({ error: "Esta cuenta ya está registrada" }, { status: 409 });
   }
 
   const hash = await bcrypt.hash(password, 12);
