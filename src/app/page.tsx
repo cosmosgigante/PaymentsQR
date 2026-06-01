@@ -54,13 +54,37 @@ export default function LoginPage() {
     setLoading(true);
     setError(null);
     const supabase = createClient();
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) {
-      setError("Credenciales inválidas");
-      setLoading(false);
+
+    // Intentar login primero
+    const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
+
+    if (!signInError) {
+      router.push("/api/auth/session");
       return;
     }
-    router.push("/api/auth/session");
+
+    // Si no existe la cuenta, intentar registrar (solo si el email está pre-aprobado)
+    if (signInError.message.toLowerCase().includes("invalid login credentials") ||
+        signInError.message.toLowerCase().includes("email not confirmed")) {
+      const { error: signUpError } = await supabase.auth.signUp({ email, password });
+      if (signUpError) {
+        setError("Credenciales inválidas");
+        setLoading(false);
+        return;
+      }
+      // Intentar login inmediatamente después del registro
+      const { error: retryError } = await supabase.auth.signInWithPassword({ email, password });
+      if (retryError) {
+        setError("Revisá tu email para confirmar tu cuenta y volvé a ingresar.");
+        setLoading(false);
+        return;
+      }
+      router.push("/api/auth/session");
+      return;
+    }
+
+    setError("Credenciales inválidas");
+    setLoading(false);
   }
 
   function handleGoogleLogin() {

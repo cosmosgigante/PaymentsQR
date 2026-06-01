@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import { db } from "@/lib/db";
+import { signToken } from "@/lib/auth";
 
 export async function GET(req: NextRequest) {
   const origin = new URL(req.url).origin;
@@ -37,6 +38,23 @@ export async function GET(req: NextRequest) {
     capturedCookies.forEach(({ name, value, options }) => {
       res.cookies.set(name, value, options as Parameters<typeof res.cookies.set>[2]);
     });
+
+    // Para owners que entran por email/contraseña, crear también la cookie JWT del panel /admin
+    if (admin.role !== "SUPERADMIN" && admin.restaurantId) {
+      const token = await signToken({
+        adminId: admin.id,
+        restaurantId: admin.restaurantId,
+        role: admin.role,
+      });
+      res.cookies.set("admin_token", token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "strict",
+        maxAge: 60 * 60 * 8,
+        path: "/",
+      });
+    }
+
     return res;
   } catch {
     return NextResponse.redirect(`${origin}/?error=auth`);
