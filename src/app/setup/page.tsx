@@ -363,11 +363,12 @@ export default function SuperAdminPage() {
               onClick={(e) => e.stopPropagation()}
               className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 max-w-sm w-full shadow-2xl"
             >
-              <h3 className="font-bold text-lg mb-1">¿Eliminar restaurante?</h3>
-              <p className="text-zinc-400 text-sm mb-1">
+              <div className="text-3xl mb-3 text-center">⚠️</div>
+              <h3 className="font-bold text-lg mb-1 text-center">¿Estás seguro?</h3>
+              <p className="text-zinc-400 text-sm mb-1 text-center">
                 Vas a eliminar <span className="text-white font-semibold">{confirmDelete.name}</span>.
               </p>
-              <p className="text-red-400 text-xs mb-5">Esta acción borra el restaurante, sus mesas y pedidos. No se puede deshacer.</p>
+              <p className="text-red-400 text-xs mb-5 text-center">Esta acción borra el restaurante, sus mesas y pedidos. No se puede deshacer.</p>
               <div className="flex gap-2">
                 <button
                   onClick={() => handleDelete(confirmDelete)}
