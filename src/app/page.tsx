@@ -25,10 +25,17 @@ export default function LoginPage() {
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true); setError(null);
-    const supabase = createClient();
-    const { error: err } = await supabase.auth.signInWithPassword({ email, password });
-    if (err) { setError("Credenciales inválidas"); setLoading(false); return; }
-    router.push("/api/auth/session");
+    const res = await fetch("/api/auth/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, password }),
+    });
+    const data = await res.json();
+    if (!res.ok) { setError(data.error ?? "Credenciales inválidas"); setLoading(false); return; }
+    // Redirigir según rol
+    if (data.role === "SUPERADMIN") { router.push("/setup"); }
+    else { router.push("/admin"); }
+    router.refresh();
   }
 
   async function handleRegister(e: React.FormEvent) {
