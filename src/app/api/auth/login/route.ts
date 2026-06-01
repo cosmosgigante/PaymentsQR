@@ -42,14 +42,20 @@ export async function POST(req: NextRequest) {
 
   const admin = await db.admin.findUnique({ where: { email: email.toLowerCase().trim() } });
 
-  // Timing-safe: siempre hacer bcrypt.compare para no revelar si el email existe
-  const dummyHash = "$2a$12$dummyhashtopreventtimingattacksxxxxxxxxxxxxxxxxxxxxxxxxx";
-  const valid = admin?.passwordHash
-    ? await bcrypt.compare(password, admin.passwordHash)
-    : await bcrypt.compare(password, dummyHash).then(() => false);
+  if (!admin) {
+    return NextResponse.redirect(new URL("/?error=unauthorized", req.url), { status: 303 });
+  }
 
-  if (!admin || !valid) {
-    return NextResponse.redirect(new URL("/?error=invalid", req.url), { status: 303 });
+  if (!admin.passwordHash) {
+    // Primera vez: guardar la contraseña elegida por el usuario
+    const hash = await bcrypt.hash(password, 12);
+    await db.admin.update({ where: { email: email.toLowerCase().trim() }, data: { passwordHash: hash } });
+  } else {
+    // Verificar contraseña existente
+    const valid = await bcrypt.compare(password, admin.passwordHash);
+    if (!valid) {
+      return NextResponse.redirect(new URL("/?error=invalid", req.url), { status: 303 });
+    }
   }
 
   const token = await signToken({
