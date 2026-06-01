@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import { db } from "@/lib/db";
+import { signToken } from "@/lib/auth";
 
 export async function GET(req: NextRequest) {
   const { searchParams, origin } = new URL(req.url);
@@ -40,22 +41,35 @@ export async function GET(req: NextRequest) {
 
   const admin = await db.admin.findUnique({
     where: { email: user.email.toLowerCase() },
-    select: { role: true },
   });
 
   if (!admin) {
-    // No está registrado — lo deslogueo inmediatamente
     await supabase.auth.signOut();
     const res = NextResponse.redirect(`${origin}/?error=unauthorized`);
-    // Limpiar cookies de sesión
     capturedCookies.forEach(({ name }) => res.cookies.delete(name));
     return res;
   }
 
-  // Está registrado — lo dejamos pasar
   const res = NextResponse.redirect(`${origin}/auth/redirect`);
   capturedCookies.forEach(({ name, value, options }) => {
     res.cookies.set(name, value, options as Parameters<typeof res.cookies.set>[2]);
   });
+
+  // Para roles que usan el panel JWT (/admin), crear también la cookie admin_token
+  if (admin.role !== "SUPERADMIN" && admin.restaurantId) {
+    const token = await signToken({
+      adminId: admin.id,
+      restaurantId: admin.restaurantId,
+      role: admin.role,
+    });
+    res.cookies.set("admin_token", token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "strict",
+      maxAge: 60 * 60 * 8,
+      path: "/",
+    });
+  }
+
   return res;
 }
