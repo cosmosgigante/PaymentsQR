@@ -78,11 +78,63 @@ export default function LoginPage() {
       className="min-h-screen bg-zinc-950 flex items-center justify-center p-4 relative overflow-hidden"
       style={{ paddingTop: "max(1rem, env(safe-area-inset-top))", paddingBottom: "max(1rem, env(safe-area-inset-bottom))" }}
     >
-      {/* Fondo con gradientes */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute -top-32 -left-32 w-[500px] h-[500px] rounded-full bg-orange-500/10 blur-[120px]" />
-        <div className="absolute -bottom-32 -right-32 w-[500px] h-[500px] rounded-full bg-amber-500/10 blur-[120px]" />
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] rounded-full bg-orange-900/10 blur-[100px]" />
+      {/* Fondo */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none select-none">
+        {/* Gradientes */}
+        <div className="absolute -top-40 -left-40 w-[600px] h-[600px] rounded-full bg-orange-500/10 blur-[140px]" />
+        <div className="absolute -bottom-40 -right-40 w-[600px] h-[600px] rounded-full bg-amber-500/10 blur-[140px]" />
+        <div className="absolute top-1/2 left-1/4 -translate-y-1/2 w-[400px] h-[400px] rounded-full bg-orange-700/8 blur-[100px]" />
+
+        {/* QR decorativo - arriba izquierda */}
+        <svg className="absolute top-10 left-10 opacity-[0.06]" width="90" height="90" viewBox="0 0 90 90" fill="white">
+          <rect x="2" y="2" width="36" height="36" rx="4" fill="none" stroke="white" strokeWidth="4"/>
+          <rect x="12" y="12" width="16" height="16" rx="2"/>
+          <rect x="52" y="2" width="36" height="36" rx="4" fill="none" stroke="white" strokeWidth="4"/>
+          <rect x="62" y="12" width="16" height="16" rx="2"/>
+          <rect x="2" y="52" width="36" height="36" rx="4" fill="none" stroke="white" strokeWidth="4"/>
+          <rect x="12" y="62" width="16" height="16" rx="2"/>
+          <rect x="52" y="52" width="8" height="8" rx="1"/><rect x="64" y="52" width="8" height="8" rx="1"/>
+          <rect x="76" y="52" width="8" height="8" rx="1"/><rect x="52" y="64" width="8" height="8" rx="1"/>
+          <rect x="64" y="64" width="8" height="8" rx="1"/><rect x="76" y="76" width="8" height="8" rx="1"/>
+          <rect x="52" y="76" width="8" height="8" rx="1"/>
+        </svg>
+
+        {/* Tenedor y cuchillo - arriba derecha */}
+        <svg className="absolute top-16 right-16 opacity-[0.06]" width="60" height="100" viewBox="0 0 60 100" fill="white">
+          <path d="M10 5 L10 35 Q10 42 16 45 L16 95 Q16 98 19 98 Q22 98 22 95 L22 45 Q28 42 28 35 L28 5" stroke="white" strokeWidth="3" fill="none" strokeLinecap="round"/>
+          <line x1="14" y1="5" x2="14" y2="30" stroke="white" strokeWidth="2.5" strokeLinecap="round"/>
+          <line x1="19" y1="5" x2="19" y2="30" stroke="white" strokeWidth="2.5" strokeLinecap="round"/>
+          <line x1="24" y1="5" x2="24" y2="30" stroke="white" strokeWidth="2.5" strokeLinecap="round"/>
+          <path d="M45 5 Q55 5 55 20 Q55 32 48 36 L48 95 Q48 98 45 98 Q42 98 42 95 L42 5" stroke="white" strokeWidth="3" fill="none" strokeLinecap="round"/>
+        </svg>
+
+        {/* Plato - abajo izquierda */}
+        <svg className="absolute bottom-20 left-20 opacity-[0.06]" width="100" height="100" viewBox="0 0 100 100" fill="none">
+          <circle cx="50" cy="50" r="44" stroke="white" strokeWidth="4"/>
+          <circle cx="50" cy="50" r="32" stroke="white" strokeWidth="2.5"/>
+          <circle cx="50" cy="50" r="18" stroke="white" strokeWidth="2"/>
+          <path d="M30 20 Q50 10 70 20" stroke="white" strokeWidth="3" strokeLinecap="round"/>
+        </svg>
+
+        {/* QR pequeño - abajo derecha */}
+        <svg className="absolute bottom-24 right-12 opacity-[0.05]" width="60" height="60" viewBox="0 0 90 90" fill="white">
+          <rect x="2" y="2" width="36" height="36" rx="4" fill="none" stroke="white" strokeWidth="4"/>
+          <rect x="12" y="12" width="16" height="16" rx="2"/>
+          <rect x="52" y="2" width="36" height="36" rx="4" fill="none" stroke="white" strokeWidth="4"/>
+          <rect x="62" y="12" width="16" height="16" rx="2"/>
+          <rect x="2" y="52" width="36" height="36" rx="4" fill="none" stroke="white" strokeWidth="4"/>
+          <rect x="12" y="62" width="16" height="16" rx="2"/>
+          <rect x="52" y="52" width="8" height="8" rx="1"/><rect x="64" y="52" width="8" height="8" rx="1"/>
+          <rect x="76" y="64" width="8" height="8" rx="1"/><rect x="52" y="76" width="8" height="8" rx="1"/>
+          <rect x="64" y="76" width="8" height="8" rx="1"/>
+        </svg>
+
+        {/* Copa de vino - centro izquierda */}
+        <svg className="absolute top-1/2 left-8 -translate-y-1/2 opacity-[0.05]" width="50" height="90" viewBox="0 0 50 90" fill="white">
+          <path d="M5 5 L45 5 Q45 40 25 45 Q5 40 5 5Z" stroke="white" strokeWidth="3" fill="none"/>
+          <line x1="25" y1="45" x2="25" y2="75" stroke="white" strokeWidth="3" strokeLinecap="round"/>
+          <line x1="10" y1="75" x2="40" y2="75" stroke="white" strokeWidth="3" strokeLinecap="round"/>
+        </svg>
       </div>
 
       {/* Card de login */}
