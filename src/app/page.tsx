@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { createClient } from "@/lib/supabase/client";
 
@@ -9,7 +8,6 @@ import { createClient } from "@/lib/supabase/client";
 type Mode = "login" | "register" | "forgot";
 
 export default function LoginPage() {
-  const router = useRouter();
   const [mode, setMode]             = useState<Mode>("login");
   const [email, setEmail]           = useState("");
   const [password, setPassword]     = useState("");
@@ -32,10 +30,7 @@ export default function LoginPage() {
     });
     const data = await res.json();
     if (!res.ok) { setError(data.error ?? "Credenciales inválidas"); setLoading(false); return; }
-    // Redirigir según rol
-    if (data.role === "SUPERADMIN") { router.push("/setup"); }
-    else { router.push("/admin"); }
-    router.refresh();
+    window.location.href = data.role === "SUPERADMIN" ? "/setup" : "/admin";
   }
 
   async function handleRegister(e: React.FormEvent) {
@@ -53,11 +48,15 @@ export default function LoginPage() {
     const data = await res.json();
     if (!res.ok) { setError(data.error ?? "Error al registrar"); setLoading(false); return; }
 
-    // Login inmediato
-    const supabase = createClient();
-    const { error: err } = await supabase.auth.signInWithPassword({ email, password });
-    if (err) { setError("Registro exitoso, intentá iniciar sesión"); setLoading(false); return; }
-    router.push("/api/auth/session");
+    // Login inmediato con el sistema JWT
+    const loginRes = await fetch("/api/auth/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, password }),
+    });
+    const loginData = await loginRes.json();
+    if (!loginRes.ok) { setError("Cuenta creada. Iniciá sesión."); setLoading(false); return; }
+    window.location.href = loginData.role === "SUPERADMIN" ? "/setup" : "/admin";
   }
 
   async function handleForgot(e: React.FormEvent) {
