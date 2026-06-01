@@ -23,16 +23,16 @@ export async function GET(req: NextRequest) {
     }
   );
 
+  let user;
   try {
-    const { error } = await supabase.auth.exchangeCodeForSession(code);
+    const { error, data } = await supabase.auth.exchangeCodeForSession(code);
     if (error) return NextResponse.redirect(`${origin}/?error=auth`);
+    user = data?.user;
   } catch {
     return NextResponse.redirect(`${origin}/?error=auth`);
   }
 
   // Verificar que el email esté registrado en la DB ANTES de dejarlo entrar
-  const { data: { user } } = await supabase.auth.getUser();
-
   if (!user?.email) {
     await supabase.auth.signOut();
     return NextResponse.redirect(`${origin}/?error=unauthorized`);
