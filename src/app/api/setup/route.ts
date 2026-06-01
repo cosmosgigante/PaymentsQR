@@ -27,13 +27,21 @@ export async function GET(req: NextRequest) {
 
   const restaurants = await db.restaurant.findMany({
     include: {
-      admins: { select: { email: true, role: true } },
+      admins: { select: { email: true, role: true, passwordHash: true } },
       _count: { select: { tables: true, orders: true } },
     },
     orderBy: { createdAt: "desc" },
   });
 
-  return NextResponse.json({ restaurants });
+  const sanitized = restaurants.map((r) => ({
+    ...r,
+    admins: r.admins.map(({ passwordHash, ...a }) => ({
+      ...a,
+      hasPassword: !!passwordHash,
+    })),
+  }));
+
+  return NextResponse.json({ restaurants: sanitized });
 }
 
 export async function POST(req: NextRequest) {
@@ -89,4 +97,15 @@ export async function POST(req: NextRequest) {
   });
 
   return NextResponse.json({ ok: true, restaurantId: restaurant.id }, { status: 201 });
+}
+
+export async function DELETE(req: NextRequest) {
+  const admin = await requireSuperAdmin(req);
+  if (!admin) return NextResponse.json({ error: "No autorizado" }, { status: 403 });
+
+  const { restaurantId } = await req.json().catch(() => ({})) as { restaurantId?: string };
+  if (!restaurantId) return NextResponse.json({ error: "Falta restaurantId" }, { status: 400 });
+
+  await db.restaurant.delete({ where: { id: restaurantId } });
+  return NextResponse.json({ ok: true });
 }
