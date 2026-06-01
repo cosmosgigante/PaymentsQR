@@ -42,49 +42,63 @@ function TableIcon({ rotate, scale }: { rotate: number; scale: number }) {
   );
 }
 
+type Mode = "login" | "register" | "forgot";
+
 export default function LoginPage() {
   const router = useRouter();
-  const [email, setEmail]       = useState("");
-  const [password, setPassword] = useState("");
-  const [error, setError]       = useState<string | null>(null);
-  const [loading, setLoading]   = useState(false);
+  const [mode, setMode]             = useState<Mode>("login");
+  const [email, setEmail]           = useState("");
+  const [password, setPassword]     = useState("");
+  const [confirm, setConfirm]       = useState("");
+  const [error, setError]           = useState<string | null>(null);
+  const [success, setSuccess]       = useState<string | null>(null);
+  const [loading, setLoading]       = useState(false);
 
-  async function handleEmailLogin(e: React.FormEvent) {
+  function switchMode(m: Mode) {
+    setMode(m); setError(null); setSuccess(null);
+  }
+
+  async function handleLogin(e: React.FormEvent) {
     e.preventDefault();
-    setLoading(true);
-    setError(null);
+    setLoading(true); setError(null);
     const supabase = createClient();
+    const { error: err } = await supabase.auth.signInWithPassword({ email, password });
+    if (err) { setError("Credenciales inválidas"); setLoading(false); return; }
+    router.push("/api/auth/session");
+  }
 
-    // Intentar login primero
-    const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
+  async function handleRegister(e: React.FormEvent) {
+    e.preventDefault();
+    if (password !== confirm) { setError("Las contraseñas no coinciden"); return; }
+    if (password.length < 6) { setError("La contraseña debe tener al menos 6 caracteres"); return; }
+    setLoading(true); setError(null);
 
-    if (!signInError) {
-      router.push("/api/auth/session");
-      return;
-    }
+    // Registrar server-side (crea el usuario en Supabase con email confirmado, solo si está pre-aprobado)
+    const res = await fetch("/api/auth/register", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, password }),
+    });
+    const data = await res.json();
+    if (!res.ok) { setError(data.error ?? "Error al registrar"); setLoading(false); return; }
 
-    // Si no existe la cuenta, intentar registrar (solo si el email está pre-aprobado)
-    if (signInError.message.toLowerCase().includes("invalid login credentials") ||
-        signInError.message.toLowerCase().includes("email not confirmed")) {
-      const { error: signUpError } = await supabase.auth.signUp({ email, password });
-      if (signUpError) {
-        setError("Credenciales inválidas");
-        setLoading(false);
-        return;
-      }
-      // Intentar login inmediatamente después del registro
-      const { error: retryError } = await supabase.auth.signInWithPassword({ email, password });
-      if (retryError) {
-        setError("Revisá tu email para confirmar tu cuenta y volvé a ingresar.");
-        setLoading(false);
-        return;
-      }
-      router.push("/api/auth/session");
-      return;
-    }
+    // Login inmediato
+    const supabase = createClient();
+    const { error: err } = await supabase.auth.signInWithPassword({ email, password });
+    if (err) { setError("Registro exitoso, intentá iniciar sesión"); setLoading(false); return; }
+    router.push("/api/auth/session");
+  }
 
-    setError("Credenciales inválidas");
+  async function handleForgot(e: React.FormEvent) {
+    e.preventDefault();
+    setLoading(true); setError(null);
+    const supabase = createClient();
+    const { error: err } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/auth/reset-password`,
+    });
     setLoading(false);
+    if (err) { setError("Error al enviar el email"); return; }
+    setSuccess("Revisá tu email para restablecer tu contraseña.");
   }
 
   function handleGoogleLogin() {
@@ -173,37 +187,76 @@ export default function LoginPage() {
           <div className="flex-1 h-px bg-zinc-800" />
         </div>
 
-        {/* Email/password */}
-        <form onSubmit={handleEmailLogin} className="space-y-3">
-          <input
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-            autoComplete="email"
-            inputMode="email"
-            placeholder="Email"
-            className="w-full bg-zinc-800 border border-zinc-700 text-white rounded-xl px-4 py-3.5 text-[16px] focus:outline-none focus:ring-2 focus:ring-white/20 placeholder:text-zinc-600 min-h-[52px] transition-colors"
-          />
-          <input
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-            autoComplete="current-password"
-            placeholder="Contraseña"
-            className="w-full bg-zinc-800 border border-zinc-700 text-white rounded-xl px-4 py-3.5 text-[16px] focus:outline-none focus:ring-2 focus:ring-white/20 placeholder:text-zinc-600 min-h-[52px] transition-colors"
-          />
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full bg-zinc-700 hover:bg-zinc-600 active:bg-zinc-500 disabled:opacity-50 text-white font-bold py-4 rounded-xl transition-all text-[15px] min-h-[56px]"
-          >
-            {loading ? "Ingresando..." : "Ingresar"}
-          </button>
-        </form>
+        {/* Toggle login / registro */}
+        {mode !== "forgot" && (
+          <div className="flex bg-zinc-800 rounded-xl p-1 mb-4">
+            <button type="button" onClick={() => switchMode("login")}
+              className={`flex-1 py-2 rounded-lg text-sm font-semibold transition-all ${mode === "login" ? "bg-white text-zinc-900 shadow" : "text-zinc-400 hover:text-white"}`}>
+              Iniciar sesión
+            </button>
+            <button type="button" onClick={() => switchMode("register")}
+              className={`flex-1 py-2 rounded-lg text-sm font-semibold transition-all ${mode === "register" ? "bg-white text-zinc-900 shadow" : "text-zinc-400 hover:text-white"}`}>
+              Registrarse
+            </button>
+          </div>
+        )}
 
-        {/* Footer */}
+        {/* Mensaje éxito */}
+        {success && (
+          <p className="text-emerald-400 text-xs text-center bg-emerald-950/40 border border-emerald-900/40 rounded-xl py-2.5 px-3 mb-3">{success}</p>
+        )}
+
+        {/* Formulario login */}
+        {mode === "login" && (
+          <form onSubmit={handleLogin} className="space-y-3">
+            <input type="email" value={email} onChange={e => setEmail(e.target.value)} required autoComplete="email" inputMode="email" placeholder="Email"
+              className="w-full bg-zinc-800 border border-zinc-700 text-white rounded-xl px-4 py-3.5 text-[16px] focus:outline-none focus:ring-2 focus:ring-white/20 placeholder:text-zinc-600 min-h-[52px]" />
+            <input type="password" value={password} onChange={e => setPassword(e.target.value)} required autoComplete="current-password" placeholder="Contraseña"
+              className="w-full bg-zinc-800 border border-zinc-700 text-white rounded-xl px-4 py-3.5 text-[16px] focus:outline-none focus:ring-2 focus:ring-white/20 placeholder:text-zinc-600 min-h-[52px]" />
+            <button type="submit" disabled={loading}
+              className="w-full bg-zinc-700 hover:bg-zinc-600 disabled:opacity-50 text-white font-bold py-4 rounded-xl transition-all text-[15px] min-h-[56px]">
+              {loading ? "Ingresando..." : "Ingresar"}
+            </button>
+            <button type="button" onClick={() => switchMode("forgot")}
+              className="w-full text-zinc-500 hover:text-zinc-300 text-xs text-center transition-colors pt-1">
+              Olvidé mi contraseña
+            </button>
+          </form>
+        )}
+
+        {/* Formulario registro */}
+        {mode === "register" && (
+          <form onSubmit={handleRegister} className="space-y-3">
+            <input type="email" value={email} onChange={e => setEmail(e.target.value)} required autoComplete="email" inputMode="email" placeholder="Email"
+              className="w-full bg-zinc-800 border border-zinc-700 text-white rounded-xl px-4 py-3.5 text-[16px] focus:outline-none focus:ring-2 focus:ring-white/20 placeholder:text-zinc-600 min-h-[52px]" />
+            <input type="password" value={password} onChange={e => setPassword(e.target.value)} required autoComplete="new-password" placeholder="Contraseña"
+              className="w-full bg-zinc-800 border border-zinc-700 text-white rounded-xl px-4 py-3.5 text-[16px] focus:outline-none focus:ring-2 focus:ring-white/20 placeholder:text-zinc-600 min-h-[52px]" />
+            <input type="password" value={confirm} onChange={e => setConfirm(e.target.value)} required autoComplete="new-password" placeholder="Repetir contraseña"
+              className="w-full bg-zinc-800 border border-zinc-700 text-white rounded-xl px-4 py-3.5 text-[16px] focus:outline-none focus:ring-2 focus:ring-white/20 placeholder:text-zinc-600 min-h-[52px]" />
+            <button type="submit" disabled={loading}
+              className="w-full bg-zinc-700 hover:bg-zinc-600 disabled:opacity-50 text-white font-bold py-4 rounded-xl transition-all text-[15px] min-h-[56px]">
+              {loading ? "Creando cuenta..." : "Crear cuenta"}
+            </button>
+          </form>
+        )}
+
+        {/* Formulario olvidé contraseña */}
+        {mode === "forgot" && (
+          <form onSubmit={handleForgot} className="space-y-3">
+            <p className="text-zinc-400 text-sm text-center mb-1">Ingresá tu email y te enviamos un link para restablecer tu contraseña.</p>
+            <input type="email" value={email} onChange={e => setEmail(e.target.value)} required autoComplete="email" inputMode="email" placeholder="Email"
+              className="w-full bg-zinc-800 border border-zinc-700 text-white rounded-xl px-4 py-3.5 text-[16px] focus:outline-none focus:ring-2 focus:ring-white/20 placeholder:text-zinc-600 min-h-[52px]" />
+            <button type="submit" disabled={loading}
+              className="w-full bg-zinc-700 hover:bg-zinc-600 disabled:opacity-50 text-white font-bold py-4 rounded-xl transition-all text-[15px] min-h-[56px]">
+              {loading ? "Enviando..." : "Enviar link"}
+            </button>
+            <button type="button" onClick={() => switchMode("login")}
+              className="w-full text-zinc-500 hover:text-zinc-300 text-xs text-center transition-colors pt-1">
+              Volver al inicio de sesión
+            </button>
+          </form>
+        )}
+
         <p className="text-zinc-700 text-[11px] text-center mt-5">
           Solo usuarios autorizados pueden acceder
         </p>
