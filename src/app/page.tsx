@@ -5,42 +5,6 @@ import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { createClient } from "@/lib/supabase/client";
 
-// Mesas decorativas para el fondo
-const TABLES = [
-  { id: 1, x: "8%",  y: "12%", rotate: -12, scale: 0.85 },
-  { id: 2, x: "72%", y: "8%",  rotate: 8,   scale: 0.9  },
-  { id: 3, x: "85%", y: "55%", rotate: -6,  scale: 0.75 },
-  { id: 4, x: "5%",  y: "65%", rotate: 15,  scale: 0.8  },
-  { id: 5, x: "55%", y: "78%", rotate: -10, scale: 0.7  },
-  { id: 6, x: "30%", y: "5%",  rotate: 5,   scale: 0.65 },
-];
-
-function TableIcon({ rotate, scale }: { rotate: number; scale: number }) {
-  return (
-    <div
-      style={{ transform: `rotate(${rotate}deg) scale(${scale})`, opacity: 0.07 }}
-      className="select-none pointer-events-none"
-    >
-      {/* Mesa con sillas */}
-      <svg width="120" height="100" viewBox="0 0 120 100" fill="white">
-        {/* Superficie mesa */}
-        <rect x="20" y="35" width="80" height="30" rx="6" />
-        {/* Pata central */}
-        <rect x="54" y="65" width="12" height="18" rx="3" />
-        {/* Base */}
-        <rect x="40" y="80" width="40" height="6" rx="3" />
-        {/* Silla arriba izq */}
-        <rect x="10" y="15" width="28" height="22" rx="5" />
-        {/* Silla arriba der */}
-        <rect x="82" y="15" width="28" height="22" rx="5" />
-        {/* Silla abajo izq */}
-        <rect x="10" y="63" width="28" height="22" rx="5" />
-        {/* Silla abajo der */}
-        <rect x="82" y="63" width="28" height="22" rx="5" />
-      </svg>
-    </div>
-  );
-}
 
 type Mode = "login" | "register" | "forgot";
 
@@ -114,23 +78,11 @@ export default function LoginPage() {
       className="min-h-screen bg-zinc-950 flex items-center justify-center p-4 relative overflow-hidden"
       style={{ paddingTop: "max(1rem, env(safe-area-inset-top))", paddingBottom: "max(1rem, env(safe-area-inset-bottom))" }}
     >
-      {/* Mesas decorativas en el fondo */}
-      {TABLES.map((table, i) => (
-        <motion.div
-          key={table.id}
-          className="absolute"
-          style={{ left: table.x, top: table.y }}
-          initial={{ opacity: 0, scale: 0.6 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ delay: i * 0.1, duration: 0.6, ease: "easeOut" }}
-        >
-          <TableIcon rotate={table.rotate} scale={table.scale} />
-        </motion.div>
-      ))}
-
-      {/* Glow sutil en el centro */}
-      <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-        <div className="w-[500px] h-[500px] rounded-full bg-zinc-800/20 blur-3xl" />
+      {/* Fondo con gradientes */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute -top-32 -left-32 w-[500px] h-[500px] rounded-full bg-orange-500/10 blur-[120px]" />
+        <div className="absolute -bottom-32 -right-32 w-[500px] h-[500px] rounded-full bg-amber-500/10 blur-[120px]" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] rounded-full bg-orange-900/10 blur-[100px]" />
       </div>
 
       {/* Card de login */}
