@@ -118,8 +118,15 @@ export default function SuperAdminPage() {
   const pendingCount = restaurants.length - activeCount;
 
   return (
-    <div className="min-h-screen bg-zinc-950 text-white">
-      <div className="max-w-3xl mx-auto px-4 py-8">
+    <div className="min-h-screen bg-zinc-950 text-white relative overflow-hidden">
+      {/* Gradientes — mismo fondo que el login */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none select-none">
+        <div className="absolute -top-40 -left-40 w-[600px] h-[600px] rounded-full bg-orange-500/10 blur-[140px]" />
+        <div className="absolute -bottom-40 -right-40 w-[600px] h-[600px] rounded-full bg-amber-500/10 blur-[140px]" />
+        <div className="absolute top-1/2 left-1/4 -translate-y-1/2 w-[400px] h-[400px] rounded-full bg-orange-700/8 blur-[100px]" />
+      </div>
+
+      <div className="relative z-10 max-w-3xl mx-auto px-4 py-8">
 
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
