@@ -15,22 +15,29 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  let body: { email?: string; password?: string };
+  let email: string | undefined;
+  let password: string | undefined;
+  const contentType = req.headers.get("content-type") ?? "";
   try {
-    body = await req.json();
+    if (contentType.includes("application/x-www-form-urlencoded")) {
+      const form = await req.formData();
+      email = form.get("email")?.toString();
+      password = form.get("password")?.toString();
+    } else {
+      const body = await req.json();
+      email = body.email;
+      password = body.password;
+    }
   } catch {
-    return NextResponse.json({ error: "Request inválido" }, { status: 400 });
+    return NextResponse.redirect(new URL("/?error=auth", req.url), { status: 303 });
   }
 
-  const { email, password } = body;
-
-  if (!email || typeof email !== "string" || !password || typeof password !== "string") {
-    return NextResponse.json({ error: "Faltan datos" }, { status: 400 });
+  if (!email || !password) {
+    return NextResponse.redirect(new URL("/?error=auth", req.url), { status: 303 });
   }
 
-  // Limitar tamaño para evitar ataques con strings enormes
   if (email.length > 254 || password.length > 128) {
-    return NextResponse.json({ error: "Credenciales inválidas" }, { status: 401 });
+    return NextResponse.redirect(new URL("/?error=auth", req.url), { status: 303 });
   }
 
   const admin = await db.admin.findUnique({ where: { email: email.toLowerCase().trim() } });
@@ -42,7 +49,7 @@ export async function POST(req: NextRequest) {
     : await bcrypt.compare(password, dummyHash).then(() => false);
 
   if (!admin || !valid) {
-    return NextResponse.json({ error: "Credenciales inválidas" }, { status: 401 });
+    return NextResponse.redirect(new URL("/?error=invalid", req.url), { status: 303 });
   }
 
   const token = await signToken({
@@ -51,12 +58,13 @@ export async function POST(req: NextRequest) {
     role: admin.role,
   });
 
-  const res = NextResponse.json({ ok: true, role: admin.role });
+  const destination = admin.role === "SUPERADMIN" ? "/setup" : "/admin";
+  const res = NextResponse.redirect(new URL(destination, req.url), { status: 303 });
   res.cookies.set("admin_token", token, {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
-    sameSite: "strict", // strict es más seguro que lax para CSRF
-    maxAge: 60 * 60 * 8, // 8 horas
+    sameSite: "lax",
+    maxAge: 60 * 60 * 8,
     path: "/",
   });
   return res;

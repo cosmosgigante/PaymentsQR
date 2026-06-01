@@ -23,14 +23,17 @@ export default function LoginPage() {
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true); setError(null);
-    const res = await fetch("/api/auth/login", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, password }),
+    // Usar form nativo para que el browser procese el redirect+cookie del servidor
+    const form = document.createElement("form");
+    form.method = "POST";
+    form.action = "/api/auth/login";
+    [["email", email], ["password", password]].forEach(([name, value]) => {
+      const input = document.createElement("input");
+      input.type = "hidden"; input.name = name; input.value = value;
+      form.appendChild(input);
     });
-    const data = await res.json();
-    if (!res.ok) { setError(data.error ?? "Credenciales inválidas"); setLoading(false); return; }
-    window.location.href = data.role === "SUPERADMIN" ? "/setup" : "/admin";
+    document.body.appendChild(form);
+    form.submit();
   }
 
   async function handleRegister(e: React.FormEvent) {
@@ -172,7 +175,7 @@ export default function LoginPage() {
             animate={{ opacity: 1, y: 0 }}
             className="text-red-400 text-xs text-center bg-red-950/40 border border-red-900/40 rounded-xl py-2.5 px-3 mb-4"
           >
-            {error || (urlError === "unauthorized" ? "Tu cuenta no tiene acceso." : "Error al iniciar sesión.")}
+            {error || (urlError === "unauthorized" ? "Tu cuenta no tiene acceso." : urlError === "invalid" ? "Credenciales inválidas." : "Error al iniciar sesión.")}
           </motion.p>
         )}
 
