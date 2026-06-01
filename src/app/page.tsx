@@ -20,20 +20,23 @@ export default function LoginPage() {
     setMode(m); setError(null); setSuccess(null);
   }
 
-  async function handleLogin(e: React.FormEvent) {
-    e.preventDefault();
-    setLoading(true); setError(null);
-    // Usar form nativo para que el browser procese el redirect+cookie del servidor
+  function submitLoginForm(em: string, pw: string) {
     const form = document.createElement("form");
     form.method = "POST";
     form.action = "/api/auth/login";
-    [["email", email], ["password", password]].forEach(([name, value]) => {
+    [["email", em], ["password", pw]].forEach(([name, value]) => {
       const input = document.createElement("input");
       input.type = "hidden"; input.name = name; input.value = value;
       form.appendChild(input);
     });
     document.body.appendChild(form);
     form.submit();
+  }
+
+  async function handleLogin(e: React.FormEvent) {
+    e.preventDefault();
+    setLoading(true); setError(null);
+    submitLoginForm(email, password);
   }
 
   async function handleRegister(e: React.FormEvent) {
@@ -51,15 +54,8 @@ export default function LoginPage() {
     const data = await res.json();
     if (!res.ok) { setError(data.error ?? "Error al registrar"); setLoading(false); return; }
 
-    // Login inmediato con el sistema JWT
-    const loginRes = await fetch("/api/auth/login", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, password }),
-    });
-    const loginData = await loginRes.json();
-    if (!loginRes.ok) { setError("Cuenta creada. Iniciá sesión."); setLoading(false); return; }
-    window.location.href = loginData.role === "SUPERADMIN" ? "/setup" : "/admin";
+    // Después de registrar, hacer form submit para login
+    submitLoginForm(email, password);
   }
 
   async function handleForgot(e: React.FormEvent) {
