@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { createClient } from "@/lib/supabase/client";
-import { loginAction, registerAction } from "@/app/actions/auth";
 
 
 type Mode = "login" | "register" | "forgot";
@@ -174,9 +173,9 @@ export default function LoginPage() {
           <p className="text-emerald-400 text-xs text-center bg-emerald-950/40 border border-emerald-900/40 rounded-xl py-2.5 px-3 mb-3">{success}</p>
         )}
 
-        {/* Formulario login — Server Action */}
+        {/* Formulario login */}
         {mode === "login" && (
-          <form action={loginAction} className="space-y-3">
+          <form method="POST" action="/api/auth/login" className="space-y-3">
             <input type="email" name="email" required autoComplete="email" inputMode="email" placeholder="Email"
               className="w-full bg-zinc-800 border border-zinc-700 text-white rounded-xl px-4 py-3.5 text-[16px] focus:outline-none focus:ring-2 focus:ring-white/20 placeholder:text-zinc-600 min-h-[52px]" />
             <input type="password" name="password" required autoComplete="current-password" placeholder="Contraseña"
@@ -192,9 +191,9 @@ export default function LoginPage() {
           </form>
         )}
 
-        {/* Formulario registro — Server Action */}
+        {/* Formulario registro */}
         {mode === "register" && (
-          <form action={registerAction} className="space-y-3">
+          <form method="POST" action="/api/auth/register-login" className="space-y-3">
             <input type="email" name="email" required autoComplete="email" inputMode="email" placeholder="Email"
               className="w-full bg-zinc-800 border border-zinc-700 text-white rounded-xl px-4 py-3.5 text-[16px] focus:outline-none focus:ring-2 focus:ring-white/20 placeholder:text-zinc-600 min-h-[52px]" />
             <input type="password" name="password" required autoComplete="new-password" placeholder="Contraseña"
