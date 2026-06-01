@@ -154,12 +154,27 @@ export default function LoginPage() {
           <div className="flex-1 h-px bg-zinc-800" />
         </div>
 
+        {/* Toggle login / registro */}
+        {mode !== "forgot" && (
+          <div className="flex bg-zinc-800 rounded-xl p-1 mb-4">
+            <button type="button" onClick={() => switchMode("login")}
+              className={`flex-1 py-2 rounded-lg text-sm font-semibold transition-all ${mode === "login" ? "bg-white text-zinc-900 shadow" : "text-zinc-400 hover:text-white"}`}>
+              Iniciar sesión
+            </button>
+            <button type="button" onClick={() => switchMode("register")}
+              className={`flex-1 py-2 rounded-lg text-sm font-semibold transition-all ${mode === "register" ? "bg-white text-zinc-900 shadow" : "text-zinc-400 hover:text-white"}`}>
+              Registrarse
+            </button>
+          </div>
+        )}
+
         {/* Mensaje éxito */}
         {success && (
           <p className="text-emerald-400 text-xs text-center bg-emerald-950/40 border border-emerald-900/40 rounded-xl py-2.5 px-3 mb-3">{success}</p>
         )}
 
-        {mode !== "forgot" ? (
+        {/* Formulario login */}
+        {mode === "login" && (
           <form method="POST" action="/api/auth/login" className="space-y-3">
             <input type="email" name="email" required autoComplete="email" inputMode="email" placeholder="Email"
               className="w-full bg-zinc-800 border border-zinc-700 text-white rounded-xl px-4 py-3.5 text-[16px] focus:outline-none focus:ring-2 focus:ring-white/20 placeholder:text-zinc-600 min-h-[52px]" />
@@ -174,7 +189,26 @@ export default function LoginPage() {
               Olvidé mi contraseña
             </button>
           </form>
-        ) : (
+        )}
+
+        {/* Formulario registro */}
+        {mode === "register" && (
+          <form method="POST" action="/api/auth/register-login" className="space-y-3">
+            <input type="email" name="email" required autoComplete="email" inputMode="email" placeholder="Email"
+              className="w-full bg-zinc-800 border border-zinc-700 text-white rounded-xl px-4 py-3.5 text-[16px] focus:outline-none focus:ring-2 focus:ring-white/20 placeholder:text-zinc-600 min-h-[52px]" />
+            <input type="password" name="password" required autoComplete="new-password" placeholder="Contraseña"
+              className="w-full bg-zinc-800 border border-zinc-700 text-white rounded-xl px-4 py-3.5 text-[16px] focus:outline-none focus:ring-2 focus:ring-white/20 placeholder:text-zinc-600 min-h-[52px]" />
+            <input type="password" name="confirm" required autoComplete="new-password" placeholder="Repetir contraseña"
+              className="w-full bg-zinc-800 border border-zinc-700 text-white rounded-xl px-4 py-3.5 text-[16px] focus:outline-none focus:ring-2 focus:ring-white/20 placeholder:text-zinc-600 min-h-[52px]" />
+            <button type="submit"
+              className="w-full bg-zinc-700 hover:bg-zinc-600 text-white font-bold py-4 rounded-xl transition-all text-[15px] min-h-[56px]">
+              Crear cuenta
+            </button>
+          </form>
+        )}
+
+        {/* Formulario olvidé contraseña */}
+        {mode === "forgot" && (
           <form onSubmit={handleForgot} className="space-y-3">
             <p className="text-zinc-400 text-sm text-center mb-1">Ingresá tu email y te enviamos un link para restablecer tu contraseña.</p>
             <input type="email" name="email" required autoComplete="email" inputMode="email" placeholder="Email"
@@ -185,7 +219,7 @@ export default function LoginPage() {
             </button>
             <button type="button" onClick={() => switchMode("login")}
               className="w-full text-zinc-500 hover:text-zinc-300 text-xs text-center transition-colors pt-1">
-              Volver
+              Volver al inicio de sesión
             </button>
           </form>
         )}
