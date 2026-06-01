@@ -17,6 +17,24 @@ type Restaurant = {
   admins: Admin[];
 };
 
+function LinkCopiable({ label, url }: { label: string; url: string }) {
+  const [copied, setCopied] = useState(false);
+  function copy() {
+    navigator.clipboard.writeText(url);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1500);
+  }
+  return (
+    <div className="flex items-center gap-1.5">
+      <span className="text-[10px] font-semibold text-zinc-600 uppercase tracking-widest w-7 shrink-0">{label}</span>
+      <span className="text-[10px] text-zinc-500 font-mono truncate flex-1 bg-zinc-800/60 px-2 py-1 rounded">{url}</span>
+      <button onClick={copy} className="shrink-0 text-[10px] text-zinc-500 hover:text-white bg-zinc-800 hover:bg-zinc-700 px-2 py-1 rounded transition-all">
+        {copied ? "✓" : "Copiar"}
+      </button>
+    </div>
+  );
+}
+
 export default function SuperAdminPage() {
   const router = useRouter();
   const [restaurants, setRestaurants] = useState<Restaurant[]>([]);
@@ -306,9 +324,21 @@ export default function SuperAdminPage() {
                       )}
 
                       {/* Stats */}
-                      <div className="flex gap-3 mt-2 text-xs text-zinc-600">
+                      <div className="flex gap-3 mt-2 mb-3 text-xs text-zinc-600">
                         <span>{r._count.tables} {r._count.tables === 1 ? "mesa" : "mesas"}</span>
                         <span>{r._count.orders} {r._count.orders === 1 ? "pedido" : "pedidos"}</span>
+                      </div>
+
+                      {/* Links generados */}
+                      <div className="space-y-1.5">
+                        <LinkCopiable
+                          label="Menú"
+                          url={`${process.env.NEXT_PUBLIC_APP_URL ?? "https://payments-qr.vercel.app"}/menu/${r.slug}`}
+                        />
+                        <LinkCopiable
+                          label="API"
+                          url={`${process.env.NEXT_PUBLIC_APP_URL ?? "https://payments-qr.vercel.app"}/api/menu?slug=${r.slug}`}
+                        />
                       </div>
                     </div>
 
