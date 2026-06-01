@@ -6,8 +6,6 @@ import { emitEvent } from "@/lib/events";
 import { rateLimit } from "@/lib/rateLimit";
 
 export async function POST(req: NextRequest) {
-  // Max 5 pedidos por mesa cada 2 minutos (anti-spam)
-  const ip = req.headers.get("x-forwarded-for") ?? "unknown";
 
   let body: { tableToken?: string; items?: CartItem[]; paymentMode?: string; notes?: string };
   try {
@@ -18,7 +16,7 @@ export async function POST(req: NextRequest) {
 
   const { tableToken, items, paymentMode, notes } = body;
 
-  if (!tableToken || typeof tableToken !== "string" || !Array.isArray(items) || !items.length || !paymentMode) {
+  if (!tableToken || typeof tableToken !== "string" || tableToken.length > 200 || !Array.isArray(items) || !items.length || !paymentMode) {
     return NextResponse.json({ error: "Faltan datos" }, { status: 400 });
   }
 
@@ -107,7 +105,7 @@ export async function GET(req: NextRequest) {
   const orders = await db.order.findMany({
     where: {
       restaurantId: session.restaurantId,
-      ...(status ? { status } : {}),
+      ...(status && ["PENDING","CONFIRMED","PREPARING","READY","DELIVERED","PAID","CANCELLED"].includes(status) ? { status } : {}),
     },
     orderBy: { createdAt: "desc" },
     include: {

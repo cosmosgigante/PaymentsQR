@@ -52,7 +52,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       ...(body.description !== undefined && { description: body.description ? String(body.description).slice(0, 500) : null }),
       ...(body.price !== undefined && { price: parseFloat(String(body.price)) }),
       ...(body.image !== undefined && { image: body.image ? String(body.image) : null }),
-      ...(body.available !== undefined && { available: Boolean(body.available) }),
+      ...(body.available === true || body.available === false ? { available: body.available } : {}),
     },
   });
 

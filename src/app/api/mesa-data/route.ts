@@ -3,7 +3,7 @@ import { db } from "@/lib/db";
 
 export async function GET(req: NextRequest) {
   const token = new URL(req.url).searchParams.get("token");
-  if (!token) return NextResponse.json({ error: "Token requerido" }, { status: 400 });
+  if (!token || token.length > 200) return NextResponse.json({ error: "Token requerido" }, { status: 400 });
 
   const table = await db.table.findUnique({
     where: { qrToken: token },
