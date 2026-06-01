@@ -11,6 +11,7 @@ type Restaurant = {
   id: string;
   name: string;
   slug: string;
+  isActive: boolean;
   createdAt: string;
   _count: { tables: number; orders: number };
   admins: Admin[];
@@ -28,6 +29,7 @@ export default function SuperAdminPage() {
   const [userEmail, setUserEmail] = useState("");
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<Restaurant | null>(null);
+  const [togglingId, setTogglingId] = useState<string | null>(null);
 
   const fetchRestaurants = useCallback(async () => {
     setLoading(true);
@@ -73,6 +75,21 @@ export default function SuperAdminPage() {
     setTimeout(() => setSuccess(null), 6000);
     fetchRestaurants();
     setCreating(false);
+  }
+
+  async function handleToggle(restaurant: Restaurant) {
+    setTogglingId(restaurant.id);
+    const res = await fetch("/api/setup", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ restaurantId: restaurant.id, isActive: !restaurant.isActive }),
+    });
+    if (res.ok) {
+      setRestaurants((prev) =>
+        prev.map((r) => r.id === restaurant.id ? { ...r, isActive: !restaurant.isActive } : r)
+      );
+    }
+    setTogglingId(null);
   }
 
   async function handleDelete(restaurant: Restaurant) {
@@ -296,6 +313,17 @@ export default function SuperAdminPage() {
                       >
                         Ver panel
                       </a>
+                      <button
+                        onClick={() => handleToggle(r)}
+                        disabled={togglingId === r.id}
+                        className={`text-xs px-3 py-1.5 rounded-lg transition-all disabled:opacity-50 ${
+                          r.isActive
+                            ? "text-amber-400 hover:text-amber-300 hover:bg-amber-950/30"
+                            : "text-emerald-400 hover:text-emerald-300 hover:bg-emerald-950/30"
+                        }`}
+                      >
+                        {togglingId === r.id ? "..." : r.isActive ? "Suspender" : "Activar"}
+                      </button>
                       <button
                         onClick={() => setConfirmDelete(r)}
                         className="text-xs text-red-500/70 hover:text-red-400 hover:bg-red-950/30 px-3 py-1.5 rounded-lg transition-all"

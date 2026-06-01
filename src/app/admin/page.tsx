@@ -5,7 +5,24 @@ import AdminDashboard from "@/components/admin/AdminDashboard";
 
 export default async function AdminPage() {
   const session = await getSession();
-  if (!session) redirect("/admin/login");
+  if (!session) redirect("/");
+
+  const restaurant = await db.restaurant.findUnique({
+    where: { id: session.restaurantId },
+    select: { isActive: true },
+  });
+
+  if (!restaurant?.isActive) {
+    return (
+      <div className="min-h-screen bg-zinc-950 flex items-center justify-center p-6">
+        <div className="text-center max-w-sm">
+          <div className="text-5xl mb-4">🔒</div>
+          <h1 className="text-white font-bold text-xl mb-2">Cuenta suspendida</h1>
+          <p className="text-zinc-400 text-sm">Tu restaurante fue suspendido temporalmente. Contactá al soporte para más información.</p>
+        </div>
+      </div>
+    );
+  }
 
   const [ordersToday, tablesCount, menuItemsCount] = await Promise.all([
     db.order.count({

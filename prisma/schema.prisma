@@ -12,6 +12,7 @@ model Restaurant {
   slug           String         @unique
   logo           String?
   primaryColor   String         @default("#f97316")
+  isActive       Boolean        @default(true)
   tables         Table[]
   menuCategories MenuCategory[]
   menuItems      MenuItem[]

@@ -99,6 +99,17 @@ export async function POST(req: NextRequest) {
   return NextResponse.json({ ok: true, restaurantId: restaurant.id }, { status: 201 });
 }
 
+export async function PATCH(req: NextRequest) {
+  const admin = await requireSuperAdmin(req);
+  if (!admin) return NextResponse.json({ error: "No autorizado" }, { status: 403 });
+
+  const { restaurantId, isActive } = await req.json().catch(() => ({})) as { restaurantId?: string; isActive?: boolean };
+  if (!restaurantId || isActive === undefined) return NextResponse.json({ error: "Faltan datos" }, { status: 400 });
+
+  const updated = await db.restaurant.update({ where: { id: restaurantId }, data: { isActive } });
+  return NextResponse.json({ ok: true, isActive: updated.isActive });
+}
+
 export async function DELETE(req: NextRequest) {
   const admin = await requireSuperAdmin(req);
   if (!admin) return NextResponse.json({ error: "No autorizado" }, { status: 403 });
