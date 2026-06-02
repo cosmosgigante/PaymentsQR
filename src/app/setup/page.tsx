@@ -26,9 +26,9 @@ function LinkCopiable({ label, url }: { label: string; url: string }) {
   }
   return (
     <div className="flex items-center gap-1.5">
-      <span className="text-[10px] font-semibold text-zinc-600 uppercase tracking-widest w-7 shrink-0">{label}</span>
-      <span className="text-[10px] text-zinc-500 font-mono truncate flex-1 bg-zinc-800/60 px-2 py-1 rounded">{url}</span>
-      <button onClick={copy} className="shrink-0 text-[10px] text-zinc-500 hover:text-white bg-zinc-800 hover:bg-zinc-700 px-2 py-1 rounded transition-all">
+      <span className="text-[10px] font-semibold text-gray-500 uppercase tracking-widest w-7 shrink-0">{label}</span>
+      <span className="text-[10px] text-gray-500 font-mono truncate flex-1 bg-gray-100 px-2 py-1 rounded">{url}</span>
+      <button onClick={copy} className="shrink-0 text-[10px] text-gray-600 hover:text-gray-900 bg-gray-200 hover:bg-gray-300 px-2 py-1 rounded transition-all">
         {copied ? "✓" : "Copiar"}
       </button>
     </div>
@@ -169,18 +169,20 @@ export default function SuperAdminPage() {
 
         {/* Stats dentro del hero */}
         {!loading && restaurants.length > 0 && (
-          <div className="grid grid-cols-3 gap-3 mt-6">
-            <div className="bg-white/15 backdrop-blur-sm border border-white/20 rounded-2xl p-4 text-center">
-              <p className="text-2xl font-bold text-white">{restaurants.length}</p>
-              <p className="text-white/60 text-xs mt-0.5">Restaurantes</p>
+          <div className="flex items-center gap-4 mt-4">
+            <div className="flex items-center gap-2">
+              <span className="text-xl font-bold text-white">{restaurants.length}</span>
+              <span className="text-white/60 text-xs">Restaurantes</span>
             </div>
-            <div className="bg-white/15 backdrop-blur-sm border border-white/20 rounded-2xl p-4 text-center">
-              <p className="text-2xl font-bold text-emerald-300">{activeCount}</p>
-              <p className="text-white/60 text-xs mt-0.5">Con cuenta activa</p>
+            <div className="w-px h-4 bg-white/20" />
+            <div className="flex items-center gap-2">
+              <span className="text-xl font-bold text-emerald-300">{activeCount}</span>
+              <span className="text-white/60 text-xs">Activos</span>
             </div>
-            <div className="bg-white/15 backdrop-blur-sm border border-white/20 rounded-2xl p-4 text-center">
-              <p className="text-2xl font-bold text-amber-300">{pendingCount}</p>
-              <p className="text-white/60 text-xs mt-0.5">Pendientes</p>
+            <div className="w-px h-4 bg-white/20" />
+            <div className="flex items-center gap-2">
+              <span className="text-xl font-bold text-amber-300">{pendingCount}</span>
+              <span className="text-white/60 text-xs">Pendientes</span>
             </div>
           </div>
         )}
