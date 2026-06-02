@@ -2,9 +2,11 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { ChefHat, BookOpen, QrCode, LogOut, TrendingUp, Package, Grid2X2 } from "lucide-react";
 import { ORDER_STATUS_LABELS, ORDER_STATUS_COLORS, OrderStatus } from "@/lib/types";
+import { useSSE } from "@/hooks/useSSE";
+import { useState, useCallback } from "react";
 
 type Order = {
   id: string;
@@ -21,8 +23,27 @@ type Props = {
   recentOrders: Order[];
 };
 
-export default function AdminDashboard({ stats, recentOrders }: Props) {
+export default function AdminDashboard({ stats, recentOrders: initialOrders }: Props) {
   const router = useRouter();
+  const [orders, setOrders] = useState<Order[]>(initialOrders);
+  const [ordersToday, setOrdersToday] = useState(stats.ordersToday);
+  const [newOrderId, setNewOrderId] = useState<string | null>(null);
+
+  const handleSSE = useCallback((data: { type: string; [k: string]: unknown }) => {
+    if (data.type === "NEW_ORDER") {
+      const order = data.order as Order;
+      setOrders((prev) => [order, ...prev].slice(0, 10));
+      setOrdersToday((n) => n + 1);
+      setNewOrderId(order.id);
+      setTimeout(() => setNewOrderId(null), 3000);
+    }
+    if (data.type === "ORDER_UPDATED") {
+      const updated = data.order as Order;
+      setOrders((prev) => prev.map((o) => o.id === updated.id ? updated : o));
+    }
+  }, []);
+
+  useSSE("/api/events", handleSSE);
 
   async function logout() {
     await fetch("/api/auth/login", { method: "DELETE" });
@@ -58,7 +79,7 @@ export default function AdminDashboard({ stats, recentOrders }: Props) {
         {/* Stats */}
         <div className="grid grid-cols-3 gap-2 sm:gap-3">
           {[
-            { value: stats.ordersToday,   label: "Hoy",       icon: <TrendingUp size={15} />, color: "text-orange-500" },
+            { value: ordersToday,         label: "Hoy",       icon: <TrendingUp size={15} />, color: "text-orange-500" },
             { value: stats.tablesCount,   label: "Mesas",     icon: <Grid2X2 size={15} />,    color: "text-blue-500"   },
             { value: stats.menuItemsCount, label: "Productos", icon: <Package size={15} />,    color: "text-emerald-500" },
           ].map((stat, i) => (
@@ -87,15 +108,33 @@ export default function AdminDashboard({ stats, recentOrders }: Props) {
 
         {/* Pedidos recientes */}
         <div className="bg-white rounded-2xl border border-zinc-100 overflow-hidden">
-          <div className="px-4 sm:px-5 py-3.5 border-b border-zinc-50">
+          <div className="px-4 sm:px-5 py-3.5 border-b border-zinc-50 flex items-center justify-between">
             <h2 className="font-bold text-zinc-900 text-sm">Pedidos recientes</h2>
+            <AnimatePresence>
+              {newOrderId && (
+                <motion.span
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0 }}
+                  className="text-[11px] font-semibold bg-orange-100 text-orange-600 px-2 py-0.5 rounded-full"
+                >
+                  ¡Nuevo pedido!
+                </motion.span>
+              )}
+            </AnimatePresence>
           </div>
-          {recentOrders.length === 0 ? (
+          {orders.length === 0 ? (
             <div className="p-10 text-center text-zinc-400 text-sm">Sin pedidos aún</div>
           ) : (
             <div className="divide-y divide-zinc-50">
-              {recentOrders.map((order) => (
-                <div key={order.id} className="px-4 sm:px-5 py-3.5 flex items-start sm:items-center gap-3">
+              {orders.map((order) => (
+                <motion.div
+                  key={order.id}
+                  initial={{ backgroundColor: order.id === newOrderId ? "#fff7ed" : "transparent" }}
+                  animate={{ backgroundColor: "transparent" }}
+                  transition={{ duration: 2 }}
+                  className="px-4 sm:px-5 py-3.5 flex items-start sm:items-center gap-3"
+                >
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-1.5 flex-wrap">
                       <span className="font-semibold text-zinc-900 text-sm">
@@ -106,7 +145,7 @@ export default function AdminDashboard({ stats, recentOrders }: Props) {
                       </span>
                     </div>
                     <p className="text-xs text-zinc-400 truncate mt-0.5">
-                      {order.items.map((i) => `${i.quantity}× ${i.menuItem.name}`).join(", ")}
+                      {order.items.map((item) => `${item.quantity}× ${item.menuItem.name}`).join(", ")}
                     </p>
                   </div>
                   <div className="flex flex-col sm:flex-row items-end sm:items-center gap-1.5 flex-shrink-0">
@@ -117,7 +156,7 @@ export default function AdminDashboard({ stats, recentOrders }: Props) {
                       ${order.total.toLocaleString("es-AR")}
                     </span>
                   </div>
-                </div>
+                </motion.div>
               ))}
             </div>
           )}
