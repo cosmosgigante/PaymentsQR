@@ -100,7 +100,7 @@ export default function WaiterBoard({ initialOrders }: { initialOrders: Order[] 
       <div
         className="relative overflow-hidden px-4 sm:px-6 pb-6"
         style={{
-          background: "linear-gradient(135deg, #bfdbfe 0%, #93c5fd 50%, #60a5fa 100%)",
+          background: "linear-gradient(135deg, #3b82f6 0%, #2563eb 60%, #1d4ed8 100%)",
           paddingTop: "max(1.25rem, env(safe-area-inset-top))",
         }}
       >
@@ -112,10 +112,10 @@ export default function WaiterBoard({ initialOrders }: { initialOrders: Order[] 
         <div className="relative max-w-2xl mx-auto">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
-              <Link href="/admin" className="w-9 h-9 flex items-center justify-center text-blue-800/60 hover:text-blue-900 transition-colors">
+              <Link href="/admin" className="w-9 h-9 flex items-center justify-center text-white/60 hover:text-white transition-colors">
                 <ArrowLeft size={18} strokeWidth={2} />
               </Link>
-              <span className="font-bold text-blue-900 text-lg">Panel Mozos</span>
+              <span className="font-bold text-white text-lg">Panel Mozos</span>
             </div>
             <div className="flex items-center gap-2">
               <AnimatePresence>
@@ -135,8 +135,8 @@ export default function WaiterBoard({ initialOrders }: { initialOrders: Order[] 
               )}
             </div>
           </div>
-          <p className="text-blue-800/60 text-sm">{greeting} 👋</p>
-          <h1 className="text-blue-900 font-bold text-2xl mt-0.5">
+          <p className="text-white/70 text-sm">{greeting} 👋</p>
+          <h1 className="text-white font-bold text-2xl mt-0.5">
             {ready.length > 0
               ? `${ready.length} pedido${ready.length > 1 ? "s" : ""} listo${ready.length > 1 ? "s" : ""} para entregar`
               : "Sin pedidos listos aún"}
