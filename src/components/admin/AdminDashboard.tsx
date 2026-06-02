@@ -63,9 +63,6 @@ export default function AdminDashboard({ stats, recentOrders: initialOrders }: P
     }
   }
 
-  const hour = new Date().getHours();
-  const greeting = hour < 12 ? "Buenos días" : hour < 19 ? "Buenas tardes" : "Buenas noches";
-
   return (
     <div className="min-h-screen bg-gray-50">
 
@@ -105,8 +102,7 @@ export default function AdminDashboard({ stats, recentOrders: initialOrders }: P
 
           {/* Saludo */}
           <div className="mb-6">
-            <p className="text-white/70 text-sm">{greeting} 👋</p>
-            <h1 className="text-white font-bold text-2xl mt-0.5">¿Cómo va el servicio?</h1>
+            <h1 className="text-white font-bold text-2xl">¿Cómo va el servicio?</h1>
           </div>
 
           {/* Stats dentro del hero */}
