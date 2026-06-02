@@ -64,13 +64,13 @@ export default function AdminDashboard({ stats, recentOrders: initialOrders }: P
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-slate-100">
 
       {/* Hero header con gradiente */}
       <div
         className="relative overflow-hidden px-4 sm:px-6 pb-8"
         style={{
-          background: "linear-gradient(135deg, #3b82f6 0%, #2563eb 60%, #1d4ed8 100%)",
+          background: "linear-gradient(135deg, #1e2d4e 0%, #1a3a6b 60%, #1e3a8a 100%)",
           paddingTop: "max(1.5rem, env(safe-area-inset-top))",
         }}
       >
