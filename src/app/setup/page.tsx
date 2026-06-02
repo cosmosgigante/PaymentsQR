@@ -44,7 +44,6 @@ export default function SuperAdminPage() {
   const [form, setForm] = useState({ restaurantName: "", slug: "", adminEmail: "" });
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
-  const [userEmail, setUserEmail] = useState("");
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<Restaurant | null>(null);
   const [togglingId, setTogglingId] = useState<string | null>(null);
@@ -60,10 +59,6 @@ export default function SuperAdminPage() {
   }, []);
 
   useEffect(() => {
-    const supabase = createClient();
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      if (user?.email) setUserEmail(user.email);
-    });
     fetchRestaurants();
   }, [fetchRestaurants]);
 
@@ -151,20 +146,20 @@ export default function SuperAdminPage() {
           <div className="absolute -bottom-10 -left-10 w-48 h-48 rounded-full bg-white/5" />
         </div>
 
-        <div className="relative max-w-3xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center text-xl select-none backdrop-blur-sm">🍽️</div>
-            <div>
-              <h1 className="font-bold text-white text-lg leading-tight">Panel Superadmin</h1>
-              <p className="text-white/50 text-xs">{userEmail}</p>
+        <div className="relative max-w-3xl mx-auto">
+          <div className="flex items-center justify-between mb-5">
+            <div className="flex items-center gap-2.5">
+              <div className="w-9 h-9 bg-white/20 rounded-xl flex items-center justify-center text-lg backdrop-blur-sm">🍽️</div>
+              <span className="font-bold text-white text-lg tracking-tight">Panel Superadmin</span>
             </div>
+            <button
+              onClick={handleSignOut}
+              className="text-white/60 hover:text-white text-sm transition-colors px-3 py-1.5 rounded-lg hover:bg-white/10"
+            >
+              Cerrar sesión
+            </button>
           </div>
-          <button
-            onClick={handleSignOut}
-            className="text-white/60 hover:text-white text-sm transition-colors px-3 py-1.5 rounded-lg hover:bg-white/10"
-          >
-            Cerrar sesión
-          </button>
+          <h1 className="text-white font-bold text-2xl">Gestión de restaurantes</h1>
         </div>
 
         {/* Stats dentro del hero */}
