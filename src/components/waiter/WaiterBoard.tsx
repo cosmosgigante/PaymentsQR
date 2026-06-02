@@ -80,7 +80,7 @@ export default function WaiterBoard({ initialOrders }: { initialOrders: Order[] 
       body: JSON.stringify({ status: "DELIVERED" }),
     });
     if (res.ok) {
-      setOrders((prev) => prev.map((o) => o.id === orderId ? { ...o, status: "DELIVERED" } : o));
+      setOrders((prev) => prev.filter((o) => o.id !== orderId));
     }
   }
 
