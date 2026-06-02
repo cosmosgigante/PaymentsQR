@@ -38,15 +38,19 @@ export default function LoginPage() {
 
   return (
     <div
-      className="min-h-screen bg-zinc-950 flex items-center justify-center p-4 relative overflow-hidden"
-      style={{ paddingTop: "max(1rem, env(safe-area-inset-top))", paddingBottom: "max(1rem, env(safe-area-inset-bottom))" }}
+      className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden"
+      style={{
+        background: "linear-gradient(135deg, #1e2d4e 0%, #1a3a6b 60%, #1e3a8a 100%)",
+        paddingTop: "max(1rem, env(safe-area-inset-top))",
+        paddingBottom: "max(1rem, env(safe-area-inset-bottom))",
+      }}
     >
       {/* Fondo */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none select-none">
         {/* Gradientes */}
-        <div className="absolute -top-40 -left-40 w-[600px] h-[600px] rounded-full bg-orange-500/10 blur-[140px]" />
-        <div className="absolute -bottom-40 -right-40 w-[600px] h-[600px] rounded-full bg-amber-500/10 blur-[140px]" />
-        <div className="absolute top-1/2 left-1/4 -translate-y-1/2 w-[400px] h-[400px] rounded-full bg-orange-700/8 blur-[100px]" />
+        <div className="absolute -top-40 -left-40 w-[600px] h-[600px] rounded-full bg-white/5 blur-[140px]" />
+        <div className="absolute -bottom-40 -right-40 w-[600px] h-[600px] rounded-full bg-blue-300/10 blur-[140px]" />
+        <div className="absolute top-1/2 left-1/4 -translate-y-1/2 w-[400px] h-[400px] rounded-full bg-white/5 blur-[100px]" />
 
         {/* QR decorativo - arriba izquierda */}
         <svg className="absolute top-10 left-10 opacity-[0.06]" width="90" height="90" viewBox="0 0 90 90" fill="white">
@@ -105,8 +109,8 @@ export default function LoginPage() {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4, ease: "easeOut" }}
-        className="relative z-10 bg-zinc-900/90 border border-zinc-800 rounded-3xl p-6 sm:p-8 w-full max-w-sm shadow-2xl"
-        style={{ backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)" }}
+        className="relative z-10 rounded-3xl p-6 sm:p-8 w-full max-w-sm shadow-2xl"
+        style={{ background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.15)", backdropFilter: "blur(24px)", WebkitBackdropFilter: "blur(24px)" }}
       >
         {/* Header */}
         <div className="mb-7 text-center">
@@ -119,7 +123,7 @@ export default function LoginPage() {
             🍽️
           </motion.div>
           <h1 className="text-2xl font-bold text-white tracking-tight">PaymentsQR</h1>
-          <p className="text-zinc-500 text-sm mt-1">Sistema de pedidos para restaurantes</p>
+          <p className="text-blue-200/70 text-sm mt-1">Sistema de pedidos para restaurantes</p>
         </div>
 
         {/* Error */}
@@ -127,7 +131,7 @@ export default function LoginPage() {
           <motion.p
             initial={{ opacity: 0, y: -6 }}
             animate={{ opacity: 1, y: 0 }}
-            className="text-red-400 text-xs text-center bg-red-950/40 border border-red-900/40 rounded-xl py-2.5 px-3 mb-4"
+            className="text-red-300 text-xs text-center bg-red-500/10 border border-red-400/20 rounded-xl py-2.5 px-3 mb-4"
           >
             {error || (urlError === "unauthorized" ? "Tu cuenta no tiene acceso." : urlError === "invalid" ? "Credenciales inválidas." : "Error al iniciar sesión.")}
           </motion.p>
@@ -137,7 +141,7 @@ export default function LoginPage() {
         <button
           onClick={handleGoogleLogin}
           disabled={loading}
-          className="w-full flex items-center justify-center gap-3 bg-white hover:bg-zinc-100 active:bg-zinc-200 disabled:opacity-50 text-zinc-900 font-semibold py-3.5 rounded-xl transition-all text-[15px] mb-4 min-h-[52px] shadow-sm"
+          className="w-full flex items-center justify-center gap-3 bg-white hover:bg-blue-50 active:bg-blue-100 disabled:opacity-50 text-zinc-900 font-semibold py-3.5 rounded-xl transition-all text-[15px] mb-4 min-h-[52px] shadow-sm"
         >
           <svg className="w-5 h-5 flex-shrink-0" viewBox="0 0 24 24">
             <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
@@ -149,20 +153,20 @@ export default function LoginPage() {
         </button>
 
         <div className="flex items-center gap-3 mb-4">
-          <div className="flex-1 h-px bg-zinc-800" />
-          <span className="text-zinc-600 text-[11px] uppercase tracking-widest">o</span>
-          <div className="flex-1 h-px bg-zinc-800" />
+          <div className="flex-1 h-px bg-white/15" />
+          <span className="text-white/40 text-[11px] uppercase tracking-widest">o</span>
+          <div className="flex-1 h-px bg-white/15" />
         </div>
 
         {/* Toggle login / registro */}
         {mode !== "forgot" && (
-          <div className="flex bg-zinc-800 rounded-xl p-1 mb-4">
+          <div className="flex bg-white/10 rounded-xl p-1 mb-4">
             <button type="button" onClick={() => switchMode("login")}
-              className={`flex-1 py-2 rounded-lg text-sm font-semibold transition-all ${mode === "login" ? "bg-white text-zinc-900 shadow" : "text-zinc-400 hover:text-white"}`}>
+              className={`flex-1 py-2 rounded-lg text-sm font-semibold transition-all ${mode === "login" ? "bg-white text-zinc-900 shadow" : "text-white/60 hover:text-white"}`}>
               Iniciar sesión
             </button>
             <button type="button" onClick={() => switchMode("register")}
-              className={`flex-1 py-2 rounded-lg text-sm font-semibold transition-all ${mode === "register" ? "bg-white text-zinc-900 shadow" : "text-zinc-400 hover:text-white"}`}>
+              className={`flex-1 py-2 rounded-lg text-sm font-semibold transition-all ${mode === "register" ? "bg-white text-zinc-900 shadow" : "text-white/60 hover:text-white"}`}>
               Registrarse
             </button>
           </div>
@@ -170,22 +174,22 @@ export default function LoginPage() {
 
         {/* Mensaje éxito */}
         {success && (
-          <p className="text-emerald-400 text-xs text-center bg-emerald-950/40 border border-emerald-900/40 rounded-xl py-2.5 px-3 mb-3">{success}</p>
+          <p className="text-emerald-300 text-xs text-center bg-emerald-500/10 border border-emerald-400/20 rounded-xl py-2.5 px-3 mb-3">{success}</p>
         )}
 
         {/* Formulario login */}
         {mode === "login" && (
           <form method="POST" action="/api/auth/login" className="space-y-3">
             <input type="email" name="email" required autoComplete="email" inputMode="email" placeholder="Email"
-              className="w-full bg-zinc-800 border border-zinc-700 text-white rounded-xl px-4 py-3.5 text-[16px] focus:outline-none focus:ring-2 focus:ring-white/20 placeholder:text-zinc-600 min-h-[52px]" />
+              className="w-full bg-white/10 border border-white/15 text-white rounded-xl px-4 py-3.5 text-[16px] focus:outline-none focus:ring-2 focus:ring-white/30 placeholder:text-white/40 min-h-[52px]" />
             <input type="password" name="password" required autoComplete="current-password" placeholder="Contraseña"
-              className="w-full bg-zinc-800 border border-zinc-700 text-white rounded-xl px-4 py-3.5 text-[16px] focus:outline-none focus:ring-2 focus:ring-white/20 placeholder:text-zinc-600 min-h-[52px]" />
+              className="w-full bg-white/10 border border-white/15 text-white rounded-xl px-4 py-3.5 text-[16px] focus:outline-none focus:ring-2 focus:ring-white/30 placeholder:text-white/40 min-h-[52px]" />
             <button type="submit"
-              className="w-full bg-zinc-700 hover:bg-zinc-600 text-white font-bold py-4 rounded-xl transition-all text-[15px] min-h-[56px]">
+              className="w-full bg-white text-[#1e2d4e] hover:bg-blue-50 font-bold py-4 rounded-xl transition-all text-[15px] min-h-[56px]">
               Ingresar
             </button>
             <button type="button" onClick={() => switchMode("forgot")}
-              className="w-full text-zinc-500 hover:text-zinc-300 text-xs text-center transition-colors pt-1">
+              className="w-full text-white/40 hover:text-white/70 text-xs text-center transition-colors pt-1">
               Olvidé mi contraseña
             </button>
           </form>
@@ -195,13 +199,13 @@ export default function LoginPage() {
         {mode === "register" && (
           <form method="POST" action="/api/auth/register-login" className="space-y-3">
             <input type="email" name="email" required autoComplete="email" inputMode="email" placeholder="Email"
-              className="w-full bg-zinc-800 border border-zinc-700 text-white rounded-xl px-4 py-3.5 text-[16px] focus:outline-none focus:ring-2 focus:ring-white/20 placeholder:text-zinc-600 min-h-[52px]" />
+              className="w-full bg-white/10 border border-white/15 text-white rounded-xl px-4 py-3.5 text-[16px] focus:outline-none focus:ring-2 focus:ring-white/30 placeholder:text-white/40 min-h-[52px]" />
             <input type="password" name="password" required autoComplete="new-password" placeholder="Contraseña"
-              className="w-full bg-zinc-800 border border-zinc-700 text-white rounded-xl px-4 py-3.5 text-[16px] focus:outline-none focus:ring-2 focus:ring-white/20 placeholder:text-zinc-600 min-h-[52px]" />
+              className="w-full bg-white/10 border border-white/15 text-white rounded-xl px-4 py-3.5 text-[16px] focus:outline-none focus:ring-2 focus:ring-white/30 placeholder:text-white/40 min-h-[52px]" />
             <input type="password" name="confirm" required autoComplete="new-password" placeholder="Repetir contraseña"
-              className="w-full bg-zinc-800 border border-zinc-700 text-white rounded-xl px-4 py-3.5 text-[16px] focus:outline-none focus:ring-2 focus:ring-white/20 placeholder:text-zinc-600 min-h-[52px]" />
+              className="w-full bg-white/10 border border-white/15 text-white rounded-xl px-4 py-3.5 text-[16px] focus:outline-none focus:ring-2 focus:ring-white/30 placeholder:text-white/40 min-h-[52px]" />
             <button type="submit"
-              className="w-full bg-zinc-700 hover:bg-zinc-600 text-white font-bold py-4 rounded-xl transition-all text-[15px] min-h-[56px]">
+              className="w-full bg-white text-[#1e2d4e] hover:bg-blue-50 font-bold py-4 rounded-xl transition-all text-[15px] min-h-[56px]">
               Crear cuenta
             </button>
           </form>
@@ -210,21 +214,21 @@ export default function LoginPage() {
         {/* Formulario olvidé contraseña */}
         {mode === "forgot" && (
           <form onSubmit={handleForgot} className="space-y-3">
-            <p className="text-zinc-400 text-sm text-center mb-1">Ingresá tu email y te enviamos un link para restablecer tu contraseña.</p>
+            <p className="text-white/60 text-sm text-center mb-1">Ingresá tu email y te enviamos un link para restablecer tu contraseña.</p>
             <input type="email" name="email" required autoComplete="email" inputMode="email" placeholder="Email"
-              className="w-full bg-zinc-800 border border-zinc-700 text-white rounded-xl px-4 py-3.5 text-[16px] focus:outline-none focus:ring-2 focus:ring-white/20 placeholder:text-zinc-600 min-h-[52px]" />
+              className="w-full bg-white/10 border border-white/15 text-white rounded-xl px-4 py-3.5 text-[16px] focus:outline-none focus:ring-2 focus:ring-white/30 placeholder:text-white/40 min-h-[52px]" />
             <button type="submit" disabled={loading}
-              className="w-full bg-zinc-700 hover:bg-zinc-600 disabled:opacity-50 text-white font-bold py-4 rounded-xl transition-all text-[15px] min-h-[56px]">
+              className="w-full bg-white text-[#1e2d4e] hover:bg-blue-50 disabled:opacity-50 font-bold py-4 rounded-xl transition-all text-[15px] min-h-[56px]">
               {loading ? "Enviando..." : "Enviar link"}
             </button>
             <button type="button" onClick={() => switchMode("login")}
-              className="w-full text-zinc-500 hover:text-zinc-300 text-xs text-center transition-colors pt-1">
+              className="w-full text-white/40 hover:text-white/70 text-xs text-center transition-colors pt-1">
               Volver al inicio de sesión
             </button>
           </form>
         )}
 
-        <p className="text-zinc-700 text-[11px] text-center mt-5">
+        <p className="text-white/25 text-[11px] text-center mt-5">
           Solo usuarios autorizados pueden acceder
         </p>
       </motion.div>
