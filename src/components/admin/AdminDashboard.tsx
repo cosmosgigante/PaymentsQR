@@ -51,6 +51,18 @@ export default function AdminDashboard({ stats, recentOrders: initialOrders }: P
     router.refresh();
   }
 
+  async function updateStatus(orderId: string, status: OrderStatus) {
+    const res = await fetch(`/api/orders/${orderId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ status }),
+    });
+    if (res.ok) {
+      const updated = await res.json();
+      setOrders((prev) => prev.map((o) => o.id === orderId ? { ...o, status: updated.status } : o));
+    }
+  }
+
   return (
     <div className="min-h-screen-dvh bg-[#fafafa]">
       {/* Header */}
@@ -148,13 +160,31 @@ export default function AdminDashboard({ stats, recentOrders: initialOrders }: P
                       {order.items.map((item) => `${item.quantity}× ${item.menuItem.name}`).join(", ")}
                     </p>
                   </div>
-                  <div className="flex flex-col sm:flex-row items-end sm:items-center gap-1.5 flex-shrink-0">
-                    <span className={`text-[11px] px-2 py-0.5 rounded-full font-medium whitespace-nowrap ${ORDER_STATUS_COLORS[order.status as OrderStatus]}`}>
-                      {ORDER_STATUS_LABELS[order.status as OrderStatus]}
-                    </span>
-                    <span className="font-bold text-zinc-900 text-sm tabular-nums">
-                      ${order.total.toLocaleString("es-AR")}
-                    </span>
+                  <div className="flex flex-col items-end gap-1.5 flex-shrink-0">
+                    <div className="flex items-center gap-1.5">
+                      <span className={`text-[11px] px-2 py-0.5 rounded-full font-medium whitespace-nowrap ${ORDER_STATUS_COLORS[order.status as OrderStatus]}`}>
+                        {ORDER_STATUS_LABELS[order.status as OrderStatus]}
+                      </span>
+                      <span className="font-bold text-zinc-900 text-sm tabular-nums">
+                        ${order.total.toLocaleString("es-AR")}
+                      </span>
+                    </div>
+                    {order.status === "READY" && (
+                      <button
+                        onClick={() => updateStatus(order.id, "DELIVERED")}
+                        className="text-[11px] font-semibold bg-emerald-600 active:bg-emerald-700 text-white px-3 py-1 rounded-lg transition-all"
+                      >
+                        Entregar ✓
+                      </button>
+                    )}
+                    {order.status === "DELIVERED" && (
+                      <button
+                        onClick={() => updateStatus(order.id, "PAID")}
+                        className="text-[11px] font-semibold bg-zinc-900 active:bg-zinc-700 text-white px-3 py-1 rounded-lg transition-all"
+                      >
+                        Cobrado ✓
+                      </button>
+                    )}
                   </div>
                 </motion.div>
               ))}
