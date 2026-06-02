@@ -39,7 +39,11 @@ export default function AdminDashboard({ stats, recentOrders: initialOrders }: P
     }
     if (data.type === "ORDER_UPDATED") {
       const updated = data.order as Order;
-      setOrders((prev) => prev.map((o) => o.id === updated.id ? updated : o));
+      if (updated.status === "PAID" || updated.status === "CANCELLED") {
+        setOrders((prev) => prev.filter((o) => o.id !== updated.id));
+      } else {
+        setOrders((prev) => prev.map((o) => o.id === updated.id ? updated : o));
+      }
     }
   }, []);
 
@@ -59,7 +63,11 @@ export default function AdminDashboard({ stats, recentOrders: initialOrders }: P
     });
     if (res.ok) {
       const updated = await res.json();
-      setOrders((prev) => prev.map((o) => o.id === orderId ? { ...o, status: updated.status } : o));
+      if (updated.status === "PAID" || updated.status === "CANCELLED") {
+        setOrders((prev) => prev.filter((o) => o.id !== orderId));
+      } else {
+        setOrders((prev) => prev.map((o) => o.id === orderId ? { ...o, status: updated.status } : o));
+      }
     }
   }
 

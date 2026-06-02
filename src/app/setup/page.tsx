@@ -136,50 +136,57 @@ export default function SuperAdminPage() {
   const pendingCount = restaurants.length - activeCount;
 
   return (
-    <div className="min-h-screen bg-zinc-950 text-white relative overflow-hidden">
-      {/* Gradientes — mismo fondo que el login */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none select-none">
-        <div className="absolute -top-40 -left-40 w-[600px] h-[600px] rounded-full bg-orange-500/10 blur-[140px]" />
-        <div className="absolute -bottom-40 -right-40 w-[600px] h-[600px] rounded-full bg-amber-500/10 blur-[140px]" />
-        <div className="absolute top-1/2 left-1/4 -translate-y-1/2 w-[400px] h-[400px] rounded-full bg-orange-700/8 blur-[100px]" />
-      </div>
+    <div className="min-h-screen bg-slate-100">
 
-      <div className="relative z-10 max-w-3xl mx-auto px-4 py-8">
+      {/* Hero header — mismo estilo que panel admin */}
+      <div
+        className="relative overflow-hidden px-4 sm:px-6 pb-8 mb-6"
+        style={{
+          background: "linear-gradient(135deg, #1e2d4e 0%, #1a3a6b 60%, #1e3a8a 100%)",
+          paddingTop: "max(1.5rem, env(safe-area-inset-top))",
+        }}
+      >
+        <div className="absolute inset-0 pointer-events-none overflow-hidden">
+          <div className="absolute -top-20 -right-20 w-64 h-64 rounded-full bg-white/5" />
+          <div className="absolute -bottom-10 -left-10 w-48 h-48 rounded-full bg-white/5" />
+        </div>
 
-        {/* Header */}
-        <div className="flex items-center justify-between mb-8">
+        <div className="relative max-w-3xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center text-xl select-none shadow">🍽️</div>
+            <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center text-xl select-none backdrop-blur-sm">🍽️</div>
             <div>
-              <h1 className="font-bold text-lg leading-tight">Panel Superadmin</h1>
-              <p className="text-zinc-500 text-xs">{userEmail}</p>
+              <h1 className="font-bold text-white text-lg leading-tight">Panel Superadmin</h1>
+              <p className="text-white/50 text-xs">{userEmail}</p>
             </div>
           </div>
           <button
             onClick={handleSignOut}
-            className="text-zinc-500 hover:text-white text-sm transition-colors px-3 py-1.5 rounded-lg hover:bg-zinc-800"
+            className="text-white/60 hover:text-white text-sm transition-colors px-3 py-1.5 rounded-lg hover:bg-white/10"
           >
             Cerrar sesión
           </button>
         </div>
 
-        {/* Stats */}
+        {/* Stats dentro del hero */}
         {!loading && restaurants.length > 0 && (
-          <div className="grid grid-cols-3 gap-3 mb-6">
-            <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-4 text-center">
-              <p className="text-2xl font-bold">{restaurants.length}</p>
-              <p className="text-zinc-500 text-xs mt-0.5">Restaurantes</p>
+          <div className="grid grid-cols-3 gap-3 mt-6">
+            <div className="bg-white/15 backdrop-blur-sm border border-white/20 rounded-2xl p-4 text-center">
+              <p className="text-2xl font-bold text-white">{restaurants.length}</p>
+              <p className="text-white/60 text-xs mt-0.5">Restaurantes</p>
             </div>
-            <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-4 text-center">
-              <p className="text-2xl font-bold text-emerald-400">{activeCount}</p>
-              <p className="text-zinc-500 text-xs mt-0.5">Con cuenta activa</p>
+            <div className="bg-white/15 backdrop-blur-sm border border-white/20 rounded-2xl p-4 text-center">
+              <p className="text-2xl font-bold text-emerald-300">{activeCount}</p>
+              <p className="text-white/60 text-xs mt-0.5">Con cuenta activa</p>
             </div>
-            <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-4 text-center">
-              <p className="text-2xl font-bold text-amber-400">{pendingCount}</p>
-              <p className="text-zinc-500 text-xs mt-0.5">Pendientes</p>
+            <div className="bg-white/15 backdrop-blur-sm border border-white/20 rounded-2xl p-4 text-center">
+              <p className="text-2xl font-bold text-amber-300">{pendingCount}</p>
+              <p className="text-white/60 text-xs mt-0.5">Pendientes</p>
             </div>
           </div>
         )}
+      </div>{/* cierre hero */}
+
+      <div className="max-w-3xl mx-auto px-4 py-5 space-y-4">
 
         {/* Success banner */}
         <AnimatePresence>
@@ -188,7 +195,7 @@ export default function SuperAdminPage() {
               initial={{ opacity: 0, y: -8 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0 }}
-              className="bg-emerald-950/60 border border-emerald-800/40 text-emerald-300 text-sm rounded-xl px-4 py-3 mb-4"
+              className="bg-emerald-50 border border-emerald-200 text-emerald-700 text-sm rounded-xl px-4 py-3 mb-4"
             >
               {success}
             </motion.div>
@@ -197,7 +204,7 @@ export default function SuperAdminPage() {
 
         {/* Section header */}
         <div className="flex items-center justify-between mb-4">
-          <h2 className="font-semibold text-zinc-200">Restaurantes</h2>
+          <h2 className="font-semibold text-gray-800">Restaurantes</h2>
           <button
             onClick={() => { setShowForm((v) => !v); setError(null); }}
             className="bg-white text-zinc-900 hover:bg-zinc-100 text-sm font-semibold px-4 py-2 rounded-xl transition-all"
@@ -213,59 +220,59 @@ export default function SuperAdminPage() {
               initial={{ opacity: 0, y: -8 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -8 }}
-              className="bg-zinc-900 border border-zinc-800 rounded-2xl p-5 mb-4"
+              className="bg-white border border-gray-100 rounded-2xl p-5 mb-4 shadow-sm"
             >
-              <h3 className="font-semibold text-sm text-zinc-300 mb-4">Nuevo restaurante</h3>
+              <h3 className="font-semibold text-sm text-gray-700 mb-4">Nuevo restaurante</h3>
               <form onSubmit={handleCreate} className="space-y-3">
                 <div>
-                  <label className="text-xs text-zinc-500 uppercase tracking-widest block mb-1">Nombre</label>
+                  <label className="text-xs text-gray-500 uppercase tracking-widest block mb-1">Nombre</label>
                   <input
                     type="text"
                     value={form.restaurantName}
                     onChange={(e) => handleNameChange(e.target.value)}
                     required
                     placeholder="El Gaucho"
-                    className="w-full bg-zinc-800 border border-zinc-700 text-white rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-white/20 placeholder:text-zinc-600"
+                    className="w-full bg-gray-50 border border-gray-200 text-gray-900 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30 placeholder:text-gray-300"
                   />
                 </div>
                 <div>
-                  <label className="text-xs text-zinc-500 uppercase tracking-widest block mb-1">Slug (URL)</label>
-                  <div className="flex items-center bg-zinc-800 border border-zinc-700 rounded-xl px-4 py-2.5 gap-1">
-                    <span className="text-zinc-600 text-sm font-mono">/</span>
+                  <label className="text-xs text-gray-500 uppercase tracking-widest block mb-1">Slug (URL)</label>
+                  <div className="flex items-center bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 gap-1">
+                    <span className="text-gray-400 text-sm font-mono">/</span>
                     <input
                       type="text"
                       value={form.slug}
                       onChange={(e) => setForm((p) => ({ ...p, slug: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, "") }))}
                       required
                       placeholder="el-gaucho"
-                      className="flex-1 bg-transparent text-white text-sm focus:outline-none placeholder:text-zinc-600 font-mono"
+                      className="flex-1 bg-transparent text-gray-900 text-sm focus:outline-none placeholder:text-gray-300 font-mono"
                     />
                   </div>
                 </div>
                 <div>
-                  <label className="text-xs text-zinc-500 uppercase tracking-widest block mb-1">Email del dueño</label>
+                  <label className="text-xs text-gray-500 uppercase tracking-widest block mb-1">Email del dueño</label>
                   <input
                     type="email"
                     value={form.adminEmail}
                     onChange={(e) => setForm((p) => ({ ...p, adminEmail: e.target.value }))}
                     required
                     placeholder="dueño@restoran.com"
-                    className="w-full bg-zinc-800 border border-zinc-700 text-white rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-white/20 placeholder:text-zinc-600"
+                    className="w-full bg-gray-50 border border-gray-200 text-gray-900 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30 placeholder:text-gray-300"
                   />
-                  <p className="text-xs text-zinc-600 mt-1">El dueño ingresa con este email (Google o contraseña).</p>
+                  <p className="text-xs text-gray-400 mt-1">El dueño ingresa con este email (Google o contraseña).</p>
                 </div>
 
                 {error && (
-                  <p className="text-red-400 text-xs bg-red-950/40 border border-red-900/40 rounded-lg px-3 py-2">{error}</p>
+                  <p className="text-red-500 text-xs bg-red-50 border border-red-200 rounded-lg px-3 py-2">{error}</p>
                 )}
 
                 <div className="flex gap-2 pt-1">
                   <button type="submit" disabled={creating}
-                    className="bg-white text-zinc-900 hover:bg-zinc-100 disabled:opacity-50 font-semibold text-sm px-4 py-2.5 rounded-xl transition-all">
+                    className="bg-gray-900 text-white hover:bg-gray-700 disabled:opacity-50 font-semibold text-sm px-4 py-2.5 rounded-xl transition-all">
                     {creating ? "Creando..." : "Crear restaurante"}
                   </button>
                   <button type="button" onClick={() => { setShowForm(false); setError(null); }}
-                    className="text-zinc-500 hover:text-white text-sm px-4 py-2.5 rounded-xl hover:bg-zinc-800 transition-all">
+                    className="text-gray-500 hover:text-gray-900 text-sm px-4 py-2.5 rounded-xl hover:bg-gray-100 transition-all">
                     Cancelar
                   </button>
                 </div>
@@ -277,13 +284,13 @@ export default function SuperAdminPage() {
         {/* Restaurant list */}
         {loading ? (
           <div className="flex justify-center py-16">
-            <div className="w-5 h-5 border-2 border-zinc-600 border-t-white rounded-full animate-spin" />
+            <div className="w-5 h-5 border-2 border-gray-300 border-t-blue-600 rounded-full animate-spin" />
           </div>
         ) : restaurants.length === 0 ? (
-          <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-10 text-center">
+          <div className="bg-white border border-gray-100 rounded-2xl p-10 text-center shadow-sm">
             <p className="text-3xl mb-3">🍽️</p>
-            <p className="text-zinc-400 text-sm font-medium">No hay restaurantes todavía</p>
-            <p className="text-zinc-600 text-xs mt-1">Creá el primero con el botón de arriba.</p>
+            <p className="text-gray-500 text-sm font-medium">No hay restaurantes todavía</p>
+            <p className="text-gray-300 text-xs mt-1">Creá el primero con el botón de arriba.</p>
           </div>
         ) : (
           <div className="space-y-3">
@@ -295,20 +302,20 @@ export default function SuperAdminPage() {
                   key={r.id}
                   initial={{ opacity: 0, y: 8 }}
                   animate={{ opacity: 1, y: 0 }}
-                  className="bg-zinc-900 border border-zinc-800 rounded-2xl p-4 hover:border-zinc-700 transition-colors"
+                  className="bg-white border border-gray-100 rounded-2xl p-4 hover:border-gray-300 transition-colors shadow-sm"
                 >
                   <div className="flex items-start justify-between gap-4">
                     <div className="min-w-0 flex-1">
                       {/* Nombre + slug */}
                       <div className="flex items-center gap-2 mb-2">
                         <h3 className="font-semibold truncate">{r.name}</h3>
-                        <span className="text-zinc-600 font-mono text-xs shrink-0 bg-zinc-800 px-1.5 py-0.5 rounded">/{r.slug}</span>
+                        <span className="text-gray-400 font-mono text-xs shrink-0 bg-gray-100 px-1.5 py-0.5 rounded">/{r.slug}</span>
                       </div>
 
                       {/* Owner + estado cuenta */}
                       {owner && (
                         <div className="flex items-center gap-2">
-                          <span className="text-zinc-400 text-xs truncate">{owner.email}</span>
+                          <span className="text-gray-500 text-xs truncate">{owner.email}</span>
                           {isActive ? (
                             <span className="shrink-0 inline-flex items-center gap-1 text-[10px] font-semibold bg-emerald-500/15 text-emerald-400 border border-emerald-500/20 px-2 py-0.5 rounded-full">
                               <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block" />
@@ -324,7 +331,7 @@ export default function SuperAdminPage() {
                       )}
 
                       {/* Stats */}
-                      <div className="flex gap-3 mt-2 mb-3 text-xs text-zinc-600">
+                      <div className="flex gap-3 mt-2 mb-3 text-xs text-gray-400">
                         <span>{r._count.tables} {r._count.tables === 1 ? "mesa" : "mesas"}</span>
                         <span>{r._count.orders} {r._count.orders === 1 ? "pedido" : "pedidos"}</span>
                       </div>
@@ -347,12 +354,12 @@ export default function SuperAdminPage() {
                       {owner?.hasPassword ? (
                         <a
                           href={`/api/setup/impersonate?restaurantId=${r.id}`}
-                          className="text-xs text-zinc-400 hover:text-white bg-zinc-800 hover:bg-zinc-700 px-3 py-1.5 rounded-lg transition-all text-center"
+                          className="text-xs text-gray-600 hover:text-gray-900 bg-gray-100 hover:bg-gray-200 px-3 py-1.5 rounded-lg transition-all text-center"
                         >
                           Ver panel
                         </a>
                       ) : (
-                        <span className="text-xs text-zinc-600 bg-zinc-800/50 px-3 py-1.5 rounded-lg text-center cursor-not-allowed" title="El dueño aún no activó su cuenta">
+                        <span className="text-xs text-gray-400 bg-gray-100 px-3 py-1.5 rounded-lg text-center cursor-not-allowed" title="El dueño aún no activó su cuenta">
                           Sin cuenta
                         </span>
                       )}
@@ -361,8 +368,8 @@ export default function SuperAdminPage() {
                         disabled={togglingId === r.id}
                         className={`text-xs px-3 py-1.5 rounded-lg transition-all disabled:opacity-50 ${
                           r.isActive
-                            ? "text-amber-400 hover:text-amber-300 hover:bg-amber-950/30"
-                            : "text-emerald-400 hover:text-emerald-300 hover:bg-emerald-950/30"
+                            ? "text-amber-600 hover:text-amber-700 hover:bg-amber-50"
+                            : "text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50"
                         }`}
                       >
                         {togglingId === r.id ? "..." : r.isActive ? "Suspender" : "Activar"}
@@ -380,7 +387,7 @@ export default function SuperAdminPage() {
             })}
           </div>
         )}
-      </div>
+      </div>{/* cierre contenido */}
 
       {/* Modal confirmar borrado */}
       <AnimatePresence>
@@ -397,14 +404,14 @@ export default function SuperAdminPage() {
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.95, opacity: 0 }}
               onClick={(e) => e.stopPropagation()}
-              className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 max-w-sm w-full shadow-2xl"
+              className="bg-white border border-gray-100 rounded-2xl p-6 max-w-sm w-full shadow-2xl"
             >
               <div className="text-3xl mb-3 text-center">⚠️</div>
               <h3 className="font-bold text-lg mb-1 text-center">¿Estás seguro?</h3>
-              <p className="text-zinc-400 text-sm mb-1 text-center">
-                Vas a eliminar <span className="text-white font-semibold">{confirmDelete.name}</span>.
+              <p className="text-gray-500 text-sm mb-1 text-center">
+                Vas a eliminar <span className="text-gray-900 font-semibold">{confirmDelete.name}</span>.
               </p>
-              <p className="text-red-400 text-xs mb-5 text-center">Esta acción borra el restaurante, sus mesas y pedidos. No se puede deshacer.</p>
+              <p className="text-red-500 text-xs mb-5 text-center">Esta acción borra el restaurante, sus mesas y pedidos. No se puede deshacer.</p>
               <div className="flex gap-2">
                 <button
                   onClick={() => handleDelete(confirmDelete)}
@@ -415,7 +422,7 @@ export default function SuperAdminPage() {
                 </button>
                 <button
                   onClick={() => setConfirmDelete(null)}
-                  className="flex-1 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-sm py-2.5 rounded-xl transition-all"
+                  className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-600 text-sm py-2.5 rounded-xl transition-all"
                 >
                   Cancelar
                 </button>
