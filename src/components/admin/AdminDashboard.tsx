@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { ChefHat, BookOpen, QrCode, LogOut, TrendingUp, Package, Grid2X2, UtensilsCrossed } from "lucide-react";
+import { ChefHat, BookOpen, QrCode, LogOut, TrendingUp, Package, Grid2X2, UtensilsCrossed, X } from "lucide-react";
 import { ORDER_STATUS_LABELS, ORDER_STATUS_COLORS, OrderStatus } from "@/lib/types";
 import { useSSE } from "@/hooks/useSSE";
 import { useState, useCallback } from "react";
@@ -198,27 +198,35 @@ export default function AdminDashboard({ stats, recentOrders: initialOrders }: P
                     </p>
                   </div>
 
-                  <div className="flex flex-col items-end gap-1.5 flex-shrink-0">
-                    <div className="flex items-center gap-1.5">
-                      <span className={`text-[11px] px-2 py-0.5 rounded-full font-medium whitespace-nowrap ${ORDER_STATUS_COLORS[order.status as OrderStatus]}`}>
-                        {ORDER_STATUS_LABELS[order.status as OrderStatus]}
-                      </span>
-                      <span className="font-bold text-gray-900 text-sm tabular-nums">
-                        ${order.total.toLocaleString("es-AR")}
-                      </span>
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    <div className="flex flex-col items-end gap-1.5">
+                      <div className="flex items-center gap-1.5">
+                        <span className={`text-[11px] px-2 py-0.5 rounded-full font-medium whitespace-nowrap ${ORDER_STATUS_COLORS[order.status as OrderStatus]}`}>
+                          {ORDER_STATUS_LABELS[order.status as OrderStatus]}
+                        </span>
+                        <span className="font-bold text-gray-900 text-sm tabular-nums">
+                          ${order.total.toLocaleString("es-AR")}
+                        </span>
+                      </div>
+                      {order.status === "READY" && (
+                        <button onClick={() => updateStatus(order.id, "DELIVERED")}
+                          className="text-[11px] font-bold bg-emerald-500 hover:bg-emerald-600 text-white px-3 py-1.5 rounded-lg transition-all">
+                          Entregar ✓
+                        </button>
+                      )}
+                      {order.status === "DELIVERED" && (
+                        <button onClick={() => updateStatus(order.id, "PAID")}
+                          className="text-[11px] font-bold bg-gray-900 hover:bg-gray-700 text-white px-3 py-1.5 rounded-lg transition-all">
+                          Cobrado ✓
+                        </button>
+                      )}
                     </div>
-                    {order.status === "READY" && (
-                      <button onClick={() => updateStatus(order.id, "DELIVERED")}
-                        className="text-[11px] font-bold bg-emerald-500 hover:bg-emerald-600 text-white px-3 py-1.5 rounded-lg transition-all">
-                        Entregar ✓
-                      </button>
-                    )}
-                    {order.status === "DELIVERED" && (
-                      <button onClick={() => updateStatus(order.id, "PAID")}
-                        className="text-[11px] font-bold bg-gray-900 hover:bg-gray-700 text-white px-3 py-1.5 rounded-lg transition-all">
-                        Cobrado ✓
-                      </button>
-                    )}
+                    <button
+                      onClick={() => setOrders((prev) => prev.filter((o) => o.id !== order.id))}
+                      className="w-7 h-7 rounded-full flex items-center justify-center text-gray-300 hover:text-gray-600 hover:bg-gray-100 transition-all flex-shrink-0"
+                    >
+                      <X size={13} strokeWidth={2.5} />
+                    </button>
                   </div>
                 </motion.div>
               ))}
