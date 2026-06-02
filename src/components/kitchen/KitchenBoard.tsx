@@ -178,6 +178,14 @@ function OrderCard({ order, onAdvance }: { order: Order; onAdvance: () => void }
         ))}
       </div>
 
+      {/* Aclaraciones del pedido */}
+      {order.notes && (
+        <div className="mx-4 mb-3 px-3 py-2 bg-amber-500/10 border border-amber-500/20 rounded-xl">
+          <p className="text-[10px] font-bold text-amber-400 uppercase tracking-widest mb-0.5">Aclaraciones</p>
+          <p className="text-xs text-amber-200 leading-snug">{order.notes}</p>
+        </div>
+      )}
+
       {/* Footer */}
       <div className="px-4 py-3 border-t border-zinc-800 flex items-center justify-between gap-2">
         <span className="text-xs text-zinc-600 truncate">
