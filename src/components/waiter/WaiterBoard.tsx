@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useSSE } from "@/hooks/useSSE";
 import { ArrowLeft, Clock, BellRing } from "lucide-react";
@@ -69,6 +69,20 @@ export default function WaiterBoard({ initialOrders }: { initialOrders: Order[] 
   }, []);
 
   useSSE("/api/events", handleSSE);
+
+  // Polling cada 4s — garantiza sincronización entre instancias serverless
+  useEffect(() => {
+    const ACTIVE = ["PENDING", "CONFIRMED", "PREPARING", "READY", "DELIVERED"];
+    const poll = setInterval(async () => {
+      try {
+        const res = await fetch("/api/orders");
+        if (!res.ok) return;
+        const data = await res.json();
+        setOrders(data.filter((o: Order) => ACTIVE.includes(o.status)));
+      } catch { /* ignorar error de red */ }
+    }, 4000);
+    return () => clearInterval(poll);
+  }, []);
 
   async function markDelivered(orderId: string) {
     const res = await fetch(`/api/orders/${orderId}`, {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Wifi, WifiOff, ChefHat, Clock } from "lucide-react";
 import { Order, OrderItem, OrderStatus, ORDER_STATUS_LABELS } from "@/lib/types";
@@ -42,27 +42,41 @@ export default function KitchenBoard() {
   const [loading, setLoading] = useState(true);
   const [connected, setConnected] = useState(false);
 
-  useEffect(() => {
-    getOrders()
-      .then((data) => {
-        setOrders(data.filter((o) => ACTIVE.includes(o.status)));
-        setLoading(false);
-      })
-      .catch(() => setLoading(false));
+  const fetchOrders = useCallback(async () => {
+    try {
+      const data = await getOrders();
+      setOrders(data.filter((o) => ACTIVE.includes(o.status)));
+      setLoading(false);
+    } catch { setLoading(false); }
+  }, []);
 
+  useEffect(() => {
+    fetchOrders();
+
+    // Polling cada 4s — funciona entre instancias serverless
+    const poll = setInterval(fetchOrders, 4000);
+
+    // SSE como bonus — actualización instantánea si cae en la misma instancia
     const es = new EventSource("/api/events");
     es.onopen = () => setConnected(true);
     es.onerror = () => setConnected(false);
     es.onmessage = (e) => {
-      const data = JSON.parse(e.data);
-      if (data.type === "NEW_ORDER") {
-        setOrders((prev) => [data.order, ...prev]);
-      } else if (data.type === "ORDER_UPDATED") {
-        setOrders((prev) => prev.map((o) => o.id === data.order.id ? data.order : o));
-      }
+      try {
+        const data = JSON.parse(e.data);
+        if (data.type === "NEW_ORDER") {
+          setOrders((prev) =>
+            ACTIVE.includes(data.order.status) && !prev.find((o) => o.id === data.order.id)
+              ? [data.order, ...prev]
+              : prev
+          );
+        } else if (data.type === "ORDER_UPDATED") {
+          setOrders((prev) => prev.map((o) => o.id === data.order.id ? data.order : o));
+        }
+      } catch { /* ignorar mensajes malformados */ }
     };
-    return () => es.close();
-  }, []);
+
+    return () => { clearInterval(poll); es.close(); };
+  }, [fetchOrders]);
 
   async function advance(order: Order) {
     const next = NEXT[order.status];
