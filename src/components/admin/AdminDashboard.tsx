@@ -73,7 +73,7 @@ export default function AdminDashboard({ stats, recentOrders: initialOrders }: P
       <div
         className="relative overflow-hidden px-4 sm:px-6 pb-8"
         style={{
-          background: "linear-gradient(135deg, #f97316 0%, #ea580c 50%, #c2410c 100%)",
+          background: "linear-gradient(135deg, #fdba74 0%, #fb923c 60%, #f97316 100%)",
           paddingTop: "max(1.5rem, env(safe-area-inset-top))",
         }}
       >
@@ -137,10 +137,10 @@ export default function AdminDashboard({ stats, recentOrders: initialOrders }: P
 
         {/* Accesos rápidos */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          <NavCard href="/cocina"      icon={<ChefHat size={22} strokeWidth={1.5} />}         title="Cocina"     subtitle="Pedidos en vivo"   color="from-orange-500 to-red-500"    />
-          <NavCard href="/mozos"       icon={<UtensilsCrossed size={22} strokeWidth={1.5} />} title="Mozos"      subtitle="Entregar y cobrar" color="from-emerald-500 to-teal-600"  />
-          <NavCard href="/admin/menu"  icon={<BookOpen size={22} strokeWidth={1.5} />}        title="Menú"       subtitle="Gestionar platos"  color="from-blue-500 to-indigo-600"   />
-          <NavCard href="/admin/mesas" icon={<QrCode size={22} strokeWidth={1.5} />}          title="Mesas"      subtitle="Códigos QR"        color="from-violet-500 to-purple-600" />
+          <NavCard href="/cocina"      icon={<ChefHat size={22} strokeWidth={1.5} />}         title="Cocina"     subtitle="Pedidos en vivo"   iconBg="bg-orange-100"  iconColor="text-orange-500" />
+          <NavCard href="/mozos"       icon={<UtensilsCrossed size={22} strokeWidth={1.5} />} title="Mozos"      subtitle="Entregar y cobrar" iconBg="bg-emerald-100" iconColor="text-emerald-600" />
+          <NavCard href="/admin/menu"  icon={<BookOpen size={22} strokeWidth={1.5} />}        title="Menú"       subtitle="Gestionar platos"  iconBg="bg-blue-100"    iconColor="text-blue-500" />
+          <NavCard href="/admin/mesas" icon={<QrCode size={22} strokeWidth={1.5} />}          title="Mesas"      subtitle="Códigos QR"        iconBg="bg-violet-100"  iconColor="text-violet-500" />
         </div>
 
         {/* Pedidos recientes */}
@@ -226,20 +226,20 @@ export default function AdminDashboard({ stats, recentOrders: initialOrders }: P
   );
 }
 
-function NavCard({ href, icon, title, subtitle, color }: {
-  href: string; icon: React.ReactNode; title: string; subtitle: string; color: string;
+function NavCard({ href, icon, title, subtitle, iconBg, iconColor }: {
+  href: string; icon: React.ReactNode; title: string; subtitle: string; iconBg: string; iconColor: string;
 }) {
   return (
     <Link
       href={href}
-      className={`rounded-2xl p-4 flex flex-col gap-3 bg-gradient-to-br ${color} text-white shadow-sm active:scale-[0.97] transition-transform`}
+      className="rounded-2xl p-4 flex flex-col gap-3 bg-white border border-gray-100 shadow-sm active:scale-[0.97] transition-transform"
     >
-      <div className="bg-white/20 w-10 h-10 rounded-xl flex items-center justify-center">
+      <div className={`${iconBg} w-10 h-10 rounded-xl flex items-center justify-center ${iconColor}`}>
         {icon}
       </div>
       <div>
-        <p className="font-bold text-[15px] leading-tight">{title}</p>
-        <p className="text-white/70 text-xs mt-0.5">{subtitle}</p>
+        <p className="font-bold text-[15px] text-gray-900 leading-tight">{title}</p>
+        <p className="text-gray-400 text-xs mt-0.5">{subtitle}</p>
       </div>
     </Link>
   );
