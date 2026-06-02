@@ -10,7 +10,7 @@ export default async function MozosPage() {
   const orders = await db.order.findMany({
     where: {
       restaurantId: session.restaurantId,
-      status: { in: ["READY", "DELIVERED"] },
+      status: { in: ["PENDING", "CONFIRMED", "PREPARING", "READY", "DELIVERED"] },
     },
     orderBy: { createdAt: "asc" },
     include: {

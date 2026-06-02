@@ -51,7 +51,7 @@ export default function WaiterBoard({ initialOrders }: { initialOrders: Order[] 
   const handleSSE = useCallback((data: { type: string; [k: string]: unknown }) => {
     if (data.type === "NEW_ORDER") {
       const o = data.order as Order;
-      if (o.status === "READY") setOrders((prev) => [...prev, o]);
+      setOrders((prev) => [...prev, o]);
     }
     if (data.type === "ORDER_UPDATED") {
       const updated = data.order as Order;
@@ -96,6 +96,7 @@ export default function WaiterBoard({ initialOrders }: { initialOrders: Order[] 
   }
 
   const ready = orders.filter((o) => o.status === "READY");
+  const inProgress = orders.filter((o) => ["PENDING","CONFIRMED","PREPARING"].includes(o.status));
   const delivered = orders.filter((o) => o.status === "DELIVERED");
 
   return (
@@ -133,6 +134,34 @@ export default function WaiterBoard({ initialOrders }: { initialOrders: Order[] 
       </div>
 
       <div className="max-w-2xl mx-auto px-4 py-5 space-y-6">
+
+        {/* EN COCINA — preparándose */}
+        {inProgress.length > 0 && (
+          <div>
+            <p className="text-[11px] font-bold text-orange-400 uppercase tracking-widest mb-3">
+              🟠 En cocina ({inProgress.length})
+            </p>
+            <div className="space-y-2">
+              {inProgress.map((order) => (
+                <div key={order.id} className="bg-zinc-900 border border-zinc-800 rounded-2xl p-4 opacity-70">
+                  <div className="flex items-center justify-between mb-2">
+                    <p className="font-black text-white text-2xl">Mesa {order.table.number}</p>
+                    <span className="text-[11px] px-2 py-1 rounded-full font-semibold bg-orange-500/15 text-orange-400 border border-orange-500/20">
+                      {order.status === "PENDING" ? "Pendiente" : order.status === "CONFIRMED" ? "Confirmado" : "Preparando"}
+                    </span>
+                  </div>
+                  <p className="text-xs text-zinc-400">
+                    {order.items.map((i) => `${i.quantity}× ${i.menuItem.name}`).join(", ")}
+                  </p>
+                  {order.paymentMode === "ONLINE"
+                    ? <span className="inline-block mt-2 text-[11px] font-semibold text-emerald-400">✓ Ya pagó online</span>
+                    : <span className="inline-block mt-2 text-[11px] font-semibold text-amber-400">💵 Paga en caja</span>
+                  }
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* LISTOS — entregar ahora */}
         <div>
