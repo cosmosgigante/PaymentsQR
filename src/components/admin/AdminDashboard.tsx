@@ -73,7 +73,7 @@ export default function AdminDashboard({ stats, recentOrders: initialOrders }: P
       <div
         className="relative overflow-hidden px-4 sm:px-6 pb-8"
         style={{
-          background: "linear-gradient(135deg, #fdba74 0%, #fb923c 60%, #f97316 100%)",
+          background: "linear-gradient(135deg, #bfdbfe 0%, #93c5fd 50%, #60a5fa 100%)",
           paddingTop: "max(1.5rem, env(safe-area-inset-top))",
         }}
       >
@@ -92,11 +92,11 @@ export default function AdminDashboard({ stats, recentOrders: initialOrders }: P
               <div className="w-9 h-9 bg-white/20 rounded-xl flex items-center justify-center text-lg backdrop-blur-sm">
                 🍽️
               </div>
-              <span className="font-bold text-white text-lg tracking-tight">Panel Admin</span>
+              <span className="font-bold text-blue-900 text-lg tracking-tight">Panel Admin</span>
             </div>
             <button
               onClick={logout}
-              className="flex items-center gap-1.5 text-white/70 hover:text-white text-sm transition-colors min-h-[44px] px-2"
+              className="flex items-center gap-1.5 text-blue-900/60 hover:text-blue-900 text-sm transition-colors min-h-[44px] px-2"
             >
               <LogOut size={15} strokeWidth={2} />
               <span className="hidden sm:inline">Salir</span>
@@ -105,8 +105,8 @@ export default function AdminDashboard({ stats, recentOrders: initialOrders }: P
 
           {/* Saludo */}
           <div className="mb-6">
-            <p className="text-white/70 text-sm">{greeting} 👋</p>
-            <h1 className="text-white font-bold text-2xl mt-0.5">¿Cómo va el servicio?</h1>
+            <p className="text-blue-800/60 text-sm">{greeting} 👋</p>
+            <h1 className="text-blue-900 font-bold text-2xl mt-0.5">¿Cómo va el servicio?</h1>
           </div>
 
           {/* Stats dentro del hero */}
@@ -121,11 +121,11 @@ export default function AdminDashboard({ stats, recentOrders: initialOrders }: P
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: i * 0.08 }}
-                className={`${stat.bg} backdrop-blur-sm rounded-2xl p-3 sm:p-4 border border-white/20`}
+                className={`${stat.bg} backdrop-blur-sm rounded-2xl p-3 sm:p-4 border border-blue-200/40`}
               >
-                <div className="text-white/70 mb-2">{stat.icon}</div>
-                <p className="text-2xl sm:text-3xl font-black text-white leading-none">{stat.value}</p>
-                <p className="text-white/60 text-[11px] mt-1 font-medium">{stat.label}</p>
+                <div className="text-blue-700/70 mb-2">{stat.icon}</div>
+                <p className="text-2xl sm:text-3xl font-black text-blue-900 leading-none">{stat.value}</p>
+                <p className="text-blue-800/50 text-[11px] mt-1 font-medium">{stat.label}</p>
               </motion.div>
             ))}
           </div>
