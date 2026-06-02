@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { ChefHat, BookOpen, QrCode, LogOut, TrendingUp, Package, Grid2X2 } from "lucide-react";
+import { ChefHat, BookOpen, QrCode, LogOut, TrendingUp, Package, Grid2X2, UtensilsCrossed } from "lucide-react";
 import { ORDER_STATUS_LABELS, ORDER_STATUS_COLORS, OrderStatus } from "@/lib/types";
 import { useSSE } from "@/hooks/useSSE";
 import { useState, useCallback } from "react";
@@ -113,9 +113,10 @@ export default function AdminDashboard({ stats, recentOrders: initialOrders }: P
 
         {/* Accesos rápidos */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-3">
-          <NavCard href="/cocina"      icon={<ChefHat size={20} strokeWidth={1.5} />} title="Cocina"       subtitle="Pedidos en vivo"     dark />
-          <NavCard href="/admin/menu"  icon={<BookOpen size={20} strokeWidth={1.5} />} title="Menú"        subtitle="Agregar platos"            />
-          <NavCard href="/admin/mesas" icon={<QrCode size={20} strokeWidth={1.5} />}   title="Mesas y QR"  subtitle="Generar códigos QR"        />
+          <NavCard href="/cocina"      icon={<ChefHat size={20} strokeWidth={1.5} />}         title="Cocina"      subtitle="Pedidos en vivo"    dark />
+          <NavCard href="/mozos"       icon={<UtensilsCrossed size={20} strokeWidth={1.5} />} title="Mozos"       subtitle="Entregar y cobrar"  dark />
+          <NavCard href="/admin/menu"  icon={<BookOpen size={20} strokeWidth={1.5} />}        title="Menú"        subtitle="Agregar platos"          />
+          <NavCard href="/admin/mesas" icon={<QrCode size={20} strokeWidth={1.5} />}          title="Mesas y QR"  subtitle="Generar códigos QR"      />
         </div>
 
         {/* Pedidos recientes */}
