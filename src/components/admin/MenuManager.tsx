@@ -92,20 +92,27 @@ export default function MenuManager({ initialCategories }: { initialCategories: 
   }
 
   return (
-    <div className="min-h-screen-dvh bg-[#fafafa]">
-      {/* Header */}
+    <div className="min-h-screen-dvh bg-slate-100">
+      {/* Hero header — mismo estilo que panel admin */}
       <div
-        className="bg-white border-b border-zinc-100 px-4 sm:px-5"
-        style={{ paddingTop: "max(1rem, env(safe-area-inset-top))" }}
+        className="relative overflow-hidden px-4 sm:px-5 pb-6"
+        style={{
+          background: "linear-gradient(135deg, #1e2d4e 0%, #1a3a6b 60%, #1e3a8a 100%)",
+          paddingTop: "max(1.25rem, env(safe-area-inset-top))",
+        }}
       >
-        <div className="max-w-2xl mx-auto flex items-center gap-3 pb-4">
+        <div className="absolute inset-0 pointer-events-none overflow-hidden">
+          <div className="absolute -top-20 -right-20 w-64 h-64 rounded-full bg-white/5" />
+          <div className="absolute -bottom-10 -left-10 w-48 h-48 rounded-full bg-white/5" />
+        </div>
+        <div className="relative max-w-2xl mx-auto flex items-center gap-3">
           <Link
             href="/admin"
-            className="w-9 h-9 flex items-center justify-center text-zinc-400 active:text-zinc-700 transition-colors"
+            className="w-9 h-9 flex items-center justify-center text-white/60 hover:text-white transition-colors"
           >
             <ArrowLeft size={18} strokeWidth={2} />
           </Link>
-          <h1 className="font-bold text-zinc-900 text-lg">Menú</h1>
+          <h1 className="font-bold text-white text-lg">Menú</h1>
         </div>
       </div>
 
