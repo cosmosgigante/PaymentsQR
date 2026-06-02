@@ -12,10 +12,64 @@ type Restaurant = {
   name: string;
   slug: string;
   isActive: boolean;
+  subscriptionEndsAt: string | null;
   createdAt: string;
   _count: { tables: number; orders: number };
   admins: Admin[];
 };
+
+function SubscriptionBadge({ endsAt, onExtend }: { endsAt: string | null; onExtend: (months: number) => void }) {
+  const [open, setOpen] = useState(false);
+
+  const daysLeft = endsAt
+    ? Math.ceil((new Date(endsAt).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
+    : null;
+
+  const badgeColor = daysLeft === null
+    ? "bg-gray-100 text-gray-400 border-gray-200"
+    : daysLeft <= 0
+    ? "bg-red-50 text-red-600 border-red-200"
+    : daysLeft <= 7
+    ? "bg-orange-50 text-orange-600 border-orange-200"
+    : daysLeft <= 15
+    ? "bg-amber-50 text-amber-600 border-amber-200"
+    : "bg-emerald-50 text-emerald-600 border-emerald-200";
+
+  const badgeText = daysLeft === null
+    ? "Sin suscripción"
+    : daysLeft <= 0
+    ? "Vencida"
+    : `${daysLeft} día${daysLeft !== 1 ? "s" : ""} restantes`;
+
+  return (
+    <div className="mt-2 mb-1">
+      <div className="flex items-center gap-2 flex-wrap">
+        <span className={`inline-flex items-center text-[11px] font-semibold border px-2 py-0.5 rounded-full ${badgeColor}`}>
+          {daysLeft !== null && daysLeft > 0 && "🕐 "}{badgeText}
+        </span>
+        <button
+          onClick={() => setOpen((v) => !v)}
+          className="text-[11px] text-blue-600 hover:text-blue-800 font-semibold"
+        >
+          {open ? "Cerrar" : "Extender"}
+        </button>
+      </div>
+      {open && (
+        <div className="flex gap-1.5 mt-2 flex-wrap">
+          {[1, 3, 6, 12].map((m) => (
+            <button
+              key={m}
+              onClick={() => { onExtend(m); setOpen(false); }}
+              className="text-[11px] font-semibold bg-blue-900 hover:bg-blue-800 text-white px-2.5 py-1 rounded-lg transition-all"
+            >
+              +{m === 12 ? "1 año" : `${m} mes${m > 1 ? "es" : ""}`}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
 
 function LinkCopiable({ label, url }: { label: string; url: string }) {
   const [copied, setCopied] = useState(false);
@@ -103,6 +157,25 @@ export default function SuperAdminPage() {
       );
     }
     setTogglingId(null);
+  }
+
+  async function handleExtendSubscription(restaurant: Restaurant, months: number) {
+    const base = restaurant.subscriptionEndsAt && new Date(restaurant.subscriptionEndsAt) > new Date()
+      ? new Date(restaurant.subscriptionEndsAt)
+      : new Date();
+    const newDate = new Date(base);
+    newDate.setMonth(newDate.getMonth() + months);
+
+    const res = await fetch("/api/setup", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ restaurantId: restaurant.id, subscriptionEndsAt: newDate.toISOString() }),
+    });
+    if (res.ok) {
+      setRestaurants((prev) =>
+        prev.map((r) => r.id === restaurant.id ? { ...r, subscriptionEndsAt: newDate.toISOString() } : r)
+      );
+    }
   }
 
   async function handleDelete(restaurant: Restaurant) {
@@ -332,6 +405,12 @@ export default function SuperAdminPage() {
                         <span>{r._count.tables} {r._count.tables === 1 ? "mesa" : "mesas"}</span>
                         <span>{r._count.orders} {r._count.orders === 1 ? "pedido" : "pedidos"}</span>
                       </div>
+
+                      {/* Suscripción */}
+                      <SubscriptionBadge
+                        endsAt={r.subscriptionEndsAt}
+                        onExtend={(months) => handleExtendSubscription(r, months)}
+                      />
 
                       {/* Links generados */}
                       <div className="space-y-1.5">

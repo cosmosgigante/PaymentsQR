@@ -12,7 +12,8 @@ model Restaurant {
   slug           String         @unique
   logo           String?
   primaryColor   String         @default("#f97316")
-  isActive       Boolean        @default(true)
+  isActive            Boolean        @default(true)
+  subscriptionEndsAt  DateTime?
   tables         Table[]
   menuCategories MenuCategory[]
   menuItems      MenuItem[]
