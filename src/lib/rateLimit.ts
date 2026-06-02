@@ -1,34 +1,29 @@
 import { db } from "@/lib/db";
+import { Prisma } from "@prisma/client";
 
+// Una sola query SQL atómica en vez de transaction + 2-3 roundtrips
 export async function rateLimit(key: string, max: number, windowMs: number): Promise<boolean> {
-  const now = new Date();
-  const resetAt = new Date(now.getTime() + windowMs);
+  const resetAt = new Date(Date.now() + windowMs);
 
   try {
-    const result = await db.$transaction(async (tx) => {
-      const existing = await tx.rateLimit.findUnique({ where: { id: key } });
-
-      if (!existing || existing.resetAt < now) {
-        await tx.rateLimit.upsert({
-          where: { id: key },
-          create: { id: key, count: 1, resetAt },
-          update: { count: 1, resetAt },
-        });
-        return true;
-      }
-
-      if (existing.count >= max) return false;
-
-      await tx.rateLimit.update({
-        where: { id: key },
-        data: { count: { increment: 1 } },
-      });
-      return true;
-    });
-
-    return result;
+    const result = await db.$queryRaw<[{ current_count: number }]>(
+      Prisma.sql`
+        INSERT INTO "RateLimit" (id, count, "resetAt")
+        VALUES (${key}, 1, ${resetAt})
+        ON CONFLICT (id) DO UPDATE SET
+          count = CASE
+            WHEN "RateLimit"."resetAt" < NOW() THEN 1
+            ELSE "RateLimit".count + 1
+          END,
+          "resetAt" = CASE
+            WHEN "RateLimit"."resetAt" < NOW() THEN ${resetAt}
+            ELSE "RateLimit"."resetAt"
+          END
+        RETURNING count AS current_count
+      `
+    );
+    return result[0].current_count <= max;
   } catch {
-    // Si la DB falla, dejar pasar para no bloquear usuarios legítimos
     return true;
   }
 }

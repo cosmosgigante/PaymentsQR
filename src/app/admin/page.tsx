@@ -7,10 +7,20 @@ export default async function AdminPage() {
   const session = await getSession();
   if (!session) redirect("/");
 
-  const restaurant = await db.restaurant.findUnique({
-    where: { id: session.restaurantId },
-    select: { isActive: true },
-  });
+  const [restaurant, ordersToday, tablesCount, menuItemsCount, recentOrders] = await Promise.all([
+    db.restaurant.findUnique({ where: { id: session.restaurantId }, select: { isActive: true } }),
+    db.order.count({
+      where: { restaurantId: session.restaurantId, createdAt: { gte: new Date(new Date().setHours(0, 0, 0, 0)) } },
+    }),
+    db.table.count({ where: { restaurantId: session.restaurantId } }),
+    db.menuItem.count({ where: { restaurantId: session.restaurantId } }),
+    db.order.findMany({
+      where: { restaurantId: session.restaurantId, status: { notIn: ["PAID", "CANCELLED"] } },
+      orderBy: { createdAt: "desc" },
+      take: 10,
+      include: { table: true, items: { include: { menuItem: true } } },
+    }),
+  ]);
 
   if (!restaurant?.isActive) {
     return (
@@ -23,24 +33,6 @@ export default async function AdminPage() {
       </div>
     );
   }
-
-  const [ordersToday, tablesCount, menuItemsCount] = await Promise.all([
-    db.order.count({
-      where: {
-        restaurantId: session.restaurantId,
-        createdAt: { gte: new Date(new Date().setHours(0, 0, 0, 0)) },
-      },
-    }),
-    db.table.count({ where: { restaurantId: session.restaurantId } }),
-    db.menuItem.count({ where: { restaurantId: session.restaurantId } }),
-  ]);
-
-  const recentOrders = await db.order.findMany({
-    where: { restaurantId: session.restaurantId },
-    orderBy: { createdAt: "desc" },
-    take: 10,
-    include: { table: true, items: { include: { menuItem: true } } },
-  });
 
   return (
     <AdminDashboard
