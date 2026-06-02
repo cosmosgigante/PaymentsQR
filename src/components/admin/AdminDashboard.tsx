@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
+import { createClient } from "@/lib/supabase/client";
 import { ChefHat, BookOpen, QrCode, LogOut, TrendingUp, Package, Grid2X2, UtensilsCrossed, X } from "lucide-react";
 import { ORDER_STATUS_LABELS, ORDER_STATUS_COLORS, OrderStatus } from "@/lib/types";
 import { useSSE } from "@/hooks/useSSE";
@@ -51,6 +52,8 @@ export default function AdminDashboard({ stats, recentOrders: initialOrders }: P
 
   async function logout() {
     await fetch("/api/auth/login", { method: "DELETE" });
+    const supabase = createClient();
+    await supabase.auth.signOut(); // cierra también la sesión Google/Supabase
     router.push("/");
     router.refresh();
   }

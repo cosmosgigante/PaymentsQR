@@ -13,7 +13,7 @@ export async function loginAction(formData: FormData) {
   if (!email || !password) redirect("/?error=invalid");
 
   const admin = await db.admin.findUnique({ where: { email } });
-  const dummyHash = "$2a$12$dummyhashtopreventtimingattacksxxxxxxxxxxxxxxxxxxxxxxxxx";
+  const dummyHash = "$2a$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewdBPj/ViXRpBlYa";
   const valid = admin?.passwordHash
     ? await bcrypt.compare(password, admin.passwordHash)
     : await bcrypt.compare(password, dummyHash).then(() => false);
