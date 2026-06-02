@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useSSE } from "@/hooks/useSSE";
-import { ArrowLeft, Clock } from "lucide-react";
+import { ArrowLeft, Clock, BellRing } from "lucide-react";
 import Link from "next/link";
 import { OrderStatus } from "@/lib/types";
 
@@ -27,6 +27,26 @@ type Order = {
 
 export default function WaiterBoard({ initialOrders }: { initialOrders: Order[] }) {
   const [orders, setOrders] = useState<Order[]>(initialOrders);
+  const [alertOrderId, setAlertOrderId] = useState<string | null>(null);
+  const audioCtxRef = useRef<AudioContext | null>(null);
+
+  function playBeep() {
+    try {
+      const ctx = audioCtxRef.current ?? new AudioContext();
+      audioCtxRef.current = ctx;
+      [0, 0.2].forEach((delay) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain); gain.connect(ctx.destination);
+        osc.frequency.value = 880;
+        osc.type = "sine";
+        gain.gain.setValueAtTime(0.4, ctx.currentTime + delay);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + delay + 0.3);
+        osc.start(ctx.currentTime + delay);
+        osc.stop(ctx.currentTime + delay + 0.3);
+      });
+    } catch { /* ignorar si el browser bloquea audio */ }
+  }
 
   const handleSSE = useCallback((data: { type: string; [k: string]: unknown }) => {
     if (data.type === "NEW_ORDER") {
@@ -40,6 +60,9 @@ export default function WaiterBoard({ initialOrders }: { initialOrders: Order[] 
           const exists = prev.find((o) => o.id === updated.id);
           return exists ? prev.map((o) => o.id === updated.id ? updated : o) : [...prev, updated];
         });
+        playBeep();
+        setAlertOrderId(updated.id);
+        setTimeout(() => setAlertOrderId(null), 4000);
       } else if (updated.status === "PAID" || updated.status === "CANCELLED") {
         setOrders((prev) => prev.filter((o) => o.id !== updated.id));
       } else {
@@ -87,11 +110,26 @@ export default function WaiterBoard({ initialOrders }: { initialOrders: Order[] 
           <h1 className="font-bold text-lg leading-tight">Panel Mozos</h1>
           <p className="text-zinc-500 text-xs">Pedidos listos para entregar</p>
         </div>
-        {ready.length > 0 && (
-          <span className="ml-auto bg-emerald-500 text-white text-sm font-bold w-7 h-7 rounded-full flex items-center justify-center">
-            {ready.length}
-          </span>
-        )}
+        <div className="ml-auto flex items-center gap-2">
+          <AnimatePresence>
+            {alertOrderId && (
+              <motion.div
+                initial={{ scale: 0.8, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0.8, opacity: 0 }}
+                className="flex items-center gap-1.5 bg-emerald-500 text-white text-xs font-bold px-3 py-1.5 rounded-full"
+              >
+                <BellRing size={12} className="animate-bounce" />
+                ¡Pedido listo!
+              </motion.div>
+            )}
+          </AnimatePresence>
+          {ready.length > 0 && (
+            <span className="bg-emerald-500 text-white text-sm font-bold w-7 h-7 rounded-full flex items-center justify-center">
+              {ready.length}
+            </span>
+          )}
+        </div>
       </div>
 
       <div className="max-w-2xl mx-auto px-4 py-5 space-y-6">
@@ -155,10 +193,9 @@ function OrderCard({ order, onDeliver, onPaid }: { order: Order; onDeliver: () =
       {/* Header de la card */}
       <div className="px-4 py-3 flex items-center justify-between border-b border-zinc-800">
         <div>
-          <p className="font-bold text-white text-lg">
-            {order.table.label ?? `Mesa ${order.table.number}`}
-          </p>
-          <p className="text-zinc-500 text-xs font-mono">#{order.id.slice(-6).toUpperCase()}</p>
+          <p className="font-black text-white text-3xl leading-none">Mesa {order.table.number}</p>
+          {order.table.label && <p className="text-zinc-400 text-xs mt-0.5">{order.table.label}</p>}
+          <p className="text-zinc-600 text-xs font-mono mt-0.5">#{order.id.slice(-6).toUpperCase()}</p>
         </div>
         <div className="flex items-center gap-2 text-zinc-500">
           <Clock size={12} strokeWidth={2} />

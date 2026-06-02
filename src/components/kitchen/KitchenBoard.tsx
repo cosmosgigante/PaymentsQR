@@ -145,10 +145,13 @@ function OrderCard({ order, onAdvance }: { order: Order; onAdvance: () => void }
       {/* Header */}
       <div className="px-4 py-3 flex items-start justify-between border-b border-zinc-800 gap-2">
         <div className="min-w-0">
-          <p className="font-bold text-white text-base leading-tight truncate">
-            {order.table.label ?? `Mesa ${order.table.number}`}
+          <p className="font-bold text-white text-xl leading-tight">
+            Mesa {order.table.number}
           </p>
-          <p className="text-zinc-500 text-xs font-mono mt-0.5">
+          {order.table.label && (
+            <p className="text-zinc-400 text-xs leading-tight truncate">{order.table.label}</p>
+          )}
+          <p className="text-zinc-600 text-xs font-mono mt-0.5">
             #{order.id.slice(-6).toUpperCase()}
           </p>
         </div>
