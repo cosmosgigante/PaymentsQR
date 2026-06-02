@@ -70,7 +70,7 @@ export default function AdminDashboard({ stats, recentOrders: initialOrders }: P
         className="bg-white border-b border-zinc-100 px-4 sm:px-6"
         style={{ paddingTop: "max(1rem, env(safe-area-inset-top))" }}
       >
-        <div className="max-w-3xl mx-auto flex items-center justify-between pb-4">
+        <div className="max-w-5xl mx-auto flex items-center justify-between pb-4">
           <div className="flex items-center gap-2.5">
             <div className="w-8 h-8 bg-zinc-900 rounded-xl flex items-center justify-center text-base flex-shrink-0">
               🍽️
@@ -87,7 +87,7 @@ export default function AdminDashboard({ stats, recentOrders: initialOrders }: P
         </div>
       </div>
 
-      <div className="max-w-3xl mx-auto px-4 sm:px-6 py-5 space-y-4">
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 py-5 space-y-4">
         {/* Stats */}
         <div className="grid grid-cols-3 gap-2 sm:gap-3">
           {[
@@ -112,11 +112,11 @@ export default function AdminDashboard({ stats, recentOrders: initialOrders }: P
         </div>
 
         {/* Accesos rápidos */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-3">
-          <NavCard href="/cocina"      icon={<ChefHat size={20} strokeWidth={1.5} />}         title="Cocina"      subtitle="Pedidos en vivo"    dark />
-          <NavCard href="/mozos"       icon={<UtensilsCrossed size={20} strokeWidth={1.5} />} title="Mozos"       subtitle="Entregar y cobrar"  dark />
-          <NavCard href="/admin/menu"  icon={<BookOpen size={20} strokeWidth={1.5} />}        title="Menú"        subtitle="Agregar platos"          />
-          <NavCard href="/admin/mesas" icon={<QrCode size={20} strokeWidth={1.5} />}          title="Mesas y QR"  subtitle="Generar códigos QR"      />
+        <div className="grid grid-cols-4 gap-2">
+          <NavCard href="/cocina"      icon={<ChefHat size={18} strokeWidth={1.5} />}         title="Cocina"     subtitle="En vivo"           dark />
+          <NavCard href="/mozos"       icon={<UtensilsCrossed size={18} strokeWidth={1.5} />} title="Mozos"      subtitle="Entregar"          dark />
+          <NavCard href="/admin/menu"  icon={<BookOpen size={18} strokeWidth={1.5} />}        title="Menú"       subtitle="Platos"                 />
+          <NavCard href="/admin/mesas" icon={<QrCode size={18} strokeWidth={1.5} />}          title="Mesas"      subtitle="Códigos QR"             />
         </div>
 
         {/* Pedidos recientes */}
@@ -203,16 +203,16 @@ function NavCard({ href, icon, title, subtitle, dark }: {
   return (
     <Link
       href={href}
-      className={`rounded-2xl p-4 sm:p-5 flex items-center gap-3 transition-all border active:scale-[0.98] ${
+      className={`rounded-2xl p-3 sm:p-4 flex flex-col gap-2 transition-all border active:scale-[0.98] ${
         dark
           ? "bg-zinc-900 active:bg-zinc-800 text-white border-zinc-800"
           : "bg-white active:bg-zinc-50 text-zinc-900 border-zinc-100"
       }`}
     >
-      <div className={`flex-shrink-0 ${dark ? "text-zinc-300" : "text-zinc-500"}`}>{icon}</div>
-      <div className="min-w-0">
-        <p className="font-bold text-sm">{title}</p>
-        <p className={`text-xs mt-0.5 truncate ${dark ? "text-zinc-500" : "text-zinc-400"}`}>{subtitle}</p>
+      <div className={`${dark ? "text-zinc-300" : "text-zinc-500"}`}>{icon}</div>
+      <div>
+        <p className="font-bold text-sm leading-tight">{title}</p>
+        <p className={`text-xs mt-0.5 ${dark ? "text-zinc-500" : "text-zinc-400"}`}>{subtitle}</p>
       </div>
     </Link>
   );
