@@ -47,7 +47,7 @@ export default function AdminDashboard({ stats, recentOrders: initialOrders }: P
 
   async function logout() {
     await fetch("/api/auth/login", { method: "DELETE" });
-    router.push("/admin/login");
+    router.push("/");
     router.refresh();
   }
 
@@ -63,126 +63,155 @@ export default function AdminDashboard({ stats, recentOrders: initialOrders }: P
     }
   }
 
+  const hour = new Date().getHours();
+  const greeting = hour < 12 ? "Buenos días" : hour < 19 ? "Buenas tardes" : "Buenas noches";
+
   return (
-    <div className="min-h-screen-dvh bg-[#fafafa]">
-      {/* Header */}
+    <div className="min-h-screen bg-gray-50">
+
+      {/* Hero header con gradiente */}
       <div
-        className="bg-white border-b border-zinc-100 px-4 sm:px-6"
-        style={{ paddingTop: "max(1rem, env(safe-area-inset-top))" }}
+        className="relative overflow-hidden px-4 sm:px-6 pb-8"
+        style={{
+          background: "linear-gradient(135deg, #f97316 0%, #ea580c 50%, #c2410c 100%)",
+          paddingTop: "max(1.5rem, env(safe-area-inset-top))",
+        }}
       >
-        <div className="max-w-5xl mx-auto flex items-center justify-between pb-4">
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 bg-zinc-900 rounded-xl flex items-center justify-center text-base flex-shrink-0">
-              🍽️
+        {/* Decoración de fondo */}
+        <div className="absolute inset-0 pointer-events-none overflow-hidden">
+          <div className="absolute -top-20 -right-20 w-64 h-64 rounded-full bg-white/5" />
+          <div className="absolute -bottom-10 -left-10 w-48 h-48 rounded-full bg-white/5" />
+          <div className="absolute top-8 right-32 w-4 h-4 rounded-full bg-white/20" />
+          <div className="absolute bottom-6 right-12 w-2 h-2 rounded-full bg-white/30" />
+        </div>
+
+        <div className="relative max-w-5xl mx-auto">
+          {/* Top bar */}
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-2.5">
+              <div className="w-9 h-9 bg-white/20 rounded-xl flex items-center justify-center text-lg backdrop-blur-sm">
+                🍽️
+              </div>
+              <span className="font-bold text-white text-lg tracking-tight">Panel Admin</span>
             </div>
-            <span className="font-bold text-zinc-900 text-[17px] tracking-tight">Panel Admin</span>
+            <button
+              onClick={logout}
+              className="flex items-center gap-1.5 text-white/70 hover:text-white text-sm transition-colors min-h-[44px] px-2"
+            >
+              <LogOut size={15} strokeWidth={2} />
+              <span className="hidden sm:inline">Salir</span>
+            </button>
           </div>
-          <button
-            onClick={logout}
-            className="flex items-center gap-1.5 text-sm text-zinc-400 active:text-zinc-700 transition-colors min-h-[44px] px-2"
-          >
-            <LogOut size={15} strokeWidth={2} />
-            <span className="hidden sm:inline">Salir</span>
-          </button>
+
+          {/* Saludo */}
+          <div className="mb-6">
+            <p className="text-white/70 text-sm">{greeting} 👋</p>
+            <h1 className="text-white font-bold text-2xl mt-0.5">¿Cómo va el servicio?</h1>
+          </div>
+
+          {/* Stats dentro del hero */}
+          <div className="grid grid-cols-3 gap-3">
+            {[
+              { value: ordersToday,          label: "Pedidos hoy",  icon: <TrendingUp size={16} />, bg: "bg-white/20" },
+              { value: stats.tablesCount,    label: "Mesas",        icon: <Grid2X2 size={16} />,    bg: "bg-white/15" },
+              { value: stats.menuItemsCount, label: "Productos",    icon: <Package size={16} />,    bg: "bg-white/10" },
+            ].map((stat, i) => (
+              <motion.div
+                key={stat.label}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: i * 0.08 }}
+                className={`${stat.bg} backdrop-blur-sm rounded-2xl p-3 sm:p-4 border border-white/20`}
+              >
+                <div className="text-white/70 mb-2">{stat.icon}</div>
+                <p className="text-2xl sm:text-3xl font-black text-white leading-none">{stat.value}</p>
+                <p className="text-white/60 text-[11px] mt-1 font-medium">{stat.label}</p>
+              </motion.div>
+            ))}
+          </div>
         </div>
       </div>
 
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 py-5 space-y-4">
-        {/* Stats */}
-        <div className="grid grid-cols-3 gap-2 sm:gap-3">
-          {[
-            { value: ordersToday,         label: "Hoy",       icon: <TrendingUp size={15} />, color: "text-orange-500" },
-            { value: stats.tablesCount,   label: "Mesas",     icon: <Grid2X2 size={15} />,    color: "text-blue-500"   },
-            { value: stats.menuItemsCount, label: "Productos", icon: <Package size={15} />,    color: "text-emerald-500" },
-          ].map((stat, i) => (
-            <motion.div
-              key={stat.label}
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.06 }}
-              className="bg-white rounded-2xl p-4 border border-zinc-100"
-            >
-              <div className={`${stat.color} mb-2`}>{stat.icon}</div>
-              <p className="text-2xl sm:text-3xl font-bold text-zinc-900 tracking-tight leading-none">
-                {stat.value}
-              </p>
-              <p className="text-[11px] text-zinc-400 mt-1 font-medium">{stat.label}</p>
-            </motion.div>
-          ))}
-        </div>
+      {/* Contenido principal */}
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 -mt-1 pb-8 space-y-4 pt-5">
 
         {/* Accesos rápidos */}
-        <div className="grid grid-cols-4 gap-2">
-          <NavCard href="/cocina"      icon={<ChefHat size={18} strokeWidth={1.5} />}         title="Cocina"     subtitle="En vivo"           dark />
-          <NavCard href="/mozos"       icon={<UtensilsCrossed size={18} strokeWidth={1.5} />} title="Mozos"      subtitle="Entregar"          dark />
-          <NavCard href="/admin/menu"  icon={<BookOpen size={18} strokeWidth={1.5} />}        title="Menú"       subtitle="Platos"                 />
-          <NavCard href="/admin/mesas" icon={<QrCode size={18} strokeWidth={1.5} />}          title="Mesas"      subtitle="Códigos QR"             />
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <NavCard href="/cocina"      icon={<ChefHat size={22} strokeWidth={1.5} />}         title="Cocina"     subtitle="Pedidos en vivo"   color="from-orange-500 to-red-500"    />
+          <NavCard href="/mozos"       icon={<UtensilsCrossed size={22} strokeWidth={1.5} />} title="Mozos"      subtitle="Entregar y cobrar" color="from-emerald-500 to-teal-600"  />
+          <NavCard href="/admin/menu"  icon={<BookOpen size={22} strokeWidth={1.5} />}        title="Menú"       subtitle="Gestionar platos"  color="from-blue-500 to-indigo-600"   />
+          <NavCard href="/admin/mesas" icon={<QrCode size={22} strokeWidth={1.5} />}          title="Mesas"      subtitle="Códigos QR"        color="from-violet-500 to-purple-600" />
         </div>
 
         {/* Pedidos recientes */}
-        <div className="bg-white rounded-2xl border border-zinc-100 overflow-hidden">
-          <div className="px-4 sm:px-5 py-3.5 border-b border-zinc-50 flex items-center justify-between">
-            <h2 className="font-bold text-zinc-900 text-sm">Pedidos recientes</h2>
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+          <div className="px-4 sm:px-5 py-4 border-b border-gray-50 flex items-center justify-between">
+            <h2 className="font-bold text-gray-900">Pedidos recientes</h2>
             <AnimatePresence>
               {newOrderId && (
                 <motion.span
                   initial={{ opacity: 0, scale: 0.8 }}
                   animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0 }}
-                  className="text-[11px] font-semibold bg-orange-100 text-orange-600 px-2 py-0.5 rounded-full"
+                  className="text-[11px] font-bold bg-orange-100 text-orange-600 px-3 py-1 rounded-full border border-orange-200"
                 >
-                  ¡Nuevo pedido!
+                  🔔 ¡Nuevo pedido!
                 </motion.span>
               )}
             </AnimatePresence>
           </div>
+
           {orders.length === 0 ? (
-            <div className="p-10 text-center text-zinc-400 text-sm">Sin pedidos aún</div>
+            <div className="p-12 text-center">
+              <p className="text-4xl mb-3">🍽️</p>
+              <p className="text-gray-400 text-sm font-medium">Sin pedidos aún</p>
+              <p className="text-gray-300 text-xs mt-1">Los pedidos aparecen acá en tiempo real</p>
+            </div>
           ) : (
-            <div className="divide-y divide-zinc-50">
+            <div className="divide-y divide-gray-50">
               {orders.map((order) => (
                 <motion.div
                   key={order.id}
                   initial={{ backgroundColor: order.id === newOrderId ? "#fff7ed" : "transparent" }}
                   animate={{ backgroundColor: "transparent" }}
                   transition={{ duration: 2 }}
-                  className="px-4 sm:px-5 py-3.5 flex items-start sm:items-center gap-3"
+                  className="px-4 sm:px-5 py-4 flex items-start sm:items-center gap-3"
                 >
+                  {/* Número de mesa */}
+                  <div className="w-10 h-10 rounded-xl bg-orange-50 border border-orange-100 flex items-center justify-center flex-shrink-0">
+                    <span className="font-black text-orange-500 text-sm">{order.table.number}</span>
+                  </div>
+
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-1.5 flex-wrap">
-                      <span className="font-semibold text-zinc-900 text-sm">
-                        {order.table.label ?? `Mesa ${order.table.number}`}
+                      <span className="font-semibold text-gray-900 text-sm">
+                        Mesa {order.table.number}{order.table.label ? ` — ${order.table.label}` : ""}
                       </span>
-                      <span className="text-zinc-300 text-[11px] font-mono">
-                        #{order.id.slice(-4).toUpperCase()}
-                      </span>
+                      <span className="text-gray-300 text-[11px] font-mono">#{order.id.slice(-4).toUpperCase()}</span>
                     </div>
-                    <p className="text-xs text-zinc-400 truncate mt-0.5">
+                    <p className="text-xs text-gray-400 truncate mt-0.5">
                       {order.items.map((item) => `${item.quantity}× ${item.menuItem.name}`).join(", ")}
                     </p>
                   </div>
+
                   <div className="flex flex-col items-end gap-1.5 flex-shrink-0">
                     <div className="flex items-center gap-1.5">
                       <span className={`text-[11px] px-2 py-0.5 rounded-full font-medium whitespace-nowrap ${ORDER_STATUS_COLORS[order.status as OrderStatus]}`}>
                         {ORDER_STATUS_LABELS[order.status as OrderStatus]}
                       </span>
-                      <span className="font-bold text-zinc-900 text-sm tabular-nums">
+                      <span className="font-bold text-gray-900 text-sm tabular-nums">
                         ${order.total.toLocaleString("es-AR")}
                       </span>
                     </div>
                     {order.status === "READY" && (
-                      <button
-                        onClick={() => updateStatus(order.id, "DELIVERED")}
-                        className="text-[11px] font-semibold bg-emerald-600 active:bg-emerald-700 text-white px-3 py-1 rounded-lg transition-all"
-                      >
+                      <button onClick={() => updateStatus(order.id, "DELIVERED")}
+                        className="text-[11px] font-bold bg-emerald-500 hover:bg-emerald-600 text-white px-3 py-1.5 rounded-lg transition-all">
                         Entregar ✓
                       </button>
                     )}
                     {order.status === "DELIVERED" && (
-                      <button
-                        onClick={() => updateStatus(order.id, "PAID")}
-                        className="text-[11px] font-semibold bg-zinc-900 active:bg-zinc-700 text-white px-3 py-1 rounded-lg transition-all"
-                      >
+                      <button onClick={() => updateStatus(order.id, "PAID")}
+                        className="text-[11px] font-bold bg-gray-900 hover:bg-gray-700 text-white px-3 py-1.5 rounded-lg transition-all">
                         Cobrado ✓
                       </button>
                     )}
@@ -197,22 +226,20 @@ export default function AdminDashboard({ stats, recentOrders: initialOrders }: P
   );
 }
 
-function NavCard({ href, icon, title, subtitle, dark }: {
-  href: string; icon: React.ReactNode; title: string; subtitle: string; dark?: boolean;
+function NavCard({ href, icon, title, subtitle, color }: {
+  href: string; icon: React.ReactNode; title: string; subtitle: string; color: string;
 }) {
   return (
     <Link
       href={href}
-      className={`rounded-2xl p-3 sm:p-4 flex flex-col gap-2 transition-all border active:scale-[0.98] ${
-        dark
-          ? "bg-zinc-900 active:bg-zinc-800 text-white border-zinc-800"
-          : "bg-white active:bg-zinc-50 text-zinc-900 border-zinc-100"
-      }`}
+      className={`rounded-2xl p-4 flex flex-col gap-3 bg-gradient-to-br ${color} text-white shadow-sm active:scale-[0.97] transition-transform`}
     >
-      <div className={`${dark ? "text-zinc-300" : "text-zinc-500"}`}>{icon}</div>
+      <div className="bg-white/20 w-10 h-10 rounded-xl flex items-center justify-center">
+        {icon}
+      </div>
       <div>
-        <p className="font-bold text-sm leading-tight">{title}</p>
-        <p className={`text-xs mt-0.5 ${dark ? "text-zinc-500" : "text-zinc-400"}`}>{subtitle}</p>
+        <p className="font-bold text-[15px] leading-tight">{title}</p>
+        <p className="text-white/70 text-xs mt-0.5">{subtitle}</p>
       </div>
     </Link>
   );
