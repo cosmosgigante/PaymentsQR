@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Minus, Plus, ShoppingBag, CreditCard } from "lucide-react";
+import { X, Minus, Plus, ShoppingBag, CreditCard, User, Phone } from "lucide-react";
 import { CartItem } from "@/lib/types";
 import { createOrder } from "@/lib/api";
 
@@ -17,6 +17,8 @@ type Props = {
 export default function CartDrawer({ cart, tableToken, onClose, onUpdateQty, onOrderCreated }: Props) {
   const [paymentMode, setPaymentMode] = useState<"CASHIER" | "ONLINE">("CASHIER");
   const [notes, setNotes] = useState("");
+  const [customerName, setCustomerName] = useState("");
+  const [customerPhone, setCustomerPhone] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -24,10 +26,12 @@ export default function CartDrawer({ cart, tableToken, onClose, onUpdateQty, onO
   const itemCount = cart.reduce((s, c) => s + c.quantity, 0);
 
   async function handleConfirm() {
+    if (!customerName.trim()) { setError("Ingresá tu nombre para continuar"); return; }
+    if (!customerPhone.trim()) { setError("Ingresá tu teléfono para continuar"); return; }
     setLoading(true);
     setError(null);
     try {
-      const order = await createOrder({ tableToken, items: cart, paymentMode, notes: notes || undefined });
+      const order = await createOrder({ tableToken, items: cart, paymentMode, notes: notes || undefined, customerName: customerName.trim(), customerPhone: customerPhone.trim() });
       onOrderCreated(order.id);
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : "Error inesperado");
@@ -122,6 +126,46 @@ export default function CartDrawer({ cart, tableToken, onClose, onUpdateQty, onO
             </div>
 
             <div className="border-t border-zinc-100 my-4" />
+
+            {/* Datos del cliente */}
+            <div className="mb-4">
+              <p className="text-[11px] font-semibold text-zinc-400 uppercase tracking-widest mb-2">
+                Tus datos
+              </p>
+              <div className="space-y-2">
+                <div className="relative">
+                  <User size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none" strokeWidth={2} />
+                  <input
+                    type="text"
+                    value={customerName}
+                    onChange={(e) => setCustomerName(e.target.value)}
+                    placeholder="Nombre y apellido"
+                    autoComplete="name"
+                    maxLength={100}
+                    className="w-full bg-zinc-50 border border-zinc-100 rounded-xl pl-9 pr-3 py-3 text-[16px] focus:outline-none focus:ring-2 focus:ring-zinc-900 text-zinc-900 placeholder:text-zinc-300"
+                  />
+                </div>
+                <div className="relative">
+                  <Phone size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none" strokeWidth={2} />
+                  <input
+                    type="tel"
+                    value={customerPhone}
+                    onChange={(e) => setCustomerPhone(e.target.value)}
+                    placeholder="Teléfono (ej: 11 1234-5678)"
+                    autoComplete="tel"
+                    maxLength={30}
+                    inputMode="tel"
+                    className="w-full bg-zinc-50 border border-zinc-100 rounded-xl pl-9 pr-3 py-3 text-[16px] focus:outline-none focus:ring-2 focus:ring-zinc-900 text-zinc-900 placeholder:text-zinc-300"
+                  />
+                </div>
+                <p className="text-[10px] text-zinc-400 leading-snug px-1">
+                  Necesitamos tu info para confirmar el pedido y evitar pedidos falsos.{" "}
+                  <a href="/privacidad" target="_blank" rel="noopener noreferrer" className="underline underline-offset-2">
+                    Política de privacidad
+                  </a>
+                </p>
+              </div>
+            </div>
 
             {/* Aclaraciones */}
             <div className="mb-4">

@@ -165,6 +165,11 @@ function OrderCard({ order, onAdvance }: { order: Order; onAdvance: () => void }
           {order.table.label && (
             <p className="text-zinc-400 text-xs leading-tight truncate">{order.table.label}</p>
           )}
+          {order.customerName && (
+            <p className="text-zinc-300 text-xs leading-tight truncate mt-0.5">
+              👤 {order.customerName}
+            </p>
+          )}
           <p className="text-zinc-600 text-xs font-mono mt-0.5">
             #{order.id.slice(-6).toUpperCase()}
           </p>
