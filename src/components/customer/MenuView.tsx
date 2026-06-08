@@ -19,25 +19,12 @@ export default function MenuView({ categories, restaurantName, tableLabel, cart,
   const tabsRef = useRef<HTMLDivElement>(null);
   const cartMap = new Map(cart.map((c) => [c.menuItemId, c.quantity]));
 
-  useEffect(() => {
-    const observers: IntersectionObserver[] = [];
-    categories.forEach((cat) => {
-      const el = document.getElementById(`cat-${cat.id}`);
-      if (!el) return;
-      const obs = new IntersectionObserver(
-        ([entry]) => { if (entry.isIntersecting) setActiveCategory(cat.id); },
-        { rootMargin: "-30% 0px -60% 0px", threshold: 0 }
-      );
-      obs.observe(el);
-      observers.push(obs);
-    });
-    return () => observers.forEach((o) => o.disconnect());
-  }, [categories]);
+  const currentCategory = categories.find((c) => c.id === activeCategory) ?? categories[0];
 
-  function scrollToCategory(id: string) {
+  function selectCategory(id: string) {
     setActiveCategory(id);
-    const el = document.getElementById(`cat-${id}`);
-    if (el) window.scrollTo({ top: el.getBoundingClientRect().top + window.scrollY - 110, behavior: "smooth" });
+    window.scrollTo({ top: 0, behavior: "smooth" });
+    // Scroll la tab activa al centro
     const tabEl = tabsRef.current?.querySelector(`[data-cat="${id}"]`) as HTMLElement | null;
     tabEl?.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "center" });
   }
@@ -60,7 +47,7 @@ export default function MenuView({ categories, restaurantName, tableLabel, cart,
             <button
               key={cat.id}
               data-cat={cat.id}
-              onClick={() => scrollToCategory(cat.id)}
+              onClick={() => selectCategory(cat.id)}
               className={`relative whitespace-nowrap px-3.5 py-1.5 rounded-full text-[13px] font-medium transition-colors min-h-[36px] ${
                 activeCategory === cat.id ? "text-zinc-900" : "text-zinc-400"
               }`}
@@ -78,20 +65,16 @@ export default function MenuView({ categories, restaurantName, tableLabel, cart,
         </div>
       </div>
 
-      {/* Items */}
-      <div className="px-4 py-5 space-y-8 max-w-lg mx-auto">
-        {categories.map((cat) => (
-          <div key={cat.id} id={`cat-${cat.id}`}>
-            <h2 className="text-[11px] font-semibold text-zinc-400 tracking-widest uppercase mb-3">{cat.name}</h2>
-            <div className="space-y-2">
-              {cat.items.map((item, idx) => {
+      {/* Items — solo muestra la categoría activa */}
+      <div className="px-4 py-5 space-y-2 max-w-lg mx-auto">
+        {(currentCategory?.items ?? []).map((item, idx) => {
                 const qty = cartMap.get(item.id) ?? 0;
                 return (
                   <motion.div
                     key={item.id}
                     initial={{ opacity: 0, y: 6 }}
                     animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: Math.min(idx * 0.04, 0.3), duration: 0.25 }}
+                    transition={{ delay: Math.min(idx * 0.04, 0.2), duration: 0.2 }}
                     className="bg-white rounded-2xl p-3.5 flex gap-3 items-center border border-zinc-100 active:bg-zinc-50 transition-colors"
                   >
                     {item.image ? (
@@ -144,10 +127,7 @@ export default function MenuView({ categories, restaurantName, tableLabel, cart,
                     </div>
                   </motion.div>
                 );
-              })}
-            </div>
-          </div>
-        ))}
+        })}
         <div className="h-24" />
       </div>
     </div>
