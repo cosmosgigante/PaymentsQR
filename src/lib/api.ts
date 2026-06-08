@@ -27,7 +27,7 @@ export const createOrder = (payload: {
   paymentMode: "ONLINE" | "CASHIER";
   notes?: string;
   customerName?: string;
-  customerEmail?: string;
+  customerPhone?: string;
 }) =>
   request<Order>("/api/orders", { method: "POST", body: JSON.stringify(payload) });
 
