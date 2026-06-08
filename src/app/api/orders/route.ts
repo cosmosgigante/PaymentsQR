@@ -36,24 +36,22 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  // Rate limit por token de mesa (no por IP, para que funcione en redes compartidas del restaurant)
+  // Rate limit por token de mesa
   if (!await rateLimit(`order:${tableToken}`, 5, 2 * 60 * 1000)) {
     return NextResponse.json({ error: "Demasiados pedidos. Esperá un momento." }, { status: 429 });
   }
 
-  // Validar que los items tengan estructura correcta
   const validItems = items.every(
     (i) =>
       typeof i.menuItemId === "string" &&
       typeof i.quantity === "number" &&
       i.quantity > 0 &&
-      i.quantity <= 50 // máx 50 unidades por item
+      i.quantity <= 50
   );
   if (!validItems) {
     return NextResponse.json({ error: "Items inválidos" }, { status: 400 });
   }
 
-  // Limitar a máx 20 items distintos por pedido
   if (items.length > 20) {
     return NextResponse.json({ error: "Demasiados items en el pedido" }, { status: 400 });
   }
@@ -79,8 +77,10 @@ export async function POST(req: NextRequest) {
   const priceMap = new Map(menuItems.map((m: { id: string; price: number }) => [m.id, m.price]));
   const total = items.reduce((sum: number, item: CartItem) => sum + (priceMap.get(item.menuItemId) ?? 0) * item.quantity, 0);
 
-  // Sanitizar notas
-  const safeNotes = notes ? String(notes).slice(0, 300) : undefined;
+  // Guardar info del cliente en notes para no requerir migración de DB
+  const customerPrefix = safeName ? `[${safeName} · ${safeEmail}] ` : "";
+  const userNotes = notes ? String(notes).slice(0, 300) : "";
+  const safeNotes = customerPrefix + userNotes || undefined;
 
   const order = await db.order.create({
     data: {
@@ -89,8 +89,6 @@ export async function POST(req: NextRequest) {
       paymentMode,
       total,
       notes: safeNotes,
-      customerName:  safeName  || undefined,
-      customerEmail: safeEmail || undefined,
       status: "PENDING",
       items: {
         create: items.map((item) => ({

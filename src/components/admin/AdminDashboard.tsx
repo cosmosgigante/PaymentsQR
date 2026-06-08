@@ -15,8 +15,6 @@ type Order = {
   paymentMode: string;
   total: number;
   createdAt: string;
-  customerName?: string | null;
-  customerEmail?: string | null;
   table: { number: number; label: string | null };
   items: { quantity: number; menuItem: { name: string } }[];
 };
@@ -198,11 +196,6 @@ export default function AdminDashboard({ stats, recentOrders: initialOrders }: P
                       </span>
                       <span className="text-gray-300 text-[11px] font-mono">#{order.id.slice(-4).toUpperCase()}</span>
                     </div>
-                    {order.customerName && (
-                      <p className="text-xs text-gray-500 font-medium mt-0.5 truncate">
-                        {order.customerName}{order.customerEmail ? ` · ${order.customerEmail}` : ""}
-                      </p>
-                    )}
                     <p className="text-xs text-gray-400 truncate mt-0.5">
                       {order.items.map((item) => `${item.quantity}× ${item.menuItem.name}`).join(", ")}
                     </p>
