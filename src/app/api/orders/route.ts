@@ -7,14 +7,14 @@ import { rateLimit } from "@/lib/rateLimit";
 
 export async function POST(req: NextRequest) {
 
-  let body: { tableToken?: string; items?: CartItem[]; paymentMode?: string; notes?: string; customerName?: string; customerPhone?: string };
+  let body: { tableToken?: string; items?: CartItem[]; paymentMode?: string; notes?: string; customerName?: string; customerEmail?: string };
   try {
     body = await req.json();
   } catch {
     return NextResponse.json({ error: "Request inválido" }, { status: 400 });
   }
 
-  const { tableToken, items, paymentMode, notes, customerName, customerPhone } = body;
+  const { tableToken, items, paymentMode, notes, customerName, customerEmail } = body;
 
   if (!tableToken || typeof tableToken !== "string" || tableToken.length > 200 || !Array.isArray(items) || !items.length || !paymentMode) {
     return NextResponse.json({ error: "Faltan datos" }, { status: 400 });
@@ -24,13 +24,12 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Modo de pago inválido" }, { status: 400 });
   }
 
-  const safeName  = typeof customerName  === "string" ? customerName.trim().slice(0, 100) : "";
-  const safePhone = typeof customerPhone === "string" ? customerPhone.trim().slice(0, 30)  : "";
+  const safeName  = typeof customerName  === "string" ? customerName.trim().slice(0, 100)  : "";
+  const safeEmail = typeof customerEmail === "string" ? customerEmail.trim().slice(0, 200) : "";
 
-  // Pagar en caja requiere nombre y teléfono
+  // Pagar en caja requiere identidad verificada con Google
   if (paymentMode === "CASHIER") {
-    if (!safeName)  return NextResponse.json({ error: "Ingresá tu nombre para continuar" }, { status: 400 });
-    if (!safePhone) return NextResponse.json({ error: "Ingresá tu teléfono para continuar" }, { status: 400 });
+    if (!safeName || !safeEmail) return NextResponse.json({ error: "Identificación requerida para pagar en caja" }, { status: 400 });
   }
 
   if (!await rateLimit(`order:${tableToken}`, 5, 2 * 60 * 1000)) {
@@ -64,18 +63,17 @@ export async function POST(req: NextRequest) {
   const priceMap = new Map(menuItems.map((m: { id: string; price: number }) => [m.id, m.price]));
   const total = items.reduce((sum: number, item: CartItem) => sum + (priceMap.get(item.menuItemId) ?? 0) * item.quantity, 0);
 
-  // Prefijo con datos del cliente en notes (sin necesitar migración de DB)
-  const clientPrefix = safeName ? `[${safeName}${safePhone ? ` · ${safePhone}` : ""}] ` : "";
-  const userNotes    = notes ? String(notes).slice(0, 300) : "";
-  const safeNotes    = (clientPrefix + userNotes).trim() || undefined;
+  const safeNotes = notes ? String(notes).slice(0, 300) : undefined;
 
   const order = await db.order.create({
     data: {
-      restaurantId: table.restaurantId,
-      tableId: table.id,
+      restaurantId:  table.restaurantId,
+      tableId:       table.id,
       paymentMode,
       total,
-      notes: safeNotes,
+      notes:         safeNotes,
+      customerName:  safeName  || undefined,
+      customerEmail: safeEmail || undefined,
       status: "PENDING",
       items: {
         create: items.map((item) => ({

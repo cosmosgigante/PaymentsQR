@@ -6,6 +6,8 @@ import { signToken } from "@/lib/auth";
 export async function GET(req: NextRequest) {
   const { searchParams, origin } = new URL(req.url);
   const code = searchParams.get("code");
+  const type = searchParams.get("type"); // "customer" para clientes de mesa
+  const next = searchParams.get("next"); // URL de vuelta para clientes
 
   if (!code) {
     return NextResponse.redirect(`${origin}/?error=auth`);
@@ -33,12 +35,23 @@ export async function GET(req: NextRequest) {
     return NextResponse.redirect(`${origin}/?error=auth`);
   }
 
-  // Verificar que el email esté registrado en la DB ANTES de dejarlo entrar
   if (!user?.email) {
     await supabase.auth.signOut();
     return NextResponse.redirect(`${origin}/?error=unauthorized`);
   }
 
+  // ── Flujo cliente de mesa ──────────────────────────────────────────────────
+  if (type === "customer" && next) {
+    // Validar que next sea del mismo origen (evitar open redirect)
+    const safeNext = next.startsWith("/mesa/") ? next : "/";
+    const res = NextResponse.redirect(`${origin}${safeNext}`);
+    capturedCookies.forEach(({ name, value, options }) => {
+      res.cookies.set(name, value, options as Parameters<typeof res.cookies.set>[2]);
+    });
+    return res;
+  }
+
+  // ── Flujo admin/dueño (lógica original) ───────────────────────────────────
   const admin = await db.admin.findUnique({
     where: { email: user.email.toLowerCase() },
   });
@@ -55,7 +68,6 @@ export async function GET(req: NextRequest) {
     res.cookies.set(name, value, options as Parameters<typeof res.cookies.set>[2]);
   });
 
-  // Para roles que usan el panel JWT (/admin), crear también la cookie admin_token
   if (admin.role !== "SUPERADMIN" && admin.restaurantId) {
     const token = await signToken({
       adminId: admin.id,

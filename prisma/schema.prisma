@@ -71,6 +71,8 @@ model Order {
   items         OrderItem[]
   total         Float
   notes         String?
+  customerName  String?
+  customerEmail String?
   createdAt     DateTime    @default(now())
   updatedAt     DateTime    @updatedAt
 }

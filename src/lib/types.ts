@@ -73,6 +73,8 @@ export type Order = {
   paymentMode: PaymentMode;
   total: number;
   notes?: string | null;
+  customerName?: string | null;
+  customerEmail?: string | null;
   createdAt: string;
   table: Table;
   items: OrderItem[];
