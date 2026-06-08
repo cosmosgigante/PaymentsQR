@@ -7,14 +7,14 @@ import { rateLimit } from "@/lib/rateLimit";
 
 export async function POST(req: NextRequest) {
 
-  let body: { tableToken?: string; items?: CartItem[]; paymentMode?: string; notes?: string; customerName?: string; customerPhone?: string };
+  let body: { tableToken?: string; items?: CartItem[]; paymentMode?: string; notes?: string; customerName?: string; customerEmail?: string };
   try {
     body = await req.json();
   } catch {
     return NextResponse.json({ error: "Request inválido" }, { status: 400 });
   }
 
-  const { tableToken, items, paymentMode, notes, customerName, customerPhone } = body;
+  const { tableToken, items, paymentMode, notes, customerName, customerEmail } = body;
 
   if (!tableToken || typeof tableToken !== "string" || tableToken.length > 200 || !Array.isArray(items) || !items.length || !paymentMode) {
     return NextResponse.json({ error: "Faltan datos" }, { status: 400 });
@@ -24,19 +24,16 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Modo de pago inválido" }, { status: 400 });
   }
 
-  // Requerir nombre y teléfono para identificación del cliente
-  const safeName = typeof customerName === "string" ? customerName.trim().slice(0, 100) : "";
-  const safePhone = typeof customerPhone === "string" ? customerPhone.trim().slice(0, 30) : "";
+  const safeName  = typeof customerName  === "string" ? customerName.trim().slice(0, 100)  : "";
+  const safeEmail = typeof customerEmail === "string" ? customerEmail.trim().slice(0, 200) : "";
 
-  if (!safeName) {
-    return NextResponse.json({ error: "Tu nombre es requerido para hacer el pedido" }, { status: 400 });
-  }
-  if (!safePhone) {
-    return NextResponse.json({ error: "Tu teléfono es requerido para hacer el pedido" }, { status: 400 });
-  }
-  // Validación básica de formato telefónico (solo números, espacios, +, -, paréntesis)
-  if (!/^[0-9+\-\s()]{6,20}$/.test(safePhone.replace(/\s/g, ""))) {
-    return NextResponse.json({ error: "Teléfono inválido" }, { status: 400 });
+  // Pagar en caja: nombre y email de Google son obligatorios (identidad verificada)
+  if (paymentMode === "CASHIER") {
+    if (!safeName)  return NextResponse.json({ error: "Identificación requerida para pagar en caja" }, { status: 400 });
+    if (!safeEmail) return NextResponse.json({ error: "Identificación requerida para pagar en caja" }, { status: 400 });
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(safeEmail)) {
+      return NextResponse.json({ error: "Email inválido" }, { status: 400 });
+    }
   }
 
   // Rate limit por token de mesa (no por IP, para que funcione en redes compartidas del restaurant)
@@ -92,8 +89,8 @@ export async function POST(req: NextRequest) {
       paymentMode,
       total,
       notes: safeNotes,
-      customerName: safeName,
-      customerPhone: safePhone,
+      customerName:  safeName  || undefined,
+      customerEmail: safeEmail || undefined,
       status: "PENDING",
       items: {
         create: items.map((item) => ({

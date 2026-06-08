@@ -74,7 +74,7 @@ export type Order = {
   total: number;
   notes?: string | null;
   customerName?: string | null;
-  customerPhone?: string | null;
+  customerEmail?: string | null;
   createdAt: string;
   table: Table;
   items: OrderItem[];
