@@ -6,8 +6,9 @@ import { signToken } from "@/lib/auth";
 export async function GET(req: NextRequest) {
   const { searchParams, origin } = new URL(req.url);
   const code = searchParams.get("code");
-  const type = searchParams.get("type"); // "customer" para clientes de mesa
-  const next = searchParams.get("next"); // URL de vuelta para clientes
+
+  // Ruta de vuelta guardada por el cliente antes de ir a Google
+  const mesaReturn = req.cookies.get("pqr_return")?.value;
 
   if (!code) {
     return NextResponse.redirect(`${origin}/?error=auth`);
@@ -41,10 +42,11 @@ export async function GET(req: NextRequest) {
   }
 
   // ── Flujo cliente de mesa ──────────────────────────────────────────────────
-  if (type === "customer" && next) {
-    // Validar que next sea del mismo origen (evitar open redirect)
-    const safeNext = next.startsWith("/mesa/") ? next : "/";
-    const res = NextResponse.redirect(`${origin}${safeNext}`);
+  if (mesaReturn) {
+    const safeNext = decodeURIComponent(mesaReturn);
+    const validNext = safeNext.startsWith("/mesa/") ? safeNext : "/";
+    const res = NextResponse.redirect(`${origin}${validNext}`);
+    res.cookies.delete("pqr_return"); // limpiar cookie usada
     capturedCookies.forEach(({ name, value, options }) => {
       res.cookies.set(name, value, options as Parameters<typeof res.cookies.set>[2]);
     });

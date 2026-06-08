@@ -39,12 +39,12 @@ export default function CartDrawer({ cart, tableToken, onClose, onUpdateQty, onO
   }, []);
 
   function handleGoogleLogin() {
+    // Guardamos la ruta de la mesa en cookie antes de salir a Google
     const mesaPath = window.location.pathname + window.location.search;
+    document.cookie = `pqr_return=${encodeURIComponent(mesaPath)}; path=/; max-age=300; samesite=lax`;
     createClient().auth.signInWithOAuth({
       provider: "google",
-      options: {
-        redirectTo: `${window.location.origin}/auth/callback?type=customer&next=${encodeURIComponent(mesaPath)}`,
-      },
+      options: { redirectTo: `${window.location.origin}/auth/callback` },
     });
   }
 
