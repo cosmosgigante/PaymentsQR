@@ -2,6 +2,8 @@ import { db } from "@/lib/db";
 import MobileFrame from "@/components/customer/MobileFrame";
 import MesaClient from "./MesaClient";
 
+export const revalidate = 30; // caché CDN 30 segundos — el menú no cambia cada request
+
 export default async function MesaPage({ params }: { params: Promise<{ token: string }> }) {
   const { token } = await params;
 
