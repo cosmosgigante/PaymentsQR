@@ -61,7 +61,11 @@ export async function POST(req: NextRequest) {
     role: admin.role,
   });
 
-  const destination = admin.role === "SUPERADMIN" ? "/setup" : "/admin";
+  const destination = admin.role === "SUPERADMIN"
+    ? "/setup"
+    : admin.accountId
+    ? "/cuenta"
+    : "/admin";
   const res = NextResponse.redirect(new URL(destination, req.url), { status: 303 });
   res.cookies.set("admin_token", token, {
     httpOnly: true,

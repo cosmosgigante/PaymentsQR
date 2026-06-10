@@ -1,36 +1,28 @@
-import { createClient } from "@/lib/supabase/server";
 import { db } from "@/lib/db";
+import { resolveServerAdmin } from "@/lib/account";
+import { redirect } from "next/navigation";
 import CuentaClient from "./CuentaClient";
 
 export const dynamic = "force-dynamic";
 
 export default async function CuentaPage() {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const admin = await resolveServerAdmin();
+  if (!admin?.accountId || !admin.account) redirect("/?error=unauthorized");
 
-  const admin = await db.admin.findUnique({
-    where: { email: user!.email!.toLowerCase() },
-    include: {
-      account: {
-        include: {
-          restaurants: {
-            orderBy: { createdAt: "asc" },
-            select: {
-              id: true,
-              name: true,
-              slug: true,
-              status: true,
-              isActive: true,
-              createdAt: true,
-              _count: { select: { tables: true, orders: true } },
-            },
-          },
-        },
-      },
+  const account = admin.account;
+  const restaurants = await db.restaurant.findMany({
+    where: { accountId: account.id },
+    orderBy: { createdAt: "asc" },
+    select: {
+      id: true,
+      name: true,
+      slug: true,
+      status: true,
+      isActive: true,
+      createdAt: true,
+      _count: { select: { tables: true, orders: true } },
     },
   });
-
-  const account = admin!.account!;
 
   return (
     <CuentaClient
@@ -44,7 +36,7 @@ export default async function CuentaPage() {
         paymentSource: account.paymentSource,
         isActive: account.isActive,
       }}
-      restaurants={JSON.parse(JSON.stringify(account.restaurants))}
+      restaurants={JSON.parse(JSON.stringify(restaurants))}
     />
   );
 }
