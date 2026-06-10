@@ -33,7 +33,7 @@ export async function GET(req: NextRequest) {
       return NextResponse.redirect(`${origin}/?error=unauthorized`);
     }
 
-    const destination = admin.role === "SUPERADMIN" ? "/setup" : "/admin";
+    const destination = admin.role === "SUPERADMIN" ? "/setup" : admin.accountId ? "/cuenta" : "/admin";
     const res = NextResponse.redirect(`${origin}${destination}`);
     capturedCookies.forEach(({ name, value, options }) => {
       res.cookies.set(name, value, options as Parameters<typeof res.cookies.set>[2]);

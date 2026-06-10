@@ -18,5 +18,5 @@ export async function GET() {
     return NextResponse.json({ role: null }, { status: 403 });
   }
 
-  return NextResponse.json({ role: admin.role, restaurantId: admin.restaurantId });
+  return NextResponse.json({ role: admin.role, restaurantId: admin.restaurantId, accountId: admin.accountId });
 }

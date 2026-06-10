@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { isRestaurantActive } from "@/lib/restaurant";
+import { isRestaurantOperative } from "@/lib/restaurant";
 
 export async function GET(req: NextRequest) {
   const token = new URL(req.url).searchParams.get("token");
@@ -8,10 +8,10 @@ export async function GET(req: NextRequest) {
 
   const table = await db.table.findUnique({
     where: { qrToken: token },
-    include: { restaurant: true },
+    include: { restaurant: { include: { account: true } } },
   });
 
-  if (!table || !table.isActive || !isRestaurantActive(table.restaurant)) {
+  if (!table || !table.isActive || !isRestaurantOperative(table.restaurant, table.restaurant.account)) {
     return NextResponse.json({ error: "Mesa no válida" }, { status: 404 });
   }
 

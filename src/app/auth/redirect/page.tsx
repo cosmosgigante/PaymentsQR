@@ -10,9 +10,10 @@ export default function AuthRedirect() {
     async function redirect() {
       const res = await fetch("/api/auth/role");
       if (!res.ok) { router.push("/?error=unauthorized"); return; }
-      const { role } = await res.json();
+      const { role, accountId } = await res.json();
 
       if (role === "SUPERADMIN") router.push("/setup");
+      else if (accountId) router.push("/cuenta");
       else if (role) router.push("/admin");
       else router.push("/?error=unauthorized");
     }

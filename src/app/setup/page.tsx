@@ -12,6 +12,7 @@ type Restaurant = {
   name: string;
   slug: string;
   isActive: boolean;
+  status: string;
   subscriptionEndsAt: string | null;
   createdAt: string;
   _count: { tables: number; orders: number };
@@ -154,6 +155,21 @@ export default function SuperAdminPage() {
     if (res.ok) {
       setRestaurants((prev) =>
         prev.map((r) => r.id === restaurant.id ? { ...r, isActive: !restaurant.isActive } : r)
+      );
+    }
+    setTogglingId(null);
+  }
+
+  async function handleEnable(restaurant: Restaurant) {
+    setTogglingId(restaurant.id);
+    const res = await fetch("/api/setup", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ restaurantId: restaurant.id, status: "ACTIVE" }),
+    });
+    if (res.ok) {
+      setRestaurants((prev) =>
+        prev.map((r) => r.id === restaurant.id ? { ...r, status: "ACTIVE" } : r)
       );
     }
     setTogglingId(null);
@@ -380,6 +396,9 @@ export default function SuperAdminPage() {
                       <div className="flex items-center gap-2 mb-2">
                         <h3 className="font-semibold truncate">{r.name}</h3>
                         <span className="text-gray-400 font-mono text-xs shrink-0 bg-gray-100 px-1.5 py-0.5 rounded">/{r.slug}</span>
+                        {r.status === "PENDING" && (
+                          <span className="shrink-0 text-[10px] font-semibold bg-amber-50 text-amber-600 border border-amber-200 px-2 py-0.5 rounded-full">Pendiente</span>
+                        )}
                       </div>
 
                       {/* Owner + estado cuenta */}
@@ -427,6 +446,15 @@ export default function SuperAdminPage() {
 
                     {/* Acciones */}
                     <div className="flex flex-col gap-1.5 shrink-0">
+                      {r.status === "PENDING" && (
+                        <button
+                          onClick={() => handleEnable(r)}
+                          disabled={togglingId === r.id}
+                          className="text-xs font-semibold text-white bg-emerald-600 hover:bg-emerald-700 px-3 py-1.5 rounded-lg transition-all disabled:opacity-50 text-center"
+                        >
+                          {togglingId === r.id ? "..." : "Habilitar"}
+                        </button>
+                      )}
                       {owner?.hasPassword ? (
                         <a
                           href={`/api/setup/impersonate?restaurantId=${r.id}`}

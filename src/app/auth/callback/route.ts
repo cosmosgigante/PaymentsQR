@@ -70,7 +70,9 @@ export async function GET(req: NextRequest) {
     res.cookies.set(name, value, options as Parameters<typeof res.cookies.set>[2]);
   });
 
-  if (admin.role !== "SUPERADMIN" && admin.restaurantId) {
+  // Admin general (con cuenta) elige el restorán desde /cuenta; no se mintea token acá.
+  // Solo los dueños legacy (un restorán, sin cuenta) entran directo a /admin.
+  if (admin.role !== "SUPERADMIN" && admin.restaurantId && !admin.accountId) {
     const token = await signToken({
       adminId: admin.id,
       restaurantId: admin.restaurantId,

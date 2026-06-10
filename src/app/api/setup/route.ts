@@ -103,17 +103,18 @@ export async function PATCH(req: NextRequest) {
   const admin = await requireSuperAdmin(req);
   if (!admin) return NextResponse.json({ error: "No autorizado" }, { status: 403 });
 
-  const body = await req.json().catch(() => ({})) as { restaurantId?: string; isActive?: boolean; subscriptionEndsAt?: string | null };
+  const body = await req.json().catch(() => ({})) as { restaurantId?: string; isActive?: boolean; subscriptionEndsAt?: string | null; status?: string };
   if (!body.restaurantId) return NextResponse.json({ error: "Faltan datos" }, { status: 400 });
 
-  const data: { isActive?: boolean; subscriptionEndsAt?: Date | null } = {};
+  const data: { isActive?: boolean; subscriptionEndsAt?: Date | null; status?: string } = {};
   if (body.isActive !== undefined) data.isActive = body.isActive;
   if (body.subscriptionEndsAt !== undefined) {
     data.subscriptionEndsAt = body.subscriptionEndsAt ? new Date(body.subscriptionEndsAt) : null;
   }
+  if (body.status === "ACTIVE" || body.status === "PENDING") data.status = body.status;
 
   const updated = await db.restaurant.update({ where: { id: body.restaurantId }, data });
-  return NextResponse.json({ ok: true, isActive: updated.isActive, subscriptionEndsAt: updated.subscriptionEndsAt });
+  return NextResponse.json({ ok: true, isActive: updated.isActive, subscriptionEndsAt: updated.subscriptionEndsAt, status: updated.status });
 }
 
 export async function DELETE(req: NextRequest) {
