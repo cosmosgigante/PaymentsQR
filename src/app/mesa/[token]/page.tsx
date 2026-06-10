@@ -1,6 +1,7 @@
 import { db } from "@/lib/db";
 import MobileFrame from "@/components/customer/MobileFrame";
 import MesaClient from "./MesaClient";
+import { isRestaurantActive } from "@/lib/restaurant";
 
 export const revalidate = 30; // caché CDN 30 segundos — el menú no cambia cada request
 
@@ -16,12 +17,12 @@ export default async function MesaPage({ params }: { params: Promise<{ token: st
       isActive: true,
       restaurantId: true,
       restaurant: {
-        select: { name: true, primaryColor: true },
+        select: { name: true, primaryColor: true, isActive: true, subscriptionEndsAt: true },
       },
     },
   });
 
-  if (!table || !table.isActive) {
+  if (!table || !table.isActive || !isRestaurantActive(table.restaurant)) {
     return (
       <MobileFrame>
         <div className="min-h-[100dvh] flex items-center justify-center p-6 text-center">
