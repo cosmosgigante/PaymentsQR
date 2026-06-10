@@ -4,7 +4,7 @@ import { getSession } from "@/lib/auth";
 import { CartItem } from "@/lib/types";
 import { emitEvent } from "@/lib/events";
 import { rateLimit } from "@/lib/rateLimit";
-import { isRestaurantActive } from "@/lib/restaurant";
+import { isRestaurantOperative } from "@/lib/restaurant";
 
 export async function POST(req: NextRequest) {
 
@@ -45,14 +45,14 @@ export async function POST(req: NextRequest) {
 
   const table = await db.table.findUnique({
     where: { qrToken: tableToken },
-    include: { restaurant: true },
+    include: { restaurant: { include: { account: true } } },
   });
 
   if (!table || !table.isActive) {
     return NextResponse.json({ error: "Mesa no válida" }, { status: 404 });
   }
 
-  if (!isRestaurantActive(table.restaurant)) {
+  if (!isRestaurantOperative(table.restaurant, table.restaurant.account)) {
     return NextResponse.json({ error: "Este restaurante no está disponible en este momento" }, { status: 403 });
   }
 

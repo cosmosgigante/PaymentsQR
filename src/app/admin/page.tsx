@@ -2,14 +2,17 @@ import { getSession } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import AdminDashboard from "@/components/admin/AdminDashboard";
-import { isRestaurantActive } from "@/lib/restaurant";
+import { isRestaurantOperative, isAccountActive } from "@/lib/restaurant";
 
 export default async function AdminPage() {
   const session = await getSession();
   if (!session) redirect("/");
 
   const [restaurant, ordersToday, tablesCount, menuItemsCount, recentOrders] = await Promise.all([
-    db.restaurant.findUnique({ where: { id: session.restaurantId }, select: { isActive: true, subscriptionEndsAt: true } }),
+    db.restaurant.findUnique({
+      where: { id: session.restaurantId },
+      select: { isActive: true, status: true, subscriptionEndsAt: true, account: { select: { isActive: true, subscriptionEndsAt: true } } },
+    }),
     db.order.count({
       where: { restaurantId: session.restaurantId, createdAt: { gte: new Date(new Date().setHours(0, 0, 0, 0)) } },
     }),
@@ -23,8 +26,9 @@ export default async function AdminPage() {
     }),
   ]);
 
-  if (!isRestaurantActive(restaurant)) {
-    const expired = restaurant?.isActive && restaurant.subscriptionEndsAt != null;
+  if (!restaurant || !isRestaurantOperative(restaurant, restaurant.account)) {
+    const account = restaurant?.account ?? null;
+    const expired = !!restaurant?.isActive && !isAccountActive(account) && (account?.subscriptionEndsAt != null);
     return (
       <div className="min-h-screen bg-zinc-950 flex items-center justify-center p-6">
         <div className="text-center max-w-sm">
@@ -34,7 +38,7 @@ export default async function AdminPage() {
           </h1>
           <p className="text-zinc-400 text-sm">
             {expired
-              ? "Tu suscripción venció. Renovala para reactivar tu restaurante o contactá al soporte."
+              ? "La suscripción de tu cuenta venció. Renovala para reactivar tus restoranes o contactá al soporte."
               : "Tu restaurante fue suspendido temporalmente. Contactá al soporte para más información."}
           </p>
         </div>
