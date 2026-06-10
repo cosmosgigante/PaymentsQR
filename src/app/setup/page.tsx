@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
+import { PLANS, EXTRA_BRANCH_MONTHLY_ARS, formatArs, type PlanType } from "@/lib/plans";
 
 type Admin = { email: string; role: string; hasPassword: boolean };
 
@@ -95,7 +96,7 @@ export default function SuperAdminPage() {
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [creating, setCreating] = useState(false);
-  const [form, setForm] = useState({ restaurantName: "", slug: "", adminEmail: "" });
+  const [form, setForm] = useState({ restaurantName: "", slug: "", adminEmail: "", planType: "MENSUAL" as PlanType, extraBranches: 0 });
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -139,7 +140,7 @@ export default function SuperAdminPage() {
     setShowForm(false);
     const createdName = form.restaurantName;
     const createdEmail = form.adminEmail;
-    setForm({ restaurantName: "", slug: "", adminEmail: "" });
+    setForm({ restaurantName: "", slug: "", adminEmail: "", planType: "MENSUAL", extraBranches: 0 });
     setSuccess(
       data.emailSent
         ? `Restaurante "${createdName}" creado. Le enviamos un email de invitación a ${createdEmail}.`
@@ -336,6 +337,48 @@ export default function SuperAdminPage() {
                     className="w-full bg-gray-50 border border-gray-200 text-gray-900 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30 placeholder:text-gray-300"
                   />
                   <p className="text-xs text-gray-400 mt-1">El dueño ingresa con este email (Google o contraseña).</p>
+                </div>
+
+                <div>
+                  <label className="text-xs text-gray-500 uppercase tracking-widest block mb-1">Plan</label>
+                  <div className="grid grid-cols-3 gap-2">
+                    {(Object.keys(PLANS) as PlanType[]).map((pt) => (
+                      <button
+                        key={pt}
+                        type="button"
+                        onClick={() => setForm((p) => ({ ...p, planType: pt }))}
+                        className={`rounded-xl px-2 py-2.5 text-xs font-semibold border transition-all ${
+                          form.planType === pt
+                            ? "bg-blue-900 text-white border-blue-900"
+                            : "bg-gray-50 text-gray-600 border-gray-200 hover:border-gray-300"
+                        }`}
+                      >
+                        {PLANS[pt].label}
+                        <span className="block text-[10px] font-normal opacity-80 mt-0.5">{formatArs(PLANS[pt].priceArs)}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-xs text-gray-500 uppercase tracking-widest block mb-1">Sucursales extra</label>
+                  <input
+                    type="number"
+                    min={0}
+                    max={50}
+                    value={form.extraBranches}
+                    onChange={(e) => setForm((p) => ({ ...p, extraBranches: Math.max(0, Math.min(50, parseInt(e.target.value) || 0)) }))}
+                    className="w-full bg-gray-50 border border-gray-200 text-gray-900 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30"
+                  />
+                  <p className="text-xs text-gray-400 mt-1">{formatArs(EXTRA_BRANCH_MONTHLY_ARS)}/mes por cada sucursal/restorán adicional.</p>
+                </div>
+
+                <div className="flex items-center justify-between bg-blue-50 border border-blue-100 rounded-xl px-4 py-3">
+                  <span className="text-xs font-semibold text-blue-900 uppercase tracking-widest">Total</span>
+                  <span className="text-lg font-bold text-blue-900">
+                    {formatArs(PLANS[form.planType].priceArs + form.extraBranches * EXTRA_BRANCH_MONTHLY_ARS * PLANS[form.planType].months)}
+                    <span className="text-xs font-normal text-blue-400"> ARS</span>
+                  </span>
                 </div>
 
                 {error && (

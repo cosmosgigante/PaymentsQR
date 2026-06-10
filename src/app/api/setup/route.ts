@@ -3,6 +3,7 @@ import { createServerClient } from "@supabase/ssr";
 import { db } from "@/lib/db";
 import { rateLimit } from "@/lib/rateLimit";
 import { sendInvitationEmail } from "@/lib/email";
+import { computePlan, isPlanType } from "@/lib/plans";
 
 async function requireSuperAdmin(req: NextRequest) {
   const supabase = createServerClient(
@@ -58,15 +59,22 @@ export async function POST(req: NextRequest) {
   try { body = await req.json(); }
   catch { return NextResponse.json({ error: "Request inválido" }, { status: 400 }); }
 
-  const { restaurantName, slug, adminEmail } = body as {
+  const { restaurantName, slug, adminEmail, planType, extraBranches } = body as {
     restaurantName?: string;
     slug?: string;
     adminEmail?: string;
+    planType?: string;
+    extraBranches?: number;
   };
 
   if (!restaurantName || !slug || !adminEmail) {
     return NextResponse.json({ error: "Faltan datos" }, { status: 400 });
   }
+
+  if (!isPlanType(planType)) {
+    return NextResponse.json({ error: "Plan inválido" }, { status: 400 });
+  }
+  const extras = Math.max(0, Math.min(50, Math.floor(Number(extraBranches) || 0)));
 
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   if (!emailRegex.test(String(adminEmail))) {
@@ -86,11 +94,18 @@ export async function POST(req: NextRequest) {
 
   const ownerEmail = String(adminEmail).toLowerCase().trim();
   const cleanName = String(restaurantName).slice(0, 100);
+  const { plan, extras: extraCount, totalArs, startedAt, endsAt } = computePlan(planType, extras);
 
   const restaurant = await db.restaurant.create({
     data: {
       name: cleanName,
       slug: cleanSlug,
+      planType,
+      extraBranches: extraCount,
+      priceArs: totalArs,
+      subscriptionStartedAt: startedAt,
+      subscriptionEndsAt: endsAt,
+      paymentSource: "MANUAL",
       admins: {
         create: {
           email: ownerEmail,
@@ -100,9 +115,19 @@ export async function POST(req: NextRequest) {
     },
   });
 
-  // Mail de invitación al dueño (no bloquea la creación si falla o no está configurado)
+  // Mail de bienvenida al dueño (no bloquea la creación si falla o no está configurado)
   const loginUrl = process.env.NEXT_PUBLIC_APP_URL || new URL(req.url).origin;
-  const emailSent = await sendInvitationEmail({ to: ownerEmail, restaurantName: cleanName, loginUrl });
+  const emailSent = await sendInvitationEmail({
+    to: ownerEmail,
+    restaurantName: cleanName,
+    loginUrl,
+    planLabel: plan.label,
+    priceArs: totalArs,
+    startedAt,
+    endsAt,
+    extraBranches: extraCount,
+    paymentSource: "MANUAL",
+  });
 
   return NextResponse.json({ ok: true, restaurantId: restaurant.id, emailSent }, { status: 201 });
 }

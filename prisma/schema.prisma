@@ -14,6 +14,11 @@ model Restaurant {
   primaryColor   String         @default("#f97316")
   isActive            Boolean        @default(true)
   subscriptionEndsAt  DateTime?
+  subscriptionStartedAt DateTime?
+  planType            String?        // "MENSUAL" | "TRIMESTRAL" | "ANUAL"
+  extraBranches       Int            @default(0)
+  priceArs            Int?           // precio total cobrado, en ARS
+  paymentSource       String?        @default("MANUAL") // "MANUAL" | "WEB"
   tables         Table[]
   menuCategories MenuCategory[]
   menuItems      MenuItem[]
