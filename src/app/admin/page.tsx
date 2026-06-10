@@ -2,13 +2,14 @@ import { getSession } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import AdminDashboard from "@/components/admin/AdminDashboard";
+import { isRestaurantActive } from "@/lib/restaurant";
 
 export default async function AdminPage() {
   const session = await getSession();
   if (!session) redirect("/");
 
   const [restaurant, ordersToday, tablesCount, menuItemsCount, recentOrders] = await Promise.all([
-    db.restaurant.findUnique({ where: { id: session.restaurantId }, select: { isActive: true } }),
+    db.restaurant.findUnique({ where: { id: session.restaurantId }, select: { isActive: true, subscriptionEndsAt: true } }),
     db.order.count({
       where: { restaurantId: session.restaurantId, createdAt: { gte: new Date(new Date().setHours(0, 0, 0, 0)) } },
     }),
@@ -22,13 +23,20 @@ export default async function AdminPage() {
     }),
   ]);
 
-  if (!restaurant?.isActive) {
+  if (!isRestaurantActive(restaurant)) {
+    const expired = restaurant?.isActive && restaurant.subscriptionEndsAt != null;
     return (
       <div className="min-h-screen bg-zinc-950 flex items-center justify-center p-6">
         <div className="text-center max-w-sm">
           <div className="text-5xl mb-4">🔒</div>
-          <h1 className="text-white font-bold text-xl mb-2">Cuenta suspendida</h1>
-          <p className="text-zinc-400 text-sm">Tu restaurante fue suspendido temporalmente. Contactá al soporte para más información.</p>
+          <h1 className="text-white font-bold text-xl mb-2">
+            {expired ? "Suscripción vencida" : "Cuenta suspendida"}
+          </h1>
+          <p className="text-zinc-400 text-sm">
+            {expired
+              ? "Tu suscripción venció. Renovala para reactivar tu restaurante o contactá al soporte."
+              : "Tu restaurante fue suspendido temporalmente. Contactá al soporte para más información."}
+          </p>
         </div>
       </div>
     );

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
+import { isRestaurantActive } from "@/lib/restaurant";
 
 export async function GET(req: NextRequest) {
   const token = new URL(req.url).searchParams.get("token");
@@ -10,7 +11,7 @@ export async function GET(req: NextRequest) {
     include: { restaurant: true },
   });
 
-  if (!table || !table.isActive) {
+  if (!table || !table.isActive || !isRestaurantActive(table.restaurant)) {
     return NextResponse.json({ error: "Mesa no válida" }, { status: 404 });
   }
 
