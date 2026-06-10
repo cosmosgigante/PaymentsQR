@@ -137,9 +137,15 @@ export default function SuperAdminPage() {
       return;
     }
     setShowForm(false);
+    const createdName = form.restaurantName;
+    const createdEmail = form.adminEmail;
     setForm({ restaurantName: "", slug: "", adminEmail: "" });
-    setSuccess(`Restaurante "${form.restaurantName}" creado. El dueño puede ingresar con ${form.adminEmail}.`);
-    setTimeout(() => setSuccess(null), 6000);
+    setSuccess(
+      data.emailSent
+        ? `Restaurante "${createdName}" creado. Le enviamos un email de invitación a ${createdEmail}.`
+        : `Restaurante "${createdName}" creado. Avisale al dueño que entre con ${createdEmail} usando Google.`
+    );
+    setTimeout(() => setSuccess(null), 7000);
     fetchRestaurants();
     setCreating(false);
   }

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import { db } from "@/lib/db";
 import { rateLimit } from "@/lib/rateLimit";
+import { sendInvitationEmail } from "@/lib/email";
 
 async function requireSuperAdmin(req: NextRequest) {
   const supabase = createServerClient(
@@ -83,20 +84,27 @@ export async function POST(req: NextRequest) {
   const adminExists = await db.admin.findUnique({ where: { email: String(adminEmail).toLowerCase().trim() } });
   if (adminExists) return NextResponse.json({ error: "Ese email ya tiene una cuenta" }, { status: 409 });
 
+  const ownerEmail = String(adminEmail).toLowerCase().trim();
+  const cleanName = String(restaurantName).slice(0, 100);
+
   const restaurant = await db.restaurant.create({
     data: {
-      name: String(restaurantName).slice(0, 100),
+      name: cleanName,
       slug: cleanSlug,
       admins: {
         create: {
-          email: String(adminEmail).toLowerCase().trim(),
+          email: ownerEmail,
           role: "OWNER",
         },
       },
     },
   });
 
-  return NextResponse.json({ ok: true, restaurantId: restaurant.id }, { status: 201 });
+  // Mail de invitación al dueño (no bloquea la creación si falla o no está configurado)
+  const loginUrl = process.env.NEXT_PUBLIC_APP_URL || new URL(req.url).origin;
+  const emailSent = await sendInvitationEmail({ to: ownerEmail, restaurantName: cleanName, loginUrl });
+
+  return NextResponse.json({ ok: true, restaurantId: restaurant.id, emailSent }, { status: 201 });
 }
 
 export async function PATCH(req: NextRequest) {
