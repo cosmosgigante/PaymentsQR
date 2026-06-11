@@ -23,18 +23,28 @@ export async function GET(req: NextRequest) {
   const restaurantId = req.nextUrl.searchParams.get("restaurantId");
   if (!restaurantId) return NextResponse.redirect(new URL("/setup", req.url));
 
-  const owner = await db.admin.findFirst({
-    where: { restaurantId, role: "OWNER" },
+  const restaurant = await db.restaurant.findUnique({
+    where: { id: restaurantId },
+    select: {
+      id: true,
+      account: { select: { admins: { where: { role: "OWNER" }, take: 1, select: { id: true } } } },
+    },
   });
 
-  if (!owner || !owner.passwordHash) {
-    return NextResponse.redirect(new URL("/setup?error=no-account", req.url));
+  if (!restaurant) return NextResponse.redirect(new URL("/setup?error=no-account", req.url));
+
+  // Para scopear la sesión al restorán: usamos el admin general de la cuenta;
+  // si es un restorán legacy, el dueño viejo; si no hay ninguno, el propio superadmin.
+  let adminId = restaurant.account?.admins[0]?.id;
+  if (!adminId) {
+    const legacyOwner = await db.admin.findFirst({ where: { restaurantId, role: "OWNER" }, select: { id: true } });
+    adminId = legacyOwner?.id ?? superAdmin.id;
   }
 
   const token = await signToken({
-    adminId: owner.id,
-    restaurantId: owner.restaurantId ?? "",
-    role: owner.role,
+    adminId,
+    restaurantId: restaurant.id,
+    role: "OWNER",
   });
 
   const res = NextResponse.redirect(new URL("/admin", req.url));

@@ -503,18 +503,12 @@ export default function SuperAdminPage() {
                           {togglingId === r.id ? "..." : "Habilitar"}
                         </button>
                       )}
-                      {owner?.hasPassword ? (
-                        <a
-                          href={`/api/setup/impersonate?restaurantId=${r.id}`}
-                          className="text-xs text-gray-600 hover:text-gray-900 bg-gray-100 hover:bg-gray-200 px-3 py-1.5 rounded-lg transition-all text-center"
-                        >
-                          Ver panel
-                        </a>
-                      ) : (
-                        <span className="text-xs text-gray-400 bg-gray-100 px-3 py-1.5 rounded-lg text-center cursor-not-allowed" title="El dueño aún no activó su cuenta">
-                          Sin cuenta
-                        </span>
-                      )}
+                      <a
+                        href={`/api/setup/impersonate?restaurantId=${r.id}`}
+                        className="text-xs text-gray-600 hover:text-gray-900 bg-gray-100 hover:bg-gray-200 px-3 py-1.5 rounded-lg transition-all text-center"
+                      >
+                        Ver panel
+                      </a>
                       <button
                         onClick={() => handleToggle(r)}
                         disabled={togglingId === r.id}
