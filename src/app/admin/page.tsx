@@ -4,11 +4,13 @@ import { db } from "@/lib/db";
 import AdminDashboard from "@/components/admin/AdminDashboard";
 import { isRestaurantOperative, isAccountActive } from "@/lib/restaurant";
 
+export const dynamic = "force-dynamic";
+
 export default async function AdminPage() {
   const session = await getSession();
   if (!session) redirect("/");
 
-  const [restaurant, ordersToday, tablesCount, menuItemsCount, recentOrders] = await Promise.all([
+  const [restaurant, ordersToday, tablesCount, menuItemsCount, recentOrders, adminSelf] = await Promise.all([
     db.restaurant.findUnique({
       where: { id: session.restaurantId },
       select: { isActive: true, status: true, subscriptionEndsAt: true, account: { select: { isActive: true, subscriptionEndsAt: true } } },
@@ -24,6 +26,7 @@ export default async function AdminPage() {
       take: 10,
       include: { table: true, items: { include: { menuItem: true } } },
     }),
+    db.admin.findUnique({ where: { id: session.adminId }, select: { accountId: true } }),
   ]);
 
   if (!restaurant || !isRestaurantOperative(restaurant, restaurant.account)) {
@@ -50,6 +53,7 @@ export default async function AdminPage() {
     <AdminDashboard
       stats={{ ordersToday, tablesCount, menuItemsCount }}
       recentOrders={JSON.parse(JSON.stringify(recentOrders))}
+      generalAdmin={!!adminSelf?.accountId}
     />
   );
 }

@@ -2,6 +2,7 @@ import { CartItem, MenuCategory, Order, OrderStatus, Table } from "./types";
 
 async function request<T>(url: string, options?: RequestInit): Promise<T> {
   const res = await fetch(url, {
+    cache: "no-store", // siempre datos frescos; evita que el navegador muestre cambios viejos
     headers: { "Content-Type": "application/json" },
     ...options,
   });

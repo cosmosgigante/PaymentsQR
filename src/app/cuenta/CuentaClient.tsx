@@ -70,9 +70,11 @@ export default function CuentaClient({ account, restaurants: initial }: { accoun
   }
 
   async function handleSignOut() {
+    await fetch("/api/auth/login", { method: "DELETE" }); // borra el JWT admin_token
     const supabase = createClient();
-    await supabase.auth.signOut();
+    await supabase.auth.signOut(); // cierra también la sesión de Google/Supabase
     router.push("/");
+    router.refresh();
   }
 
   return (

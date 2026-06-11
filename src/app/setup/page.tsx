@@ -105,7 +105,7 @@ export default function SuperAdminPage() {
 
   const fetchRestaurants = useCallback(async () => {
     setLoading(true);
-    const res = await fetch("/api/setup");
+    const res = await fetch("/api/setup", { cache: "no-store" });
     if (res.ok) {
       const data = await res.json();
       setRestaurants(data.restaurants);
