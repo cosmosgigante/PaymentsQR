@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { createClient } from "@/lib/supabase/client";
-import { ChefHat, BookOpen, QrCode, LogOut, TrendingUp, Package, Grid2X2, UtensilsCrossed, X } from "lucide-react";
+import { ChefHat, BookOpen, QrCode, LogOut, TrendingUp, Package, Grid2X2, UtensilsCrossed, X, ArrowLeft } from "lucide-react";
 import { ORDER_STATUS_LABELS, ORDER_STATUS_COLORS, OrderStatus } from "@/lib/types";
 import { useSSE } from "@/hooks/useSSE";
 import { useState, useCallback } from "react";
@@ -22,9 +22,10 @@ type Order = {
 type Props = {
   stats: { ordersToday: number; tablesCount: number; menuItemsCount: number };
   recentOrders: Order[];
+  generalAdmin?: boolean;
 };
 
-export default function AdminDashboard({ stats, recentOrders: initialOrders }: Props) {
+export default function AdminDashboard({ stats, recentOrders: initialOrders, generalAdmin }: Props) {
   const router = useRouter();
   const [orders, setOrders] = useState<Order[]>(initialOrders);
   const [ordersToday, setOrdersToday] = useState(stats.ordersToday);
@@ -97,6 +98,15 @@ export default function AdminDashboard({ stats, recentOrders: initialOrders }: P
           {/* Top bar */}
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-2.5">
+              {generalAdmin && (
+                <Link
+                  href="/cuenta"
+                  className="flex items-center gap-1 text-white/70 hover:text-white text-sm transition-colors min-h-[44px] pr-1 mr-0.5"
+                >
+                  <ArrowLeft size={16} strokeWidth={2} />
+                  <span className="hidden sm:inline">Mi cuenta</span>
+                </Link>
+              )}
               <div className="w-9 h-9 bg-white/20 rounded-xl flex items-center justify-center text-lg backdrop-blur-sm">
                 🍽️
               </div>
