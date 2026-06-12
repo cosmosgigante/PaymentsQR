@@ -28,7 +28,6 @@ const emptyForm = {
   name: "",
   authType: "PASSWORD" as "PASSWORD" | "GOOGLE",
   username: "",
-  password: "",
   email: "",
   permissions: {} as PermissionMatrix,
   restaurantIds: [] as string[],
@@ -44,6 +43,8 @@ export default function UsersManager({ restaurants }: { restaurants: Restaurant[
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [form, setForm] = useState(emptyForm);
+  const [createdCred, setCreatedCred] = useState<{ username: string; password: string } | null>(null);
+  const [copied, setCopied] = useState(false);
 
   const fetchTokens = useCallback(async () => {
     setLoading(true);
@@ -84,7 +85,6 @@ export default function UsersManager({ restaurants }: { restaurants: Restaurant[
         name: form.name,
         authType: form.authType,
         username: form.username,
-        password: form.password,
         email: form.email,
         permissions: form.permissions,
         restaurantIds: form.restaurantIds,
@@ -94,6 +94,11 @@ export default function UsersManager({ restaurants }: { restaurants: Restaurant[
     });
     const data = await res.json();
     if (!res.ok) { setError(data.error ?? "Error al crear el token"); setCreating(false); return; }
+    // Si es acceso por contraseña, el sistema generó una: la mostramos una vez
+    if (data.generatedPassword && data.username) {
+      setCreatedCred({ username: data.username, password: data.generatedPassword });
+      setCopied(false);
+    }
     setForm(emptyForm);
     setShowForm(false);
     setCreating(false);
@@ -122,6 +127,32 @@ export default function UsersManager({ restaurants }: { restaurants: Restaurant[
         </button>
       </div>
 
+      {/* Credencial generada — se muestra UNA sola vez */}
+      <AnimatePresence>
+        {createdCred && (
+          <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
+            className="bg-emerald-50 border border-emerald-200 rounded-2xl p-4">
+            <p className="text-sm font-semibold text-emerald-800 mb-2">✅ Acceso creado — guardá estos datos (no se vuelven a mostrar)</p>
+            <div className="flex items-center justify-between gap-3 bg-white border border-emerald-200 rounded-xl px-4 py-2.5">
+              <div className="font-mono text-sm text-gray-800 min-w-0">
+                <span className="text-gray-400">usuario:</span> {createdCred.username}<br />
+                <span className="text-gray-400">contraseña:</span> {createdCred.password}
+              </div>
+              <button onClick={() => {
+                  navigator.clipboard.writeText(`usuario: ${createdCred.username}\ncontraseña: ${createdCred.password}`);
+                  setCopied(true);
+                }}
+                className="shrink-0 text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-lg transition-all">
+                {copied ? "✓ Copiado" : "Copiar"}
+              </button>
+            </div>
+            <button onClick={() => setCreatedCred(null)} className="text-xs text-emerald-700 hover:text-emerald-900 mt-2 font-medium">
+              Ya la guardé, cerrar
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       <AnimatePresence>
         {showForm && (
           <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }}
@@ -149,17 +180,11 @@ export default function UsersManager({ restaurants }: { restaurants: Restaurant[
               </div>
 
               {form.authType === "PASSWORD" ? (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div>
-                    <label className="text-xs text-gray-500 uppercase tracking-widest block mb-1">Usuario</label>
-                    <input type="text" value={form.username} onChange={(e) => setForm((f) => ({ ...f, username: e.target.value.toLowerCase().replace(/\s+/g, "") }))} required placeholder="cocina-noche"
-                      className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500/30" />
-                  </div>
-                  <div>
-                    <label className="text-xs text-gray-500 uppercase tracking-widest block mb-1">Contraseña</label>
-                    <input type="text" value={form.password} onChange={(e) => setForm((f) => ({ ...f, password: e.target.value }))} required placeholder="la que quieras"
-                      className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30" />
-                  </div>
+                <div>
+                  <label className="text-xs text-gray-500 uppercase tracking-widest block mb-1">Usuario</label>
+                  <input type="text" value={form.username} onChange={(e) => setForm((f) => ({ ...f, username: e.target.value.toLowerCase().replace(/\s+/g, "") }))} required placeholder="cocina-noche"
+                    className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500/30" />
+                  <p className="text-xs text-gray-400 mt-1">La contraseña la genera el sistema al crear el acceso (te la mostramos una vez).</p>
                 </div>
               ) : (
                 <div>

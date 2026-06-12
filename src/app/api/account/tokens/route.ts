@@ -1,10 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
+import { randomInt } from "crypto";
 import { db } from "@/lib/db";
 import { getAccountAdmin } from "@/lib/account";
 import { sanitizePermissions, parsePermissions, parseRestaurantIds } from "@/lib/permissions";
 
 export const dynamic = "force-dynamic";
+
+// Genera una contraseña segura (sin caracteres confusos como O/0, I/l/1). Máx 18.
+function generatePassword(len = 14): string {
+  const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789";
+  const n = Math.min(18, Math.max(8, len));
+  let out = "";
+  for (let i = 0; i < n; i++) out += alphabet[randomInt(alphabet.length)];
+  return out;
+}
 
 // Lista los tokens de acceso de la cuenta (con dispositivos activos)
 export async function GET(req: NextRequest) {
@@ -58,20 +68,23 @@ export async function POST(req: NextRequest) {
   let username: string | null = null;
   let passwordHash: string | null = null;
   let email: string | null = null;
+  let generatedPassword: string | null = null; // se devuelve UNA vez para mostrarla
 
   if (authType === "GOOGLE") {
     email = String(body.email ?? "").trim().toLowerCase();
     if (!emailRegex.test(email)) return NextResponse.json({ error: "Email de Google inválido" }, { status: 400 });
-    const used = await db.accessToken.findFirst({ where: { email } });
-    if (used) return NextResponse.json({ error: "Ese email ya tiene un acceso" }, { status: 409 });
+    // Único POR CUENTA: el mismo email puede tener acceso en otra cuenta, no en ésta
+    const used = await db.accessToken.findFirst({ where: { accountId: ctx.account.id, email } });
+    if (used) return NextResponse.json({ error: "Ese email ya tiene un acceso en esta cuenta" }, { status: 409 });
   } else {
     username = String(body.username ?? "").trim().toLowerCase().replace(/\s+/g, "").slice(0, 40);
-    const password = String(body.password ?? "");
     if (username.length < 3) return NextResponse.json({ error: "El usuario debe tener al menos 3 caracteres" }, { status: 400 });
-    if (password.length < 4) return NextResponse.json({ error: "La contraseña debe tener al menos 4 caracteres" }, { status: 400 });
+    // El usuario es único en todo el sistema (así se detectan colisiones al loguear)
     const exists = await db.accessToken.findUnique({ where: { username } });
     if (exists) return NextResponse.json({ error: "Ese nombre de usuario ya está en uso" }, { status: 409 });
-    passwordHash = await bcrypt.hash(password, 12);
+    // La contraseña la genera el sistema (no la elige el admin)
+    generatedPassword = generatePassword(14);
+    passwordHash = await bcrypt.hash(generatedPassword, 12);
   }
 
   // Permisos: al menos un módulo con acceso
@@ -111,5 +124,5 @@ export async function POST(req: NextRequest) {
     select: { id: true, name: true },
   });
 
-  return NextResponse.json({ ok: true, token }, { status: 201 });
+  return NextResponse.json({ ok: true, token, username, generatedPassword }, { status: 201 });
 }

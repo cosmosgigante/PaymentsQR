@@ -31,9 +31,9 @@ model AccessToken {
   account       Account         @relation(fields: [accountId], references: [id])
   name          String          // etiqueta: "Cocina", "Encargado", etc.
   authType      String          @default("PASSWORD") // "PASSWORD" | "GOOGLE"
-  username      String?         @unique // login para authType PASSWORD
-  passwordHash  String?         // para authType PASSWORD
-  email         String?         @unique // email de Google para authType GOOGLE
+  username      String?         @unique // login para authType PASSWORD (único global)
+  passwordHash  String?         // para authType PASSWORD (generada por el sistema)
+  email         String?         // email de Google para authType GOOGLE (único por cuenta)
   permissions   String          @default("{}")  // JSON: { "COCINA": "MANAGE", "MENU": "VIEW", ... }
   restaurantIds String          @default("[]")  // JSON: ids de restoranes asignados
   maxDevices    Int             @default(1)     // 1 a 10 dispositivos simultáneos
@@ -41,6 +41,8 @@ model AccessToken {
   isActive      Boolean         @default(true)
   sessions      AccessSession[]
   createdAt     DateTime        @default(now())
+
+  @@unique([accountId, email]) // mismo email puede existir en otra cuenta, no en la misma
 }
 
 // Sesión de un dispositivo usando un AccessToken (para límite de dispositivos
