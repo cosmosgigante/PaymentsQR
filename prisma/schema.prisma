@@ -18,7 +18,38 @@ model Account {
   isActive              Boolean      @default(true)
   restaurants           Restaurant[]
   admins                Admin[]
+  accessTokens          AccessToken[]
   createdAt             DateTime     @default(now())
+}
+
+// Credencial de acceso para el personal (la crea el cliente-administrador).
+// Un token = un "login" (nombre + contraseña) con permisos, restoranes asignados,
+// límite de dispositivos y vencimiento. Lo usan uno o varios dispositivos.
+model AccessToken {
+  id            String          @id @default(cuid())
+  accountId     String
+  account       Account         @relation(fields: [accountId], references: [id])
+  name          String          // etiqueta: "Cocina", "Encargado", etc.
+  username      String          @unique // nombre de usuario para loguear
+  passwordHash  String
+  permissions   String          @default("{}")  // JSON: { "COCINA": "MANAGE", "MENU": "VIEW", ... }
+  restaurantIds String          @default("[]")  // JSON: ids de restoranes asignados
+  maxDevices    Int             @default(1)     // 1 a 10 dispositivos simultáneos
+  expiresAt     DateTime?
+  isActive      Boolean         @default(true)
+  sessions      AccessSession[]
+  createdAt     DateTime        @default(now())
+}
+
+// Sesión de un dispositivo usando un AccessToken (para límite de dispositivos
+// y "ver tokens activos"). Se crea al loguear (Fase 2).
+model AccessSession {
+  id          String      @id @default(cuid())
+  tokenId     String
+  token       AccessToken @relation(fields: [tokenId], references: [id], onDelete: Cascade)
+  deviceLabel String?
+  lastSeenAt  DateTime    @default(now())
+  createdAt   DateTime    @default(now())
 }
 
 model Restaurant {

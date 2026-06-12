@@ -5,8 +5,10 @@ import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { createClient } from "@/lib/supabase/client";
 import { PLANS, formatArs, formatDate, paymentSourceLabel, type PlanType, type PaymentSource } from "@/lib/plans";
+import UsersManager from "./UsersManager";
+import { Store, Users, Activity } from "lucide-react";
 
-type Restaurant = {
+export type Restaurant = {
   id: string;
   name: string;
   slug: string;
@@ -15,6 +17,8 @@ type Restaurant = {
   createdAt: string;
   _count: { tables: number; orders: number };
 };
+
+type Tab = "restoranes" | "usuarios" | "actividad";
 
 type Account = {
   ownerEmail: string;
@@ -35,6 +39,7 @@ export default function CuentaClient({ account, restaurants: initial }: { accoun
   const [form, setForm] = useState({ name: "", slug: "" });
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [tab, setTab] = useState<Tab>("restoranes");
 
   const planLabel = account.planType && account.planType in PLANS ? PLANS[account.planType as PlanType].label : "—";
   const daysLeft = account.subscriptionEndsAt
@@ -122,6 +127,28 @@ export default function CuentaClient({ account, restaurants: initial }: { accoun
         </div>
       </div>
 
+      {/* Barra de pestañas */}
+      <div className="max-w-3xl mx-auto px-4 -mt-4 mb-1">
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-1 flex gap-1">
+          {([
+            { key: "restoranes", label: "Mis restoranes", icon: Store },
+            { key: "usuarios",   label: "Usuarios y permisos", icon: Users },
+            { key: "actividad",  label: "Actividad", icon: Activity },
+          ] as { key: Tab; label: string; icon: typeof Store }[]).map(({ key, label, icon: Icon }) => (
+            <button
+              key={key}
+              onClick={() => setTab(key)}
+              className={`flex-1 flex items-center justify-center gap-1.5 text-xs sm:text-sm font-semibold px-2 py-2.5 rounded-xl transition-all ${
+                tab === key ? "bg-blue-900 text-white" : "text-gray-500 hover:text-gray-800 hover:bg-gray-50"
+              }`}
+            >
+              <Icon size={15} strokeWidth={2} />
+              <span className="hidden sm:inline">{label}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+
       <div className="max-w-3xl mx-auto px-4 py-5 space-y-4">
         <AnimatePresence>
           {success && (
@@ -132,6 +159,8 @@ export default function CuentaClient({ account, restaurants: initial }: { accoun
           )}
         </AnimatePresence>
 
+        {tab === "restoranes" && (
+        <>
         <div className="flex items-center justify-between">
           <h2 className="font-semibold text-gray-800">Mis restoranes</h2>
           <button onClick={() => { setShowForm((v) => !v); setError(null); }}
@@ -196,6 +225,20 @@ export default function CuentaClient({ account, restaurants: initial }: { accoun
             );
           })}
         </div>
+        </>
+        )}
+
+        {tab === "usuarios" && (
+          <UsersManager restaurants={restaurants} />
+        )}
+
+        {tab === "actividad" && (
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-10 text-center">
+            <div className="text-4xl mb-3">📊</div>
+            <h3 className="font-semibold text-gray-800">Actividad</h3>
+            <p className="text-gray-400 text-sm mt-1">Control de personal y ventas en tiempo real. Próximamente (Fase 2).</p>
+          </div>
+        )}
       </div>
     </div>
   );
