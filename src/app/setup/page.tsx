@@ -4,8 +4,18 @@ import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
+import { PLANS, formatArs, type PlanType } from "@/lib/plans";
 
 type Admin = { email: string; role: string; hasPassword: boolean };
+
+type Account = {
+  id: string;
+  ownerEmail: string;
+  planType: string | null;
+  priceArs: number | null;
+  subscriptionEndsAt: string | null;
+  isActive: boolean;
+};
 
 type Restaurant = {
   id: string;
@@ -14,6 +24,7 @@ type Restaurant = {
   isActive: boolean;
   status: string;
   subscriptionEndsAt: string | null;
+  account: Account | null;
   createdAt: string;
   _count: { tables: number; orders: number };
   admins: Admin[];
@@ -96,7 +107,7 @@ export default function SuperAdminPage() {
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [creating, setCreating] = useState(false);
-  const [form, setForm] = useState({ restaurantName: "", slug: "", adminEmail: "" });
+  const [form, setForm] = useState({ restaurantName: "", slug: "", adminEmail: "", planType: "MENSUAL" as PlanType });
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -138,9 +149,11 @@ export default function SuperAdminPage() {
       return;
     }
     setShowForm(false);
-    setForm({ restaurantName: "", slug: "", adminEmail: "" });
-    setSuccess(`Restaurante "${form.restaurantName}" creado. El dueño puede ingresar con ${form.adminEmail}.`);
-    setTimeout(() => setSuccess(null), 6000);
+    const createdName = form.restaurantName;
+    const createdEmail = form.adminEmail;
+    setForm({ restaurantName: "", slug: "", adminEmail: "", planType: "MENSUAL" });
+    setSuccess(`Cuenta de "${createdName}" creada (plan ${PLANS[form.planType].label}). El dueño entra con ${createdEmail}.`);
+    setTimeout(() => setSuccess(null), 7000);
     fetchRestaurants();
     setCreating(false);
   }
@@ -176,20 +189,23 @@ export default function SuperAdminPage() {
   }
 
   async function handleExtendSubscription(restaurant: Restaurant, months: number) {
-    const base = restaurant.subscriptionEndsAt && new Date(restaurant.subscriptionEndsAt) > new Date()
-      ? new Date(restaurant.subscriptionEndsAt)
-      : new Date();
+    if (!restaurant.account) return; // la suscripción vive en la cuenta
+    const current = restaurant.account.subscriptionEndsAt;
+    const base = current && new Date(current) > new Date() ? new Date(current) : new Date();
     const newDate = new Date(base);
     newDate.setMonth(newDate.getMonth() + months);
 
     const res = await fetch("/api/setup", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ restaurantId: restaurant.id, subscriptionEndsAt: newDate.toISOString() }),
+      body: JSON.stringify({ accountId: restaurant.account.id, subscriptionEndsAt: newDate.toISOString() }),
     });
     if (res.ok) {
+      const accountId = restaurant.account.id;
       setRestaurants((prev) =>
-        prev.map((r) => r.id === restaurant.id ? { ...r, subscriptionEndsAt: newDate.toISOString() } : r)
+        prev.map((r) => r.account?.id === accountId
+          ? { ...r, account: { ...r.account!, subscriptionEndsAt: newDate.toISOString() } }
+          : r)
       );
     }
   }
@@ -348,6 +364,28 @@ export default function SuperAdminPage() {
                   <p className="text-xs text-gray-400 mt-1">El dueño ingresa con este email (Google o contraseña).</p>
                 </div>
 
+                <div>
+                  <label className="text-xs text-gray-500 uppercase tracking-widest block mb-1">Plan</label>
+                  <div className="grid grid-cols-3 gap-2">
+                    {(Object.keys(PLANS) as PlanType[]).map((pt) => (
+                      <button
+                        key={pt}
+                        type="button"
+                        onClick={() => setForm((p) => ({ ...p, planType: pt }))}
+                        className={`rounded-xl px-2 py-2.5 text-xs font-semibold border transition-all ${
+                          form.planType === pt
+                            ? "bg-blue-900 text-white border-blue-900"
+                            : "bg-gray-50 text-gray-600 border-gray-200 hover:border-gray-300"
+                        }`}
+                      >
+                        {PLANS[pt].label}
+                        <span className="block text-[10px] font-normal opacity-80 mt-0.5">{formatArs(PLANS[pt].priceArs)}</span>
+                      </button>
+                    ))}
+                  </div>
+                  <p className="text-xs text-gray-400 mt-1">Incluye 1 restorán. Sucursales extra se agregan después.</p>
+                </div>
+
                 {error && (
                   <p className="text-red-500 text-xs bg-red-50 border border-red-200 rounded-lg px-3 py-2">{error}</p>
                 )}
@@ -355,7 +393,7 @@ export default function SuperAdminPage() {
                 <div className="flex gap-2 pt-1">
                   <button type="submit" disabled={creating}
                     className="bg-gray-900 text-white hover:bg-gray-700 disabled:opacity-50 font-semibold text-sm px-4 py-2.5 rounded-xl transition-all">
-                    {creating ? "Creando..." : "Crear restaurante"}
+                    {creating ? "Creando..." : "Crear cuenta"}
                   </button>
                   <button type="button" onClick={() => { setShowForm(false); setError(null); }}
                     className="text-gray-500 hover:text-gray-900 text-sm px-4 py-2.5 rounded-xl hover:bg-gray-100 transition-all">
@@ -419,17 +457,27 @@ export default function SuperAdminPage() {
                         </div>
                       )}
 
-                      {/* Stats */}
-                      <div className="flex gap-3 mt-2 mb-3 text-xs text-gray-400">
+                      {/* Stats + plan de la cuenta */}
+                      <div className="flex gap-3 mt-2 mb-3 text-xs text-gray-400 flex-wrap items-center">
                         <span>{r._count.tables} {r._count.tables === 1 ? "mesa" : "mesas"}</span>
                         <span>{r._count.orders} {r._count.orders === 1 ? "pedido" : "pedidos"}</span>
+                        {r.account?.planType && PLANS[r.account.planType as PlanType] && (
+                          <span className="text-blue-700 font-semibold">
+                            {PLANS[r.account.planType as PlanType].label}
+                            {r.account.priceArs != null && ` · ${formatArs(r.account.priceArs)}`}
+                          </span>
+                        )}
                       </div>
 
-                      {/* Suscripción */}
-                      <SubscriptionBadge
-                        endsAt={r.subscriptionEndsAt}
-                        onExtend={(months) => handleExtendSubscription(r, months)}
-                      />
+                      {/* Suscripción (a nivel cuenta) */}
+                      {r.account ? (
+                        <SubscriptionBadge
+                          endsAt={r.account.subscriptionEndsAt}
+                          onExtend={(months) => handleExtendSubscription(r, months)}
+                        />
+                      ) : (
+                        <p className="text-[11px] text-gray-400 mt-2 mb-1">Restorán legacy (sin cuenta)</p>
+                      )}
 
                       {/* Links generados */}
                       <div className="space-y-1.5">
@@ -455,18 +503,12 @@ export default function SuperAdminPage() {
                           {togglingId === r.id ? "..." : "Habilitar"}
                         </button>
                       )}
-                      {owner?.hasPassword ? (
-                        <a
-                          href={`/api/setup/impersonate?restaurantId=${r.id}`}
-                          className="text-xs text-gray-600 hover:text-gray-900 bg-gray-100 hover:bg-gray-200 px-3 py-1.5 rounded-lg transition-all text-center"
-                        >
-                          Ver panel
-                        </a>
-                      ) : (
-                        <span className="text-xs text-gray-400 bg-gray-100 px-3 py-1.5 rounded-lg text-center cursor-not-allowed" title="El dueño aún no activó su cuenta">
-                          Sin cuenta
-                        </span>
-                      )}
+                      <a
+                        href={`/api/setup/impersonate?restaurantId=${r.id}`}
+                        className="text-xs text-gray-600 hover:text-gray-900 bg-gray-100 hover:bg-gray-200 px-3 py-1.5 rounded-lg transition-all text-center"
+                      >
+                        Ver panel
+                      </a>
                       <button
                         onClick={() => handleToggle(r)}
                         disabled={togglingId === r.id}

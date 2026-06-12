@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import { db } from "@/lib/db";
 import { rateLimit } from "@/lib/rateLimit";
+import { computeAccountPlan, isPlanType } from "@/lib/plans";
 
 async function requireSuperAdmin(req: NextRequest) {
   const supabase = createServerClient(
@@ -28,6 +29,7 @@ export async function GET(req: NextRequest) {
   const restaurants = await db.restaurant.findMany({
     include: {
       admins: { select: { email: true, role: true, passwordHash: true } },
+      account: { select: { id: true, ownerEmail: true, planType: true, priceArs: true, subscriptionEndsAt: true, isActive: true } },
       _count: { select: { tables: true, orders: true } },
     },
     orderBy: { createdAt: "desc" },
@@ -57,14 +59,18 @@ export async function POST(req: NextRequest) {
   try { body = await req.json(); }
   catch { return NextResponse.json({ error: "Request inválido" }, { status: 400 }); }
 
-  const { restaurantName, slug, adminEmail } = body as {
+  const { restaurantName, slug, adminEmail, planType } = body as {
     restaurantName?: string;
     slug?: string;
     adminEmail?: string;
+    planType?: string;
   };
 
   if (!restaurantName || !slug || !adminEmail) {
     return NextResponse.json({ error: "Faltan datos" }, { status: 400 });
+  }
+  if (!isPlanType(planType)) {
+    return NextResponse.json({ error: "Elegí un plan" }, { status: 400 });
   }
 
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -77,44 +83,78 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Slug demasiado corto" }, { status: 400 });
   }
 
+  const ownerEmail = String(adminEmail).toLowerCase().trim();
+  const cleanName = String(restaurantName).slice(0, 100);
+
   const existing = await db.restaurant.findUnique({ where: { slug: cleanSlug } });
   if (existing) return NextResponse.json({ error: "Ese slug ya está en uso" }, { status: 409 });
 
-  const adminExists = await db.admin.findUnique({ where: { email: String(adminEmail).toLowerCase().trim() } });
+  const adminExists = await db.admin.findUnique({ where: { email: ownerEmail } });
   if (adminExists) return NextResponse.json({ error: "Ese email ya tiene una cuenta" }, { status: 409 });
 
-  const restaurant = await db.restaurant.create({
+  const accountExists = await db.account.findUnique({ where: { ownerEmail } });
+  if (accountExists) return NextResponse.json({ error: "Ese email ya tiene una cuenta" }, { status: 409 });
+
+  // El plan base incluye 1 restorán (sin sucursales extra al crear)
+  const { totalArs, startedAt, endsAt } = computeAccountPlan(planType, 0);
+
+  const account = await db.account.create({
     data: {
-      name: String(restaurantName).slice(0, 100),
-      slug: cleanSlug,
+      ownerEmail,
+      name: cleanName,
+      planType,
+      priceArs: totalArs,
+      subscriptionStartedAt: startedAt,
+      subscriptionEndsAt: endsAt,
+      paymentSource: "MANUAL",
+      isActive: true,
+      // Admin general de la cuenta (sin restaurantId: opera todos los restoranes de la cuenta)
       admins: {
-        create: {
-          email: String(adminEmail).toLowerCase().trim(),
-          role: "OWNER",
-        },
+        create: { email: ownerEmail, role: "OWNER" },
+      },
+      // Primer restorán, ya habilitado
+      restaurants: {
+        create: { name: cleanName, slug: cleanSlug, status: "ACTIVE" },
       },
     },
+    include: { restaurants: { select: { id: true } } },
   });
 
-  return NextResponse.json({ ok: true, restaurantId: restaurant.id }, { status: 201 });
+  return NextResponse.json({ ok: true, accountId: account.id, restaurantId: account.restaurants[0]?.id }, { status: 201 });
 }
 
 export async function PATCH(req: NextRequest) {
   const admin = await requireSuperAdmin(req);
   if (!admin) return NextResponse.json({ error: "No autorizado" }, { status: 403 });
 
-  const body = await req.json().catch(() => ({})) as { restaurantId?: string; isActive?: boolean; subscriptionEndsAt?: string | null; status?: string };
+  const body = await req.json().catch(() => ({})) as {
+    restaurantId?: string;
+    accountId?: string;
+    isActive?: boolean;
+    subscriptionEndsAt?: string | null;
+    status?: string;
+  };
+
+  // Actualización a nivel CUENTA (suscripción / suspensión del cliente)
+  if (body.accountId) {
+    const data: { isActive?: boolean; subscriptionEndsAt?: Date | null } = {};
+    if (body.isActive !== undefined) data.isActive = body.isActive;
+    if (body.subscriptionEndsAt !== undefined) {
+      data.subscriptionEndsAt = body.subscriptionEndsAt ? new Date(body.subscriptionEndsAt) : null;
+    }
+    const updated = await db.account.update({ where: { id: body.accountId }, data });
+    return NextResponse.json({ ok: true, isActive: updated.isActive, subscriptionEndsAt: updated.subscriptionEndsAt });
+  }
+
+  // Actualización a nivel RESTORÁN (habilitar / suspender una sucursal)
   if (!body.restaurantId) return NextResponse.json({ error: "Faltan datos" }, { status: 400 });
 
-  const data: { isActive?: boolean; subscriptionEndsAt?: Date | null; status?: string } = {};
+  const data: { isActive?: boolean; status?: string } = {};
   if (body.isActive !== undefined) data.isActive = body.isActive;
-  if (body.subscriptionEndsAt !== undefined) {
-    data.subscriptionEndsAt = body.subscriptionEndsAt ? new Date(body.subscriptionEndsAt) : null;
-  }
   if (body.status === "ACTIVE" || body.status === "PENDING") data.status = body.status;
 
   const updated = await db.restaurant.update({ where: { id: body.restaurantId }, data });
-  return NextResponse.json({ ok: true, isActive: updated.isActive, subscriptionEndsAt: updated.subscriptionEndsAt, status: updated.status });
+  return NextResponse.json({ ok: true, isActive: updated.isActive, status: updated.status });
 }
 
 export async function DELETE(req: NextRequest) {
