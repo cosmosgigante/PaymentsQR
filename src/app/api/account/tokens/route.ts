@@ -20,7 +20,9 @@ export async function GET(req: NextRequest) {
   const data = tokens.map((t) => ({
     id: t.id,
     name: t.name,
+    authType: t.authType,
     username: t.username,
+    email: t.email,
     permissions: parsePermissions(t.permissions),
     restaurantIds: parseRestaurantIds(t.restaurantIds),
     maxDevices: t.maxDevices,
@@ -39,7 +41,7 @@ export async function POST(req: NextRequest) {
   if (!ctx) return NextResponse.json({ error: "No autorizado" }, { status: 403 });
 
   let body: {
-    name?: string; username?: string; password?: string;
+    name?: string; authType?: string; username?: string; password?: string; email?: string;
     permissions?: unknown; restaurantIds?: unknown;
     maxDevices?: number; durationDays?: number;
   };
@@ -47,12 +49,30 @@ export async function POST(req: NextRequest) {
   catch { return NextResponse.json({ error: "Request inválido" }, { status: 400 }); }
 
   const name = String(body.name ?? "").trim().slice(0, 60);
-  const username = String(body.username ?? "").trim().toLowerCase().replace(/\s+/g, "").slice(0, 40);
-  const password = String(body.password ?? "");
-
   if (!name) return NextResponse.json({ error: "Poné un nombre" }, { status: 400 });
-  if (username.length < 3) return NextResponse.json({ error: "El usuario debe tener al menos 3 caracteres" }, { status: 400 });
-  if (password.length < 4) return NextResponse.json({ error: "La contraseña debe tener al menos 4 caracteres" }, { status: 400 });
+
+  const authType = body.authType === "GOOGLE" ? "GOOGLE" : "PASSWORD";
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+  // Datos según el tipo de acceso
+  let username: string | null = null;
+  let passwordHash: string | null = null;
+  let email: string | null = null;
+
+  if (authType === "GOOGLE") {
+    email = String(body.email ?? "").trim().toLowerCase();
+    if (!emailRegex.test(email)) return NextResponse.json({ error: "Email de Google inválido" }, { status: 400 });
+    const used = await db.accessToken.findFirst({ where: { email } });
+    if (used) return NextResponse.json({ error: "Ese email ya tiene un acceso" }, { status: 409 });
+  } else {
+    username = String(body.username ?? "").trim().toLowerCase().replace(/\s+/g, "").slice(0, 40);
+    const password = String(body.password ?? "");
+    if (username.length < 3) return NextResponse.json({ error: "El usuario debe tener al menos 3 caracteres" }, { status: 400 });
+    if (password.length < 4) return NextResponse.json({ error: "La contraseña debe tener al menos 4 caracteres" }, { status: 400 });
+    const exists = await db.accessToken.findUnique({ where: { username } });
+    if (exists) return NextResponse.json({ error: "Ese nombre de usuario ya está en uso" }, { status: 409 });
+    passwordHash = await bcrypt.hash(password, 12);
+  }
 
   // Permisos: al menos un módulo con acceso
   const permissions = sanitizePermissions(body.permissions);
@@ -75,23 +95,20 @@ export async function POST(req: NextRequest) {
   const days = Math.max(0, Math.floor(Number(body.durationDays) || 0));
   const expiresAt = days > 0 ? new Date(Date.now() + days * 24 * 60 * 60 * 1000) : null;
 
-  const exists = await db.accessToken.findUnique({ where: { username } });
-  if (exists) return NextResponse.json({ error: "Ese nombre de usuario ya está en uso" }, { status: 409 });
-
-  const passwordHash = await bcrypt.hash(password, 12);
-
   const token = await db.accessToken.create({
     data: {
       accountId: ctx.account.id,
       name,
+      authType,
       username,
       passwordHash,
+      email,
       permissions: JSON.stringify(permissions),
       restaurantIds: JSON.stringify(restaurantIds),
       maxDevices,
       expiresAt,
     },
-    select: { id: true, name: true, username: true },
+    select: { id: true, name: true },
   });
 
   return NextResponse.json({ ok: true, token }, { status: 201 });
