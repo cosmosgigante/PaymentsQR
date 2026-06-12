@@ -2,8 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import { jwtVerify } from "jose";
 
-const PROTECTED_PREFIXES = ["/admin", "/cocina", "/mozos", "/superadmin", "/setup", "/cuenta"];
-const PUBLIC_PATHS = ["/admin/login"];
+const PROTECTED_PREFIXES = ["/admin", "/cocina", "/mozos", "/superadmin", "/setup", "/cuenta", "/trabajo"];
+const PUBLIC_PATHS = ["/admin/login", "/trabajo/seleccionar"];
 
 function getJwtSecret() {
   const raw = process.env.JWT_SECRET;
@@ -55,5 +55,5 @@ export async function proxy(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/admin/:path*", "/cocina/:path*", "/mozos/:path*", "/mozos", "/superadmin/:path*", "/setup", "/cuenta"],
+  matcher: ["/admin/:path*", "/cocina/:path*", "/mozos/:path*", "/mozos", "/superadmin/:path*", "/setup", "/cuenta", "/trabajo/:path*", "/trabajo"],
 };

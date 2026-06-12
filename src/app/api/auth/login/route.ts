@@ -3,6 +3,44 @@ import bcrypt from "bcryptjs";
 import { db } from "@/lib/db";
 import { signToken } from "@/lib/auth";
 import { rateLimit } from "@/lib/rateLimit";
+import { createStaffSession, operativeRestaurantsForToken, isTokenUsable, signStaffPending } from "@/lib/staff";
+
+function setAdminCookie(res: NextResponse, token: string) {
+  res.cookies.set("admin_token", token, {
+    httpOnly: true, secure: process.env.NODE_ENV === "production", sameSite: "lax", maxAge: 60 * 60 * 8, path: "/",
+  });
+}
+
+// Login del personal con usuario + contraseña (AccessToken). Devuelve un redirect
+// o null si el usuario no corresponde a ningún acceso de personal.
+async function tryStaffPasswordLogin(usernameRaw: string, password: string, req: NextRequest): Promise<NextResponse | null> {
+  const username = usernameRaw.trim().toLowerCase().replace(/\s+/g, "");
+  if (username.length < 3) return null;
+
+  const token = await db.accessToken.findUnique({ where: { username } });
+  if (!token || token.authType !== "PASSWORD" || !token.passwordHash) return null;
+
+  const ok = await bcrypt.compare(password, token.passwordHash);
+  if (!ok) return null;
+
+  if (!isTokenUsable(token)) return NextResponse.redirect(new URL("/?error=expired", req.url), { status: 303 });
+
+  const restos = await operativeRestaurantsForToken(token);
+  if (restos.length === 0) return NextResponse.redirect(new URL("/?error=sin-restoran", req.url), { status: 303 });
+
+  if (restos.length === 1) {
+    const jwt = await createStaffSession(token, restos[0].id);
+    const res = NextResponse.redirect(new URL("/trabajo", req.url), { status: 303 });
+    setAdminCookie(res, jwt);
+    return res;
+  }
+
+  // Varios restoranes → elegir
+  const pending = await signStaffPending({ kind: "password", tokenId: token.id });
+  const res = NextResponse.redirect(new URL("/trabajo/seleccionar", req.url), { status: 303 });
+  res.cookies.set("staff_pending", pending, { httpOnly: true, secure: process.env.NODE_ENV === "production", sameSite: "lax", maxAge: 600, path: "/" });
+  return res;
+}
 
 // Hash dummy válido para timing-safe comparison cuando el email no existe
 // Generado con: bcrypt.hashSync("dummy", 12) — longitud exacta 60 chars
@@ -51,6 +89,9 @@ export async function POST(req: NextRequest) {
       const hash = await bcrypt.hash(password, 12);
       await db.admin.update({ where: { email: email.toLowerCase().trim() }, data: { passwordHash: hash } });
     } else {
+      // ¿Es personal (usuario + contraseña)?
+      const staffRes = await tryStaffPasswordLogin(email, password, req);
+      if (staffRes) return staffRes;
       return NextResponse.redirect(new URL("/?error=invalid", req.url), { status: 303 });
     }
   }

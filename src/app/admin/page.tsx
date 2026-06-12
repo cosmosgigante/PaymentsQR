@@ -9,6 +9,7 @@ export const dynamic = "force-dynamic";
 export default async function AdminPage() {
   const session = await getSession();
   if (!session) redirect("/");
+  if (session.role === "STAFF") redirect("/trabajo"); // el personal usa su panel de trabajo
 
   const [restaurant, ordersToday, tablesCount, menuItemsCount, recentOrders, adminSelf] = await Promise.all([
     db.restaurant.findUnique({

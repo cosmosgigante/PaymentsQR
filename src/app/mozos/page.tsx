@@ -1,11 +1,13 @@
 import { getSession } from "@/lib/auth";
 import { redirect } from "next/navigation";
+import { canAccess } from "@/lib/staff";
 import { db } from "@/lib/db";
 import WaiterBoard from "@/components/waiter/WaiterBoard";
 
 export default async function MozosPage() {
   const session = await getSession();
   if (!session) redirect("/");
+  if (!canAccess(session, "MOZOS")) redirect("/trabajo");
 
   const orders = await db.order.findMany({
     where: {
