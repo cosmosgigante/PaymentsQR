@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { getSession } from "@/lib/auth";
+import { canManageAny } from "@/lib/staff";
 import { emitEvent } from "@/lib/events";
 import { OrderStatus } from "@/lib/types";
 
@@ -31,6 +32,10 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+  // Cambiar el estado de un pedido requiere Gestionar en Cocina o Mozos
+  if (!canManageAny(session, ["COCINA", "MOZOS"])) {
+    return NextResponse.json({ error: "No tenés permiso para modificar pedidos" }, { status: 403 });
+  }
 
   const { id } = await params;
 

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { getSession } from "@/lib/auth";
+import { canManageAny } from "@/lib/staff";
 
 export async function GET() {
   const session = await getSession();
@@ -17,6 +18,7 @@ export async function GET() {
 export async function POST(req: NextRequest) {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+  if (!canManageAny(session, ["MESAS"])) return NextResponse.json({ error: "No tenés permiso para editar mesas" }, { status: 403 });
 
   let body: { number?: unknown; label?: unknown };
   try {

@@ -1,10 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { getSession } from "@/lib/auth";
+import { canManageAny } from "@/lib/staff";
 
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+  if (!canManageAny(session, ["MESAS"])) return NextResponse.json({ error: "No tenés permiso para editar mesas" }, { status: 403 });
 
   const { id } = await params;
 
@@ -31,6 +33,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+  if (!canManageAny(session, ["MESAS"])) return NextResponse.json({ error: "No tenés permiso para editar mesas" }, { status: 403 });
 
   const { id } = await params;
 
