@@ -12,7 +12,9 @@ import type { Restaurant } from "./CuentaClient";
 type Token = {
   id: string;
   name: string;
-  username: string;
+  authType: string;
+  username: string | null;
+  email: string | null;
   permissions: PermissionMatrix;
   restaurantIds: string[];
   maxDevices: number;
@@ -24,8 +26,10 @@ type Token = {
 
 const emptyForm = {
   name: "",
+  authType: "PASSWORD" as "PASSWORD" | "GOOGLE",
   username: "",
   password: "",
+  email: "",
   permissions: {} as PermissionMatrix,
   restaurantIds: [] as string[],
   maxDevices: 1,
@@ -78,8 +82,10 @@ export default function UsersManager({ restaurants }: { restaurants: Restaurant[
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         name: form.name,
+        authType: form.authType,
         username: form.username,
         password: form.password,
+        email: form.email,
         permissions: form.permissions,
         restaurantIds: form.restaurantIds,
         maxDevices: form.maxDevices,
@@ -121,23 +127,48 @@ export default function UsersManager({ restaurants }: { restaurants: Restaurant[
           <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }}
             className="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm">
             <form onSubmit={handleCreate} className="space-y-4">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="text-xs text-gray-500 uppercase tracking-widest block mb-1">Nombre</label>
-                  <input type="text" value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} required placeholder="Cocina turno noche"
-                    className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30" />
-                </div>
-                <div>
-                  <label className="text-xs text-gray-500 uppercase tracking-widest block mb-1">Usuario</label>
-                  <input type="text" value={form.username} onChange={(e) => setForm((f) => ({ ...f, username: e.target.value.toLowerCase().replace(/\s+/g, "") }))} required placeholder="cocina-noche"
-                    className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500/30" />
-                </div>
-              </div>
               <div>
-                <label className="text-xs text-gray-500 uppercase tracking-widest block mb-1">Contraseña</label>
-                <input type="text" value={form.password} onChange={(e) => setForm((f) => ({ ...f, password: e.target.value }))} required placeholder="la que quieras"
+                <label className="text-xs text-gray-500 uppercase tracking-widest block mb-1">Nombre</label>
+                <input type="text" value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} required placeholder="Cocina turno noche"
                   className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30" />
               </div>
+
+              {/* Tipo de acceso */}
+              <div>
+                <label className="text-xs text-gray-500 uppercase tracking-widest block mb-1">Tipo de acceso</label>
+                <div className="grid grid-cols-2 gap-2">
+                  {([["PASSWORD", "Usuario + contraseña"], ["GOOGLE", "Con Google"]] as const).map(([k, label]) => (
+                    <button key={k} type="button" onClick={() => setForm((f) => ({ ...f, authType: k }))}
+                      className={`text-xs font-semibold px-3 py-2.5 rounded-xl border transition-all ${
+                        form.authType === k ? "bg-blue-900 text-white border-blue-900" : "bg-gray-50 text-gray-600 border-gray-200 hover:border-gray-300"
+                      }`}>
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {form.authType === "PASSWORD" ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-xs text-gray-500 uppercase tracking-widest block mb-1">Usuario</label>
+                    <input type="text" value={form.username} onChange={(e) => setForm((f) => ({ ...f, username: e.target.value.toLowerCase().replace(/\s+/g, "") }))} required placeholder="cocina-noche"
+                      className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500/30" />
+                  </div>
+                  <div>
+                    <label className="text-xs text-gray-500 uppercase tracking-widest block mb-1">Contraseña</label>
+                    <input type="text" value={form.password} onChange={(e) => setForm((f) => ({ ...f, password: e.target.value }))} required placeholder="la que quieras"
+                      className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30" />
+                  </div>
+                </div>
+              ) : (
+                <div>
+                  <label className="text-xs text-gray-500 uppercase tracking-widest block mb-1">Email de Google del empleado</label>
+                  <input type="email" value={form.email} onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))} required placeholder="empleado@gmail.com"
+                    className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30" />
+                  <p className="text-xs text-gray-400 mt-1">Esa persona entra con su cuenta de Google usando este email.</p>
+                </div>
+              )}
 
               {/* Matriz de permisos */}
               <div>
@@ -241,7 +272,9 @@ export default function UsersManager({ restaurants }: { restaurants: Restaurant[
                   <div className="min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className="font-semibold text-gray-900">{t.name}</span>
-                      <span className="text-xs font-mono text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded">{t.username}</span>
+                      <span className="text-xs font-mono text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded">
+                        {t.authType === "GOOGLE" ? `G · ${t.email}` : t.username}
+                      </span>
                       {expired && <span className="text-[10px] font-semibold bg-red-50 text-red-600 border border-red-200 px-2 py-0.5 rounded-full">Vencido</span>}
                     </div>
                     <div className="flex flex-wrap gap-1 mt-2">
