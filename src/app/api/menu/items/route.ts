@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { getSession } from "@/lib/auth";
 import { canManageAny } from "@/lib/staff";
+import { logActivity } from "@/lib/activity";
 
 function isValidHttpsUrl(url: string): boolean {
   try {
@@ -60,6 +61,12 @@ export async function POST(req: NextRequest) {
       restaurantId: session.restaurantId,
       sortOrder: count,
     },
+  });
+
+  await logActivity({
+    accountId: session.accountId, restaurantId: session.restaurantId,
+    actorType: session.role, actorName: session.actorName,
+    category: "MENU", action: "MENU_ITEM_CREATE", detail: `Plato "${item.name}"`,
   });
 
   return NextResponse.json(item, { status: 201 });

@@ -160,3 +160,20 @@ model Admin {
   role         String     @default("STAFF")
   createdAt    DateTime   @default(now())
 }
+
+// Registro de actividad (auditoría). Sin relaciones para que el log sobreviva
+// a borrados; se filtra por accountId / restaurantId.
+model ActivityLog {
+  id           String   @id @default(cuid())
+  accountId    String?
+  restaurantId String?
+  actorType    String   // "OWNER" | "STAFF" | "SUPERADMIN" | "SYSTEM" | "CUSTOMER"
+  actorName    String?  // email / nombre del acceso, para mostrar
+  category     String   // "PERSONAL" | "PEDIDOS" | "MENU" | "MESAS" | "CUENTA"
+  action       String   // "LOGIN" | "LOGOUT" | "ORDER_STATUS" | ...
+  detail       String?  // texto legible
+  createdAt    DateTime @default(now())
+
+  @@index([accountId, createdAt])
+  @@index([restaurantId, createdAt])
+}

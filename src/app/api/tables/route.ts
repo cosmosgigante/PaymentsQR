@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { getSession } from "@/lib/auth";
 import { canManageAny } from "@/lib/staff";
+import { logActivity } from "@/lib/activity";
 
 export async function GET() {
   const session = await getSession();
@@ -46,6 +47,12 @@ export async function POST(req: NextRequest) {
       label: label ? String(label).slice(0, 100) : null,
       restaurantId: session.restaurantId,
     },
+  });
+
+  await logActivity({
+    accountId: session.accountId, restaurantId: session.restaurantId,
+    actorType: session.role, actorName: session.actorName,
+    category: "MESAS", action: "TABLE_CREATE", detail: `Mesa ${parsedNumber}`,
   });
 
   return NextResponse.json(table, { status: 201 });

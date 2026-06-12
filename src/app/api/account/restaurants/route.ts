@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { getAccountAdmin } from "@/lib/account";
 import { rateLimit } from "@/lib/rateLimit";
+import { logActivity } from "@/lib/activity";
 
 // El admin general crea un restorán adicional. Queda PENDIENTE hasta que el
 // superadmin lo habilite (manual o, a futuro, automático tras el pago).
@@ -37,6 +38,12 @@ export async function POST(req: NextRequest) {
       status: "PENDING",
     },
     select: { id: true, name: true, slug: true, status: true },
+  });
+
+  await logActivity({
+    accountId: ctx.account.id, restaurantId: restaurant.id, actorType: "OWNER",
+    actorName: ctx.account.ownerEmail, category: "CUENTA", action: "RESTAURANT_CREATE",
+    detail: `Restorán "${restaurant.name}" (pendiente)`,
   });
 
   return NextResponse.json({ ok: true, restaurant }, { status: 201 });

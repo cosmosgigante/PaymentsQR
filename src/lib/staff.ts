@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { signToken, type AdminPayload } from "@/lib/auth";
 import { parsePermissions, parseRestaurantIds, type PermLevel, type ModuleKey } from "@/lib/permissions";
 import { isRestaurantOperative } from "@/lib/restaurant";
+import { logActivity } from "@/lib/activity";
 
 function getSecret() {
   const raw = process.env.JWT_SECRET;
@@ -87,7 +88,7 @@ export async function operativeRestaurantsForToken(token: { restaurantIds: strin
  * para la cookie admin_token.
  */
 export async function createStaffSession(
-  token: { id: string; maxDevices: number; permissions: string },
+  token: { id: string; accountId: string; name: string; maxDevices: number; permissions: string },
   restaurantId: string
 ): Promise<string> {
   const count = await db.accessSession.count({ where: { tokenId: token.id } });
@@ -98,10 +99,18 @@ export async function createStaffSession(
     if (oldest) await db.accessSession.delete({ where: { id: oldest.id } });
   }
   const ses = await db.accessSession.create({ data: { tokenId: token.id } });
+
+  await logActivity({
+    accountId: token.accountId, restaurantId, actorType: "STAFF", actorName: token.name,
+    category: "PERSONAL", action: "LOGIN", detail: `${token.name} inició sesión`,
+  });
+
   const payload: AdminPayload = {
     adminId: "",
     restaurantId,
     role: "STAFF",
+    accountId: token.accountId,
+    actorName: token.name,
     staffTokenId: token.id,
     staffSessionId: ses.id,
     permissions: parsePermissions(token.permissions),
