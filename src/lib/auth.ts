@@ -15,7 +15,11 @@ function getSecret() {
 export type AdminPayload = {
   adminId: string;
   restaurantId: string;
-  role: string;
+  role: string; // "SUPERADMIN" | "OWNER" | "STAFF"
+  // Solo presentes cuando role === "STAFF" (personal con AccessToken)
+  staffTokenId?: string;
+  staffSessionId?: string;
+  permissions?: Record<string, string>; // matriz de permisos del token
 };
 
 export async function signToken(payload: AdminPayload) {

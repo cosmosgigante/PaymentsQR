@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import { db } from "@/lib/db";
 import { signToken } from "@/lib/auth";
+import { createStaffSession, operativeRestaurantsForToken, isTokenUsable, signStaffPending } from "@/lib/staff";
 
 export async function GET(req: NextRequest) {
   const { searchParams, origin } = new URL(req.url);
@@ -59,6 +60,29 @@ export async function GET(req: NextRequest) {
   });
 
   if (!admin) {
+    // ¿Es personal con acceso por Google? (AccessToken GOOGLE con este email)
+    const emailLower = user.email.toLowerCase();
+    const gTokens = (await db.accessToken.findMany({ where: { email: emailLower, authType: "GOOGLE" } })).filter(isTokenUsable);
+    const options: { restaurantId: string; tokenId: string }[] = [];
+    for (const t of gTokens) {
+      for (const r of await operativeRestaurantsForToken(t)) options.push({ restaurantId: r.id, tokenId: t.id });
+    }
+
+    if (options.length >= 1) {
+      const res = NextResponse.redirect(`${origin}${options.length === 1 ? "/trabajo" : "/trabajo/seleccionar"}`);
+      capturedCookies.forEach(({ name, value, options: o }) => res.cookies.set(name, value, o as Parameters<typeof res.cookies.set>[2]));
+      if (options.length === 1) {
+        const t = gTokens.find((x) => x.id === options[0].tokenId)!;
+        const jwt = await createStaffSession(t, options[0].restaurantId);
+        res.cookies.set("admin_token", jwt, { httpOnly: true, secure: process.env.NODE_ENV === "production", sameSite: "lax", maxAge: 60 * 60 * 8, path: "/" });
+      } else {
+        const pending = await signStaffPending({ kind: "google", email: emailLower });
+        res.cookies.set("staff_pending", pending, { httpOnly: true, secure: process.env.NODE_ENV === "production", sameSite: "lax", maxAge: 600, path: "/" });
+      }
+      return res;
+    }
+
+    // No es admin ni personal → fuera
     await supabase.auth.signOut();
     const res = NextResponse.redirect(`${origin}/?error=unauthorized`);
     capturedCookies.forEach(({ name }) => res.cookies.delete(name));
