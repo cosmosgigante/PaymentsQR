@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { createClient } from "@/lib/supabase/client";
 import { PLANS, formatArs, formatDate, paymentSourceLabel, type PlanType, type PaymentSource } from "@/lib/plans";
 import UsersManager from "./UsersManager";
+import ActivityFeed from "./ActivityFeed";
 import { Store, Users, Activity } from "lucide-react";
 
 export type Restaurant = {
@@ -233,11 +234,7 @@ export default function CuentaClient({ account, restaurants: initial }: { accoun
         )}
 
         {tab === "actividad" && (
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-10 text-center">
-            <div className="text-4xl mb-3">📊</div>
-            <h3 className="font-semibold text-gray-800">Actividad</h3>
-            <p className="text-gray-400 text-sm mt-1">Control de personal y ventas en tiempo real. Próximamente (Fase 2).</p>
-          </div>
+          <ActivityFeed restaurants={restaurants} />
         )}
       </div>
     </div>

@@ -16,6 +16,8 @@ export type AdminPayload = {
   adminId: string;
   restaurantId: string;
   role: string; // "SUPERADMIN" | "OWNER" | "STAFF"
+  accountId?: string;   // cuenta a la que pertenece la sesión (para auditoría)
+  actorName?: string;   // email del dueño o nombre del acceso (para auditoría)
   // Solo presentes cuando role === "STAFF" (personal con AccessToken)
   staffTokenId?: string;
   staffSessionId?: string;

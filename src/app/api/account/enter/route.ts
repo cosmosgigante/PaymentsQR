@@ -26,6 +26,8 @@ export async function GET(req: NextRequest) {
     adminId: ctx.admin.id,
     restaurantId: restaurant.id,
     role: "OWNER",
+    accountId: ctx.account.id,
+    actorName: ctx.account.ownerEmail,
   });
 
   const res = NextResponse.redirect(new URL("/admin", req.url));

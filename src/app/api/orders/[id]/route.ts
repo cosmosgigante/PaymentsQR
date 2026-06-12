@@ -2,8 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { getSession } from "@/lib/auth";
 import { canManageAny } from "@/lib/staff";
+import { logActivity } from "@/lib/activity";
 import { emitEvent } from "@/lib/events";
-import { OrderStatus } from "@/lib/types";
+import { OrderStatus, ORDER_STATUS_LABELS } from "@/lib/types";
 
 // GET — accesible con token de mesa (cliente) o sesión admin
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -66,6 +67,13 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   });
 
   emitEvent(session.restaurantId, { type: "ORDER_UPDATED", order: updated });
+
+  await logActivity({
+    accountId: session.accountId, restaurantId: session.restaurantId,
+    actorType: session.role, actorName: session.actorName,
+    category: "PEDIDOS", action: "ORDER_STATUS",
+    detail: `Mesa ${updated.table.number} → ${ORDER_STATUS_LABELS[status] ?? status}`,
+  });
 
   return NextResponse.json(updated);
 }

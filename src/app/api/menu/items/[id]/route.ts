@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { getSession } from "@/lib/auth";
 import { canManageAny } from "@/lib/staff";
+import { logActivity } from "@/lib/activity";
 
 function isValidHttpsUrl(url: string): boolean {
   try {
@@ -75,5 +76,12 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
   if (!item) return NextResponse.json({ error: "Item no encontrado" }, { status: 404 });
 
   await db.menuItem.delete({ where: { id } });
+
+  await logActivity({
+    accountId: session.accountId, restaurantId: session.restaurantId,
+    actorType: session.role, actorName: session.actorName,
+    category: "MENU", action: "MENU_ITEM_DELETE", detail: `Plato "${item.name}"`,
+  });
+
   return NextResponse.json({ ok: true });
 }

@@ -4,6 +4,7 @@ import { randomInt } from "crypto";
 import { db } from "@/lib/db";
 import { getAccountAdmin } from "@/lib/account";
 import { sanitizePermissions, parsePermissions, parseRestaurantIds } from "@/lib/permissions";
+import { logActivity } from "@/lib/activity";
 
 export const dynamic = "force-dynamic";
 
@@ -122,6 +123,12 @@ export async function POST(req: NextRequest) {
       expiresAt,
     },
     select: { id: true, name: true },
+  });
+
+  await logActivity({
+    accountId: ctx.account.id, actorType: "OWNER", actorName: ctx.account.ownerEmail,
+    category: "CUENTA", action: "ACCESS_CREATE",
+    detail: `Acceso "${name}" (${authType === "GOOGLE" ? "Google" : "usuario"})`,
   });
 
   return NextResponse.json({ ok: true, token, username, generatedPassword }, { status: 201 });

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { getSession } from "@/lib/auth";
 import { canManageAny } from "@/lib/staff";
+import { logActivity } from "@/lib/activity";
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
@@ -49,6 +50,12 @@ export async function POST(req: NextRequest) {
 
   const category = await db.menuCategory.create({
     data: { name: safeName, restaurantId: session.restaurantId, sortOrder: count },
+  });
+
+  await logActivity({
+    accountId: session.accountId, restaurantId: session.restaurantId,
+    actorType: session.role, actorName: session.actorName,
+    category: "MENU", action: "MENU_CATEGORY_CREATE", detail: `Categoría "${safeName}"`,
   });
 
   return NextResponse.json(category, { status: 201 });
