@@ -28,6 +28,20 @@ export function canAccess(
   return (LEVEL_RANK[have] ?? 0) >= (LEVEL_RANK[level] ?? 0);
 }
 
+/**
+ * ¿La sesión puede GESTIONAR (modificar) en alguno de estos módulos?
+ * Dueños/admins → sí. Personal → necesita nivel MANAGE en al menos uno.
+ * Se usa en las APIs de mutación para que "Ver" sea solo lectura.
+ */
+export function canManageAny(
+  session: { role: string; permissions?: Record<string, string> } | null | undefined,
+  modules: ModuleKey[]
+): boolean {
+  if (!session) return false;
+  if (session.role !== "STAFF") return true;
+  return modules.some((m) => (session.permissions?.[m] ?? "NONE") === "MANAGE");
+}
+
 /** Módulos con página propia, para el panel de trabajo del personal. */
 export const STAFF_MODULES: { key: ModuleKey; label: string; href: string; emoji: string }[] = [
   { key: "COCINA", label: "Cocina", href: "/cocina",      emoji: "👨‍🍳" },

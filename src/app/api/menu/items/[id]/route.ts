@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { getSession } from "@/lib/auth";
+import { canManageAny } from "@/lib/staff";
 
 function isValidHttpsUrl(url: string): boolean {
   try {
@@ -14,6 +15,7 @@ function isValidHttpsUrl(url: string): boolean {
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+  if (!canManageAny(session, ["MENU"])) return NextResponse.json({ error: "No tenés permiso para editar el menú" }, { status: 403 });
 
   const { id } = await params;
 
@@ -62,6 +64,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+  if (!canManageAny(session, ["MENU"])) return NextResponse.json({ error: "No tenés permiso para editar el menú" }, { status: 403 });
 
   const { id } = await params;
 
