@@ -39,7 +39,7 @@ export default function LoginPage() {
 
   return (
     <div
-      className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden"
+      className="min-h-screen flex flex-col items-center justify-center p-4 relative overflow-hidden"
       style={{
         background: "linear-gradient(135deg, #172440 0%, #163566 60%, #1b3882 100%)",
         paddingTop: "max(1rem, env(safe-area-inset-top))",
@@ -243,9 +243,7 @@ export default function LoginPage() {
       </motion.div>
 
       {/* Footer legal */}
-      <div className="absolute bottom-0 left-0 right-0">
-        <Footer dark />
-      </div>
+      <Footer dark />
     </div>
   );
 }
