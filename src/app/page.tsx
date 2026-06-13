@@ -228,9 +228,19 @@ export default function LoginPage() {
           </form>
         )}
 
-        <p className="text-white/25 text-[11px] text-center mt-5">
+        <p className="text-white/30 text-[11px] text-center mt-5">
           Solo usuarios autorizados pueden acceder
         </p>
+
+        <div className="flex items-center justify-center gap-3 mt-3">
+          <a href="/terminos" className="text-white/30 hover:text-white/60 text-[11px] transition-colors">
+            Términos de servicio
+          </a>
+          <span className="text-white/20 text-[11px]">·</span>
+          <a href="/privacidad" className="text-white/30 hover:text-white/60 text-[11px] transition-colors">
+            Privacidad
+          </a>
+        </div>
       </motion.div>
     </div>
   );
