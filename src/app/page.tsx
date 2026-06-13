@@ -231,17 +231,18 @@ export default function LoginPage() {
         <p className="text-white/30 text-[11px] text-center mt-5">
           Solo usuarios autorizados pueden acceder
         </p>
-
-        <div className="flex items-center justify-center gap-3 mt-3">
-          <a href="/terminos" className="text-white/30 hover:text-white/60 text-[11px] transition-colors">
-            Términos de servicio
-          </a>
-          <span className="text-white/20 text-[11px]">·</span>
-          <a href="/privacidad" className="text-white/30 hover:text-white/60 text-[11px] transition-colors">
-            Privacidad
-          </a>
-        </div>
       </motion.div>
+
+      {/* Footer legal — fuera de la card para que siempre sea visible */}
+      <div className="absolute bottom-6 left-0 right-0 flex items-center justify-center gap-4">
+        <a href="/terminos" className="text-white/55 hover:text-white/90 text-xs transition-colors underline underline-offset-2">
+          Términos de servicio
+        </a>
+        <span className="text-white/30 text-xs">·</span>
+        <a href="/privacidad" className="text-white/55 hover:text-white/90 text-xs transition-colors underline underline-offset-2">
+          Política de privacidad
+        </a>
+      </div>
     </div>
   );
 }
