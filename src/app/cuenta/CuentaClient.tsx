@@ -1,13 +1,13 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { createClient } from "@/lib/supabase/client";
-import { PLANS, formatArs, formatDate, paymentSourceLabel, type PlanType, type PaymentSource } from "@/lib/plans";
 import UsersManager from "./UsersManager";
 import ActivityFeed from "./ActivityFeed";
-import { Store, Users, Activity } from "lucide-react";
+import { Store, Users, Activity, Settings } from "lucide-react";
 
 export type Restaurant = {
   id: string;
@@ -41,11 +41,6 @@ export default function CuentaClient({ account, restaurants: initial }: { accoun
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [tab, setTab] = useState<Tab>("restoranes");
-
-  const planLabel = account.planType && account.planType in PLANS ? PLANS[account.planType as PlanType].label : "—";
-  const daysLeft = account.subscriptionEndsAt
-    ? Math.ceil((new Date(account.subscriptionEndsAt).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
-    : null;
 
   function handleName(name: string) {
     const slug = name.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "");
@@ -92,38 +87,18 @@ export default function CuentaClient({ account, restaurants: initial }: { accoun
       >
         <div className="relative max-w-3xl mx-auto">
           <div className="flex items-center justify-between mb-5">
-            <div className="flex items-center gap-2.5">
+            <Link href="/cuenta/config" className="flex items-center gap-2 group" title="Configuración de la cuenta">
               <div className="w-9 h-9 bg-white/20 rounded-xl flex items-center justify-center text-lg backdrop-blur-sm">🏢</div>
               <span className="font-bold text-white text-lg tracking-tight">Mi cuenta</span>
-            </div>
+              <Settings size={16} className="text-white/50 group-hover:text-white transition-colors" />
+            </Link>
             <button onClick={handleSignOut} className="text-white/60 hover:text-white text-sm transition-colors px-3 py-1.5 rounded-lg hover:bg-white/10">
               Cerrar sesión
             </button>
           </div>
           <h1 className="text-white font-bold text-2xl">{account.name ?? account.ownerEmail}</h1>
-
-          {/* Datos del plan */}
-          <div className="flex items-center gap-4 mt-4 flex-wrap">
-            <div className="flex items-center gap-2">
-              <span className="text-white/60 text-xs">Plan</span>
-              <span className="text-sm font-bold text-white">{planLabel}</span>
-            </div>
-            <div className="w-px h-4 bg-white/20" />
-            <div className="flex items-center gap-2">
-              <span className="text-white/60 text-xs">Precio</span>
-              <span className="text-sm font-bold text-emerald-300">{account.priceArs != null ? `${formatArs(account.priceArs)} ARS` : "—"}</span>
-            </div>
-            <div className="w-px h-4 bg-white/20" />
-            <div className="flex items-center gap-2">
-              <span className="text-white/60 text-xs">Vence</span>
-              <span className={`text-sm font-bold ${daysLeft !== null && daysLeft <= 7 ? "text-orange-300" : "text-white"}`}>
-                {account.subscriptionEndsAt ? formatDate(account.subscriptionEndsAt) : "—"}
-                {daysLeft !== null && daysLeft > 0 && <span className="text-white/50 font-normal"> ({daysLeft}d)</span>}
-              </span>
-            </div>
-          </div>
-          <p className="text-white/40 text-xs mt-2">
-            {account.ownerEmail} · {paymentSourceLabel(account.paymentSource as PaymentSource)}
+          <p className="text-white/40 text-xs mt-1">
+            {account.ownerEmail} · <Link href="/cuenta/config" className="underline hover:text-white/70">ver plan y configuración</Link>
           </p>
         </div>
       </div>

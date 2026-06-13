@@ -16,6 +16,7 @@ model Account {
   subscriptionEndsAt    DateTime?
   paymentSource         String?      @default("MANUAL") // "MANUAL" | "WEB"
   isActive              Boolean      @default(true)
+  canceledAt            DateTime?    // si el cliente canceló el plan (sigue activo hasta subscriptionEndsAt)
   restaurants           Restaurant[]
   admins                Admin[]
   accessTokens          AccessToken[]
