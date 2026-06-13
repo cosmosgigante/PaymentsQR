@@ -4,7 +4,8 @@ import { getSession } from "@/lib/auth";
 import { canManageAny } from "@/lib/staff";
 import { logActivity } from "@/lib/activity";
 
-function isValidHttpsUrl(url: string): boolean {
+function isValidImageUrl(url: string): boolean {
+  if (/^\/uploads\/[a-zA-Z0-9_-]+\/[a-zA-Z0-9_-]+\.[a-z]+$/.test(url)) return true;
   try {
     const parsed = new URL(url);
     return parsed.protocol === "https:";
@@ -39,7 +40,7 @@ export async function POST(req: NextRequest) {
 
   // Validar imagen — solo https
   if (image && typeof image === "string" && image !== "") {
-    if (!isValidHttpsUrl(image)) {
+    if (!isValidImageUrl(image)) {
       return NextResponse.json({ error: "La imagen debe ser una URL https válida" }, { status: 400 });
     }
   }

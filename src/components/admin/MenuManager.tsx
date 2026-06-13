@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Plus, Trash2, Eye, EyeOff, ArrowLeft, ChevronDown, ChevronUp } from "lucide-react";
+import { Plus, Trash2, Eye, EyeOff, ArrowLeft, ChevronDown, ChevronUp, Camera, X } from "lucide-react";
 import Link from "next/link";
 
 type MenuItem = {
@@ -25,8 +25,47 @@ export default function MenuManager({ initialCategories }: { initialCategories: 
   const [newCatName, setNewCatName] = useState("");
   const [expandedCat, setExpandedCat] = useState<string | null>(initialCategories[0]?.id ?? null);
   const [addingItem, setAddingItem] = useState<string | null>(null);
-  const [itemForm, setItemForm] = useState({ name: "", description: "", price: "", image: "" });
+  const [itemForm, setItemForm] = useState({ name: "", description: "", price: "" });
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [imageFile, setImageFile] = useState<File | null>(null);
   const [saving, setSaving] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  function resetForm() {
+    setItemForm({ name: "", description: "", price: "" });
+    setImagePreview(null);
+    setImageFile(null);
+    setUploadError(null);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  }
+
+  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 4 * 1024 * 1024) {
+      setUploadError("La imagen no puede superar 4MB");
+      return;
+    }
+    setUploadError(null);
+    setImageFile(file);
+    const reader = new FileReader();
+    reader.onload = (ev) => setImagePreview(ev.target?.result as string);
+    reader.readAsDataURL(file);
+  }
+
+  async function uploadImage(): Promise<string | null> {
+    if (!imageFile) return null;
+    const fd = new FormData();
+    fd.append("file", imageFile);
+    const res = await fetch("/api/upload", { method: "POST", body: fd });
+    const data = await res.json();
+    if (!res.ok) {
+      setUploadError(data.error ?? "Error al subir imagen");
+      return null;
+    }
+    return data.url as string;
+  }
 
   async function createCategory() {
     if (!newCatName.trim()) return;
@@ -48,17 +87,30 @@ export default function MenuManager({ initialCategories }: { initialCategories: 
   async function createItem(categoryId: string) {
     if (!itemForm.name.trim() || !itemForm.price) return;
     setSaving(true);
+    setUploadError(null);
+
+    let imageUrl: string | null = null;
+    if (imageFile) {
+      imageUrl = await uploadImage();
+      if (!imageUrl) { setSaving(false); return; }
+    }
+
     const res = await fetch("/api/menu/items", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ categoryId, ...itemForm, price: parseFloat(itemForm.price) }),
+      body: JSON.stringify({
+        categoryId,
+        ...itemForm,
+        price: parseFloat(itemForm.price),
+        image: imageUrl,
+      }),
     });
     const item = await res.json();
     if (res.ok) {
       setCategories((prev) =>
         prev.map((c) => c.id === categoryId ? { ...c, items: [...c.items, item] } : c)
       );
-      setItemForm({ name: "", description: "", price: "", image: "" });
+      resetForm();
       setAddingItem(null);
     }
     setSaving(false);
@@ -93,7 +145,6 @@ export default function MenuManager({ initialCategories }: { initialCategories: 
 
   return (
     <div className="min-h-screen-dvh bg-slate-100">
-      {/* Hero header — mismo estilo que panel admin */}
       <div
         className="relative overflow-hidden px-4 sm:px-5 pb-6"
         style={{
@@ -175,6 +226,19 @@ export default function MenuManager({ initialCategories }: { initialCategories: 
                         key={item.id}
                         className="flex items-center gap-3 px-4 py-3 border-b border-zinc-50 last:border-0 min-h-[60px]"
                       >
+                        {item.image ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img
+                            src={item.image}
+                            alt={item.name}
+                            className="w-10 h-10 rounded-lg object-cover flex-shrink-0 bg-zinc-100"
+                          />
+                        ) : (
+                          <div className="w-10 h-10 rounded-lg flex-shrink-0 bg-zinc-50 flex items-center justify-center">
+                            <Camera size={14} className="text-zinc-300" />
+                          </div>
+                        )}
+
                         <div className="flex-1 min-w-0">
                           <p className={`font-medium text-sm leading-snug ${item.available ? "text-zinc-900" : "text-zinc-400 line-through"}`}>
                             {item.name}
@@ -215,32 +279,64 @@ export default function MenuManager({ initialCategories }: { initialCategories: 
                             placeholder="Nombre del plato *"
                             className="w-full bg-zinc-50 border border-zinc-100 rounded-xl px-3 py-3 text-[16px] focus:outline-none focus:ring-2 focus:ring-zinc-900 text-zinc-900 placeholder:text-zinc-300 min-h-[48px]"
                           />
-                          <div className="grid grid-cols-2 gap-2">
-                            <input
-                              value={itemForm.price}
-                              onChange={(e) => setItemForm({ ...itemForm, price: e.target.value })}
-                              placeholder="Precio *"
-                              type="number"
-                              step="0.01"
-                              inputMode="decimal"
-                              className="bg-zinc-50 border border-zinc-100 rounded-xl px-3 py-3 text-[16px] focus:outline-none focus:ring-2 focus:ring-zinc-900 text-zinc-900 placeholder:text-zinc-300 min-h-[48px]"
-                            />
-                            <input
-                              value={itemForm.image}
-                              onChange={(e) => setItemForm({ ...itemForm, image: e.target.value })}
-                              placeholder="URL imagen"
-                              className="bg-zinc-50 border border-zinc-100 rounded-xl px-3 py-3 text-[16px] focus:outline-none focus:ring-2 focus:ring-zinc-900 text-zinc-900 placeholder:text-zinc-300 min-h-[48px]"
-                            />
-                          </div>
+                          <input
+                            value={itemForm.price}
+                            onChange={(e) => setItemForm({ ...itemForm, price: e.target.value })}
+                            placeholder="Precio *"
+                            type="number"
+                            step="0.01"
+                            inputMode="decimal"
+                            className="w-full bg-zinc-50 border border-zinc-100 rounded-xl px-3 py-3 text-[16px] focus:outline-none focus:ring-2 focus:ring-zinc-900 text-zinc-900 placeholder:text-zinc-300 min-h-[48px]"
+                          />
                           <input
                             value={itemForm.description}
                             onChange={(e) => setItemForm({ ...itemForm, description: e.target.value })}
                             placeholder="Descripción"
                             className="w-full bg-zinc-50 border border-zinc-100 rounded-xl px-3 py-3 text-[16px] focus:outline-none focus:ring-2 focus:ring-zinc-900 text-zinc-900 placeholder:text-zinc-300 min-h-[48px]"
                           />
+
+                          <input
+                            ref={fileInputRef}
+                            type="file"
+                            accept="image/jpeg,image/png,image/webp,image/gif"
+                            className="hidden"
+                            onChange={handleFileChange}
+                          />
+
+                          {imagePreview ? (
+                            <div className="relative rounded-xl overflow-hidden bg-zinc-100">
+                              {/* eslint-disable-next-line @next/next/no-img-element */}
+                              <img
+                                src={imagePreview}
+                                alt="Preview"
+                                className="w-full object-cover"
+                                style={{ aspectRatio: "16/9" }}
+                              />
+                              <button
+                                onClick={() => { setImagePreview(null); setImageFile(null); if (fileInputRef.current) fileInputRef.current.value = ""; }}
+                                className="absolute top-2 right-2 w-7 h-7 rounded-full bg-black/50 flex items-center justify-center text-white"
+                              >
+                                <X size={14} />
+                              </button>
+                            </div>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => fileInputRef.current?.click()}
+                              className="w-full border border-dashed border-zinc-200 active:border-zinc-400 text-zinc-400 py-3.5 rounded-xl text-sm font-medium transition-all flex items-center justify-center gap-2 min-h-[48px]"
+                            >
+                              <Camera size={15} />
+                              Agregar foto (opcional)
+                            </button>
+                          )}
+
+                          {uploadError && (
+                            <p className="text-xs text-red-500 px-1">{uploadError}</p>
+                          )}
+
                           <div className="flex gap-2">
                             <button
-                              onClick={() => { setAddingItem(null); setItemForm({ name: "", description: "", price: "", image: "" }); }}
+                              onClick={() => { setAddingItem(null); resetForm(); }}
                               className="flex-1 border border-zinc-200 text-zinc-600 py-3 rounded-xl text-sm font-medium active:bg-zinc-50 transition-colors min-h-[48px]"
                             >
                               Cancelar
@@ -250,7 +346,7 @@ export default function MenuManager({ initialCategories }: { initialCategories: 
                               disabled={saving || !itemForm.name || !itemForm.price}
                               className="flex-1 bg-zinc-900 active:bg-zinc-700 disabled:opacity-40 text-white py-3 rounded-xl text-sm font-medium transition-colors min-h-[48px]"
                             >
-                              {saving ? "..." : "Guardar"}
+                              {saving ? "Subiendo..." : "Guardar"}
                             </button>
                           </div>
                         </div>
