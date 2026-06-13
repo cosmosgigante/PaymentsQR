@@ -107,16 +107,30 @@ export default function PrivacidadPage() {
 
           <section>
             <h2 className="text-base font-bold text-zinc-900 mb-2">¿Cuánto tiempo guardamos tus datos?</h2>
-            <p>
-              Los datos de los comensales (nombre, email, detalle del pedido) se conservan mientras
-              la cuenta del restaurante esté activa, para gestión operativa y resolución de reclamos.
-            </p>
-            <p className="mt-2">
-              Los datos del personal (email, nombre, registro de actividad) se conservan mientras
-              el acceso esté vigente y hasta 30 días después de su revocación o cierre de cuenta.
-            </p>
-            <p className="mt-2">
-              Podés solicitar la eliminación de tus datos en cualquier momento (ver sección "Tus derechos").
+            <p>El sistema aplica borrado automático según el tipo de dato:</p>
+            <ul className="mt-2 space-y-2 list-disc list-inside text-zinc-600">
+              <li>
+                <strong>Nombre y email del comensal</strong> — se anonimizán automáticamente
+                a los <strong>90 días</strong> de realizado el pedido. El pedido en sí
+                (productos, total, fecha) se conserva para uso estadístico del restaurante
+                sin datos personales asociados.
+              </li>
+              <li>
+                <strong>Registro de actividad del personal</strong> — se elimina automáticamente
+                a los <strong>90 días</strong>.
+              </li>
+              <li>
+                <strong>Sesiones de dispositivos del personal</strong> — se eliminan
+                automáticamente a los <strong>30 días</strong> de inactividad.
+              </li>
+            </ul>
+            <p className="mt-2 text-zinc-500 text-sm">
+              El borrado automático corre todos los días a las 3:00 AM (UTC).
+              Podés solicitar la eliminación inmediata de tus datos escribiendo a{" "}
+              <a href="mailto:quintaescala5@gmail.com" className="underline hover:text-zinc-700">
+                quintaescala5@gmail.com
+              </a>
+              .
             </p>
           </section>
 
