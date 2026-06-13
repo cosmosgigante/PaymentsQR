@@ -175,8 +175,8 @@ export default function TerminosPage() {
           <div className="border-t border-zinc-200 pt-5 mt-8">
             <p className="text-zinc-400 text-xs text-center">
               ¿Tenés preguntas sobre estos términos?{" "}
-              <a href="mailto:contacto@paymentsqr.com" className="underline hover:text-zinc-600">
-                Contactanos
+              <a href="mailto:quintaescala5@gmail.com" className="underline hover:text-zinc-600">
+                quintaescala5@gmail.com
               </a>
             </p>
           </div>

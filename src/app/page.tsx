@@ -152,6 +152,14 @@ export default function LoginPage() {
           Continuar con Google
         </button>
 
+        {/* Aviso de consentimiento — Art. 5 Ley 25.326 */}
+        <p className="text-white/40 text-[11px] text-center -mt-2 mb-4 leading-relaxed px-1">
+          Al continuar con Google, aceptás que guardamos tu nombre y email para gestionar tu acceso.{" "}
+          <a href="/privacidad" className="underline underline-offset-2 hover:text-white/70 transition-colors">
+            Política de privacidad
+          </a>
+        </p>
+
         <div className="flex items-center gap-3 mb-4">
           <div className="flex-1 h-px bg-white/15" />
           <span className="text-white/40 text-[11px] uppercase tracking-widest">o</span>

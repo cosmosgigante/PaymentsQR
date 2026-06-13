@@ -139,8 +139,11 @@ export default function PrivacidadPage() {
               (derechos ARCO).
             </p>
             <p className="mt-2">
-              Para ejercer estos derechos podés solicitarlo directamente al personal del restaurante
-              durante tu visita o, si contás con el email de contacto del local, por ese medio.
+              Para ejercer estos derechos podés escribir a{" "}
+              <a href="mailto:quintaescala5@gmail.com" className="text-blue-600 underline hover:text-blue-800">
+                quintaescala5@gmail.com
+              </a>{" "}
+              o solicitarlo directamente al personal del restaurante durante tu visita.
             </p>
             <p className="mt-2 text-zinc-500 text-sm">
               También podés presentar un reclamo ante la Agencia de Acceso a la Información Pública
@@ -168,7 +171,11 @@ export default function PrivacidadPage() {
 
           <div className="border-t border-zinc-200 pt-5 mt-8 flex flex-col items-center gap-2">
             <p className="text-zinc-400 text-xs text-center">
-              Si tenés preguntas sobre esta política, consultá con el personal del restaurante.
+              Para ejercer tus derechos o consultas sobre privacidad escribí a{" "}
+              <a href="mailto:quintaescala5@gmail.com" className="underline hover:text-zinc-600">
+                quintaescala5@gmail.com
+              </a>
+              . Respondemos dentro de los 10 días hábiles (Ley 25.326).
             </p>
             <a href="/terminos" className="text-zinc-400 text-xs underline hover:text-zinc-600">
               Ver Términos de Servicio
