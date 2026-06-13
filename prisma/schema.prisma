@@ -159,6 +159,10 @@ model Admin {
   email        String      @unique
   passwordHash String?
   role         String     @default("STAFF")
+  // Alcance de un socio dentro de la cuenta:
+  //  FULL = como el dueño (todo); RESTRICTED = solo scopeRestaurantIds, sin poderes de cuenta
+  accessScope       String  @default("FULL")  // "FULL" | "RESTRICTED"
+  scopeRestaurantIds String @default("[]")    // JSON: restoranes asignados si RESTRICTED
   createdAt    DateTime   @default(now())
 }
 

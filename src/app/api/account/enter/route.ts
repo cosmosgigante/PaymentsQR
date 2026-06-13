@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { getAccountAdmin } from "@/lib/account";
+import { getAccountAdmin, accountAccess } from "@/lib/account";
 import { signToken } from "@/lib/auth";
 
 // El admin general entra a uno de SUS restoranes. Genera una sesión scopeada a
@@ -11,6 +11,12 @@ export async function GET(req: NextRequest) {
 
   const restaurantId = req.nextUrl.searchParams.get("restaurantId");
   if (!restaurantId) return NextResponse.redirect(new URL("/cuenta", req.url));
+
+  // Socio restringido: solo puede entrar a los restoranes que tiene asignados
+  const access = accountAccess(ctx.admin, ctx.account);
+  if (!access.isFull && !(access.allowedRestaurantIds ?? []).includes(restaurantId)) {
+    return NextResponse.redirect(new URL("/cuenta", req.url));
+  }
 
   const restaurant = await db.restaurant.findFirst({
     where: { id: restaurantId, accountId: ctx.account.id },
@@ -27,7 +33,7 @@ export async function GET(req: NextRequest) {
     restaurantId: restaurant.id,
     role: "OWNER",
     accountId: ctx.account.id,
-    actorName: ctx.account.ownerEmail,
+    actorName: ctx.admin.email,
   });
 
   const res = NextResponse.redirect(new URL("/admin", req.url));

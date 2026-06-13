@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { randomInt } from "crypto";
 import { db } from "@/lib/db";
-import { getAccountAdmin } from "@/lib/account";
+import { getAccountAdmin, accountAccess } from "@/lib/account";
 import { sanitizePermissions, parsePermissions, parseRestaurantIds } from "@/lib/permissions";
 import { logActivity } from "@/lib/activity";
 
@@ -50,6 +50,9 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   const ctx = await getAccountAdmin(req);
   if (!ctx) return NextResponse.json({ error: "No autorizado" }, { status: 403 });
+  if (!accountAccess(ctx.admin, ctx.account).isFull) {
+    return NextResponse.json({ error: "Sin permiso" }, { status: 403 });
+  }
 
   let body: {
     name?: string; authType?: string; username?: string; password?: string; email?: string;

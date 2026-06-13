@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { getAccountAdmin } from "@/lib/account";
+import { getAccountAdmin, accountAccess } from "@/lib/account";
 import { rateLimit } from "@/lib/rateLimit";
 import { logActivity } from "@/lib/activity";
 
@@ -9,6 +9,9 @@ import { logActivity } from "@/lib/activity";
 export async function POST(req: NextRequest) {
   const ctx = await getAccountAdmin(req);
   if (!ctx) return NextResponse.json({ error: "No autorizado" }, { status: 403 });
+  if (!accountAccess(ctx.admin, ctx.account).isFull) {
+    return NextResponse.json({ error: "Sin permiso para crear restoranes" }, { status: 403 });
+  }
 
   if (!await rateLimit(`account-create-rest:${ctx.account.id}`, 10, 60 * 60 * 1000)) {
     return NextResponse.json({ error: "Demasiados intentos" }, { status: 429 });

@@ -1,5 +1,5 @@
 import { db } from "@/lib/db";
-import { resolveServerAdmin } from "@/lib/account";
+import { resolveServerAdmin, accountAccess } from "@/lib/account";
 import { redirect } from "next/navigation";
 import CuentaClient from "./CuentaClient";
 
@@ -10,8 +10,11 @@ export default async function CuentaPage() {
   if (!admin?.accountId || !admin.account) redirect("/?error=unauthorized");
 
   const account = admin.account;
+  const access = accountAccess(admin, account);
   const restaurants = await db.restaurant.findMany({
-    where: { accountId: account.id },
+    where: access.isFull
+      ? { accountId: account.id }
+      : { accountId: account.id, id: { in: access.allowedRestaurantIds ?? [] } },
     orderBy: { createdAt: "asc" },
     select: {
       id: true,
@@ -37,6 +40,7 @@ export default async function CuentaPage() {
         isActive: account.isActive,
       }}
       restaurants={JSON.parse(JSON.stringify(restaurants))}
+      isFull={access.isFull}
     />
   );
 }
