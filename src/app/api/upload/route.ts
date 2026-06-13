@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
-import { writeFile, mkdir } from "fs/promises";
-import { join } from "path";
-import { randomUUID } from "crypto";
+import { put } from "@vercel/blob";
 
 const MAX_SIZE = 4 * 1024 * 1024; // 4MB
 const ALLOWED_TYPES: Record<string, string> = {
@@ -11,7 +9,6 @@ const ALLOWED_TYPES: Record<string, string> = {
   "image/png": "png",
   "image/webp": "webp",
   "image/gif": "gif",
-  "image/heic": "heic",
 };
 
 export async function POST(req: NextRequest) {
@@ -32,12 +29,8 @@ export async function POST(req: NextRequest) {
   if (!ext) return NextResponse.json({ error: "Solo se permiten imágenes (JPG, PNG, WEBP, GIF)" }, { status: 400 });
   if (file.size > MAX_SIZE) return NextResponse.json({ error: "La imagen no puede superar 4MB" }, { status: 400 });
 
-  const filename = `${randomUUID()}.${ext}`;
-  const dir = join(process.cwd(), "public", "uploads", session.restaurantId);
+  const filename = `menu/${session.restaurantId}/${Date.now()}.${ext}`;
+  const blob = await put(filename, file, { access: "public" });
 
-  await mkdir(dir, { recursive: true });
-  const bytes = await file.arrayBuffer();
-  await writeFile(join(dir, filename), Buffer.from(bytes));
-
-  return NextResponse.json({ url: `/uploads/${session.restaurantId}/${filename}` });
+  return NextResponse.json({ url: blob.url });
 }
