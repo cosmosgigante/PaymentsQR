@@ -32,7 +32,7 @@ type Account = {
   isActive: boolean;
 };
 
-export default function CuentaClient({ account, restaurants: initial }: { account: Account; restaurants: Restaurant[] }) {
+export default function CuentaClient({ account, restaurants: initial, isFull = true }: { account: Account; restaurants: Restaurant[]; isFull?: boolean }) {
   const router = useRouter();
   const [restaurants, setRestaurants] = useState<Restaurant[]>(initial);
   const [showForm, setShowForm] = useState(false);
@@ -87,23 +87,32 @@ export default function CuentaClient({ account, restaurants: initial }: { accoun
       >
         <div className="relative max-w-3xl mx-auto">
           <div className="flex items-center justify-between mb-5">
-            <Link href="/cuenta/config" className="flex items-center gap-2 group" title="Configuración de la cuenta">
-              <div className="w-9 h-9 bg-white/20 rounded-xl flex items-center justify-center text-lg backdrop-blur-sm">🏢</div>
-              <span className="font-bold text-white text-lg tracking-tight">Mi cuenta</span>
-              <Settings size={16} className="text-white/50 group-hover:text-white transition-colors" />
-            </Link>
+            {isFull ? (
+              <Link href="/cuenta/config" className="flex items-center gap-2 group" title="Configuración de la cuenta">
+                <div className="w-9 h-9 bg-white/20 rounded-xl flex items-center justify-center text-lg backdrop-blur-sm">🏢</div>
+                <span className="font-bold text-white text-lg tracking-tight">Mi cuenta</span>
+                <Settings size={16} className="text-white/50 group-hover:text-white transition-colors" />
+              </Link>
+            ) : (
+              <div className="flex items-center gap-2">
+                <div className="w-9 h-9 bg-white/20 rounded-xl flex items-center justify-center text-lg backdrop-blur-sm">🏢</div>
+                <span className="font-bold text-white text-lg tracking-tight">Mi cuenta</span>
+              </div>
+            )}
             <button onClick={handleSignOut} className="text-white/60 hover:text-white text-sm transition-colors px-3 py-1.5 rounded-lg hover:bg-white/10">
               Cerrar sesión
             </button>
           </div>
           <h1 className="text-white font-bold text-2xl">{account.name ?? account.ownerEmail}</h1>
           <p className="text-white/40 text-xs mt-1">
-            {account.ownerEmail} · <Link href="/cuenta/config" className="underline hover:text-white/70">ver plan y configuración</Link>
+            {account.ownerEmail}
+            {isFull && <> · <Link href="/cuenta/config" className="underline hover:text-white/70">ver plan y configuración</Link></>}
           </p>
         </div>
       </div>
 
-      {/* Barra de pestañas */}
+      {/* Barra de pestañas — solo para acceso completo */}
+      {isFull && (
       <div className="max-w-3xl mx-auto px-4 -mt-4 mb-1">
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-1 flex gap-1">
           {([
@@ -124,6 +133,7 @@ export default function CuentaClient({ account, restaurants: initial }: { accoun
           ))}
         </div>
       </div>
+      )}
 
       <div className="max-w-3xl mx-auto px-4 py-5 space-y-4">
         <AnimatePresence>
@@ -139,10 +149,12 @@ export default function CuentaClient({ account, restaurants: initial }: { accoun
         <>
         <div className="flex items-center justify-between">
           <h2 className="font-semibold text-gray-800">Mis restoranes</h2>
-          <button onClick={() => { setShowForm((v) => !v); setError(null); }}
-            className="bg-blue-900 text-white hover:bg-blue-800 text-sm font-semibold px-4 py-2 rounded-xl transition-all">
-            + Nuevo restorán
-          </button>
+          {isFull && (
+            <button onClick={() => { setShowForm((v) => !v); setError(null); }}
+              className="bg-blue-900 text-white hover:bg-blue-800 text-sm font-semibold px-4 py-2 rounded-xl transition-all">
+              + Nuevo restorán
+            </button>
+          )}
         </div>
 
         <AnimatePresence>

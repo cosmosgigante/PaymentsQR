@@ -3,11 +3,30 @@ import { createServerClient } from "@supabase/ssr";
 import { db } from "@/lib/db";
 import { createClient } from "@/lib/supabase/server";
 import { getSession, verifyToken } from "@/lib/auth";
+import { parseRestaurantIds } from "@/lib/permissions";
 
 type AdminWithAccount = NonNullable<Awaited<ReturnType<typeof loadAdminWithAccount>>>;
 
 function loadAdminWithAccount(where: { email: string } | { id: string }) {
   return db.admin.findUnique({ where, include: { account: true } });
+}
+
+export type AccountAccess = { isFull: boolean; allowedRestaurantIds: string[] | null };
+
+/**
+ * Alcance de un admin dentro de su cuenta.
+ *  - El dueño (ownerEmail) y los socios FULL → acceso total (allowedRestaurantIds = null).
+ *  - Los socios RESTRICTED → solo los restoranes de scopeRestaurantIds, sin poderes de cuenta.
+ */
+export function accountAccess(
+  admin: { email: string; accessScope?: string | null; scopeRestaurantIds?: string | null },
+  account: { ownerEmail: string }
+): AccountAccess {
+  const isFull = admin.email === account.ownerEmail || (admin.accessScope ?? "FULL") !== "RESTRICTED";
+  return {
+    isFull,
+    allowedRestaurantIds: isFull ? null : parseRestaurantIds(admin.scopeRestaurantIds),
+  };
 }
 
 /**

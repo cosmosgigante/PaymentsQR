@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { getAccountAdmin } from "@/lib/account";
+import { getAccountAdmin, accountAccess } from "@/lib/account";
 import { logActivity } from "@/lib/activity";
 
 // El cliente cancela su plan. La cuenta sigue activa hasta subscriptionEndsAt;
@@ -8,6 +8,9 @@ import { logActivity } from "@/lib/activity";
 export async function POST(req: NextRequest) {
   const ctx = await getAccountAdmin(req);
   if (!ctx) return NextResponse.json({ error: "No autorizado" }, { status: 403 });
+  if (!accountAccess(ctx.admin, ctx.account).isFull) {
+    return NextResponse.json({ error: "Sin permiso" }, { status: 403 });
+  }
 
   const body = await req.json().catch(() => ({})) as { confirm?: string; undo?: boolean };
 

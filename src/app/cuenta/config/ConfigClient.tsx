@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { ArrowLeft, Users2, CreditCard, LifeBuoy } from "lucide-react";
 import { PLANS, formatArs, formatDate, paymentSourceLabel, type PlanType, type PaymentSource } from "@/lib/plans";
+import PartnersManager from "./PartnersManager";
 
 type Account = {
   name: string | null;
@@ -32,7 +33,7 @@ function useCountdown(target: string | null) {
   return { vencido: false, d, h, m };
 }
 
-export default function ConfigClient({ account }: { account: Account }) {
+export default function ConfigClient({ account, restaurants }: { account: Account; restaurants: { id: string; name: string }[] }) {
   const planLabel = account.planType && account.planType in PLANS ? PLANS[account.planType as PlanType].label : "—";
   const countdown = useCountdown(account.subscriptionEndsAt);
   const [canceledAt, setCanceledAt] = useState<string | null>(account.canceledAt);
@@ -80,12 +81,10 @@ export default function ConfigClient({ account }: { account: Account }) {
             <Users2 size={18} className="text-blue-700" />
             <h2 className="font-semibold text-gray-800">Accesos especiales</h2>
           </div>
-          <p className="text-sm text-gray-400">
+          <p className="text-sm text-gray-400 mb-3">
             Compartí el panel con tus socios (cada uno con sus credenciales), con acceso completo o limitado a ciertos restoranes.
           </p>
-          <span className="inline-block mt-3 text-[11px] font-semibold bg-amber-50 text-amber-600 border border-amber-200 px-2 py-0.5 rounded-full">
-            Próximamente
-          </span>
+          <PartnersManager restaurants={restaurants} />
         </section>
 
         {/* ── Membresía actual ────────────────────────────────────────────── */}
