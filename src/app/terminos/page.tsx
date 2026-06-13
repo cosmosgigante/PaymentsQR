@@ -1,3 +1,5 @@
+import Footer from "@/components/Footer";
+
 export const metadata = {
   title: "Términos de Servicio — PaymentsQR",
   description: "Condiciones de uso de la plataforma PaymentsQR para restaurantes.",
@@ -183,6 +185,8 @@ export default function TerminosPage() {
 
         </div>
       </div>
+
+      <Footer />
     </div>
   );
 }

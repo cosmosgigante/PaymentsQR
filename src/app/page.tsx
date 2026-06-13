@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Footer from "@/components/Footer";
 import { motion } from "framer-motion";
 import { createClient } from "@/lib/supabase/client";
 
@@ -241,15 +242,9 @@ export default function LoginPage() {
         </p>
       </motion.div>
 
-      {/* Footer legal — fuera de la card para que siempre sea visible */}
-      <div className="absolute bottom-6 left-0 right-0 flex items-center justify-center gap-4">
-        <a href="/terminos" className="text-white/55 hover:text-white/90 text-xs transition-colors underline underline-offset-2">
-          Términos de servicio
-        </a>
-        <span className="text-white/30 text-xs">·</span>
-        <a href="/privacidad" className="text-white/55 hover:text-white/90 text-xs transition-colors underline underline-offset-2">
-          Política de privacidad
-        </a>
+      {/* Footer legal */}
+      <div className="absolute bottom-0 left-0 right-0">
+        <Footer dark />
       </div>
     </div>
   );
