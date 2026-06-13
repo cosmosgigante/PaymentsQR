@@ -77,58 +77,112 @@ export default function MenuView({ categories, restaurantName, tableLabel, cart,
                     transition={{ delay: Math.min(idx * 0.04, 0.2), duration: 0.2 }}
                     className="bg-white rounded-2xl border border-zinc-100 overflow-hidden"
                   >
-                    {item.image && (
-                      <img
-                        src={item.image}
-                        alt={item.name}
-                        loading="lazy"
-                        className="w-full aspect-video object-cover"
-                      />
-                    )}
-                    <div className="p-3.5 flex gap-3 items-center">
-                      <div className="flex-1 min-w-0">
-                        <p className="font-semibold text-zinc-900 text-[15px] leading-snug">{item.name}</p>
-                        {item.description && (
-                          <p className="text-zinc-400 text-xs mt-0.5 line-clamp-2 leading-relaxed">{item.description}</p>
-                        )}
-                        <p className="text-zinc-900 font-bold text-sm mt-1.5">
-                          ${item.price.toLocaleString("es-AR")}
-                        </p>
-                      </div>
-                      <div className="flex-shrink-0">
-                        <AnimatePresence mode="wait" initial={false}>
-                          {qty === 0 ? (
-                            <motion.button key="add"
-                              initial={{ scale: 0.7, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.7, opacity: 0 }}
-                              transition={{ duration: 0.12 }}
-                              onClick={() => onAdd(item)}
-                              className="w-10 h-10 bg-zinc-900 active:bg-zinc-700 text-white rounded-full flex items-center justify-center"
-                              aria-label={`Agregar ${item.name}`}
-                            >
-                              <Plus size={18} strokeWidth={2.5} />
-                            </motion.button>
-                          ) : (
-                            <motion.div key="counter"
-                              initial={{ scale: 0.7, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.7, opacity: 0 }}
-                              transition={{ duration: 0.12 }}
-                              className="flex items-center gap-1.5"
-                            >
-                              <button onClick={() => onRemove(item.id)}
-                                className="w-9 h-9 rounded-full border border-zinc-200 flex items-center justify-center text-zinc-600 active:bg-zinc-50"
-                                aria-label="Quitar uno">
-                                <Minus size={14} strokeWidth={2.5} />
-                              </button>
-                              <span className="w-5 text-center font-bold text-zinc-900 text-sm tabular-nums">{qty}</span>
-                              <button onClick={() => onAdd(item)}
-                                className="w-9 h-9 rounded-full bg-zinc-900 active:bg-zinc-700 flex items-center justify-center text-white"
-                                aria-label="Agregar uno">
-                                <Plus size={14} strokeWidth={2.5} />
-                              </button>
-                            </motion.div>
+                    {item.image ? (
+                      /* Card CON foto — imagen arriba, info abajo */
+                      <>
+                        <div className="relative w-full" style={{ aspectRatio: "4/3" }}>
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img
+                            src={item.image}
+                            alt={item.name}
+                            loading="lazy"
+                            className="w-full h-full object-cover"
+                          />
+                          {/* Gradiente inferior para legibilidad */}
+                          <div className="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-black/40 to-transparent" />
+                          {/* Precio flotante sobre la foto */}
+                          <span className="absolute bottom-2.5 left-3 text-white font-bold text-sm tabular-nums drop-shadow">
+                            ${item.price.toLocaleString("es-AR")}
+                          </span>
+                          {/* Botón + flotante sobre la foto */}
+                          <div className="absolute bottom-2 right-3">
+                            <AnimatePresence mode="wait" initial={false}>
+                              {qty === 0 ? (
+                                <motion.button key="add"
+                                  initial={{ scale: 0.7, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.7, opacity: 0 }}
+                                  transition={{ duration: 0.12 }}
+                                  onClick={() => onAdd(item)}
+                                  className="w-10 h-10 bg-white active:bg-zinc-100 text-zinc-900 rounded-full flex items-center justify-center shadow-md"
+                                  aria-label={`Agregar ${item.name}`}
+                                >
+                                  <Plus size={18} strokeWidth={2.5} />
+                                </motion.button>
+                              ) : (
+                                <motion.div key="counter"
+                                  initial={{ scale: 0.7, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.7, opacity: 0 }}
+                                  transition={{ duration: 0.12 }}
+                                  className="flex items-center gap-1.5 bg-white rounded-full px-2 py-1 shadow-md"
+                                >
+                                  <button onClick={() => onRemove(item.id)}
+                                    className="w-7 h-7 rounded-full flex items-center justify-center text-zinc-700 active:bg-zinc-100"
+                                    aria-label="Quitar uno">
+                                    <Minus size={13} strokeWidth={2.5} />
+                                  </button>
+                                  <span className="w-4 text-center font-bold text-zinc-900 text-sm tabular-nums">{qty}</span>
+                                  <button onClick={() => onAdd(item)}
+                                    className="w-7 h-7 rounded-full flex items-center justify-center text-zinc-700 active:bg-zinc-100"
+                                    aria-label="Agregar uno">
+                                    <Plus size={13} strokeWidth={2.5} />
+                                  </button>
+                                </motion.div>
+                              )}
+                            </AnimatePresence>
+                          </div>
+                        </div>
+                        <div className="px-3.5 py-3">
+                          <p className="font-semibold text-zinc-900 text-[15px] leading-snug">{item.name}</p>
+                          {item.description && (
+                            <p className="text-zinc-400 text-xs mt-0.5 line-clamp-2 leading-relaxed">{item.description}</p>
                           )}
-                        </AnimatePresence>
+                        </div>
+                      </>
+                    ) : (
+                      /* Card SIN foto — fila limpia */
+                      <div className="p-3.5 flex gap-3 items-center">
+                        <div className="flex-1 min-w-0">
+                          <p className="font-semibold text-zinc-900 text-[15px] leading-snug">{item.name}</p>
+                          {item.description && (
+                            <p className="text-zinc-400 text-xs mt-0.5 line-clamp-2 leading-relaxed">{item.description}</p>
+                          )}
+                          <p className="text-zinc-900 font-bold text-sm mt-1.5">
+                            ${item.price.toLocaleString("es-AR")}
+                          </p>
+                        </div>
+                        <div className="flex-shrink-0">
+                          <AnimatePresence mode="wait" initial={false}>
+                            {qty === 0 ? (
+                              <motion.button key="add"
+                                initial={{ scale: 0.7, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.7, opacity: 0 }}
+                                transition={{ duration: 0.12 }}
+                                onClick={() => onAdd(item)}
+                                className="w-10 h-10 bg-zinc-900 active:bg-zinc-700 text-white rounded-full flex items-center justify-center"
+                                aria-label={`Agregar ${item.name}`}
+                              >
+                                <Plus size={18} strokeWidth={2.5} />
+                              </motion.button>
+                            ) : (
+                              <motion.div key="counter"
+                                initial={{ scale: 0.7, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.7, opacity: 0 }}
+                                transition={{ duration: 0.12 }}
+                                className="flex items-center gap-1.5"
+                              >
+                                <button onClick={() => onRemove(item.id)}
+                                  className="w-9 h-9 rounded-full border border-zinc-200 flex items-center justify-center text-zinc-600 active:bg-zinc-50"
+                                  aria-label="Quitar uno">
+                                  <Minus size={14} strokeWidth={2.5} />
+                                </button>
+                                <span className="w-5 text-center font-bold text-zinc-900 text-sm tabular-nums">{qty}</span>
+                                <button onClick={() => onAdd(item)}
+                                  className="w-9 h-9 rounded-full bg-zinc-900 active:bg-zinc-700 flex items-center justify-center text-white"
+                                  aria-label="Agregar uno">
+                                  <Plus size={14} strokeWidth={2.5} />
+                                </button>
+                              </motion.div>
+                            )}
+                          </AnimatePresence>
+                        </div>
                       </div>
-                    </div>
+                    )}
                   </motion.div>
                 );
         })}
