@@ -29,23 +29,26 @@ const STEPS: { status: Status; icon: React.ReactNode; label: string }[] = [
   { status: "DELIVERED", icon: <Utensils size={14} />,     label: "Servido"   },
 ];
 
-type SessionOrderLite = { id: string; status: Status; total: number };
+type SessionOrderLite = { id: string; status: Status; total: number; mine?: boolean; dinerIndex?: number };
 
-export default function OrderStatusView({ orderId, tableToken, onPedirMas, sessionOrders, pendingConfirm, payEnabled, paymentStatus }: { orderId: string; tableToken: string; onPedirMas: () => void; sessionOrders?: SessionOrderLite[]; pendingConfirm?: boolean; payEnabled?: boolean; paymentStatus?: string | null }) {
+export default function OrderStatusView({ orderId, tableToken, onPedirMas, sessionOrders, pendingConfirm, payEnabled, multiDiner, paymentPending }: { orderId: string; tableToken: string; onPedirMas: () => void; sessionOrders?: SessionOrderLite[]; pendingConfirm?: boolean; payEnabled?: boolean; multiDiner?: boolean; paymentPending?: boolean }) {
   const [order, setOrder] = useState<Order | null>(null);
   const [paying, setPaying] = useState(false);
 
   const bill = (sessionOrders ?? []).filter((o) => o.status !== "CANCELLED");
   const billTotal = bill.reduce((s, o) => s + o.total, 0);
-  const unpaidTotal = bill.filter((o) => o.status !== "PAID").reduce((s, o) => s + o.total, 0);
-  const isPaid = paymentStatus === "APPROVED";
+  const myUnpaid  = bill.filter((o) => o.mine && o.status !== "PAID").reduce((s, o) => s + o.total, 0);
+  const allUnpaid = bill.filter((o) => o.status !== "PAID").reduce((s, o) => s + o.total, 0);
+  const fullyPaid = bill.length > 0 && allUnpaid === 0;
 
-  async function payBill() {
+  const dinerLabel = (o: SessionOrderLite) => o.mine ? "Vos" : o.dinerIndex ? `Comensal ${o.dinerIndex}` : "Pedido";
+
+  async function payBill(scope: "MINE" | "ALL") {
     setPaying(true);
     try {
       const r = await fetch("/api/mesa/pay", {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ tableToken }),
+        body: JSON.stringify({ tableToken, scope }),
       });
       const d = await r.json();
       if (d?.initPoint) { window.location.href = d.initPoint; return; }
@@ -195,10 +198,12 @@ export default function OrderStatusView({ orderId, tableToken, onPedirMas, sessi
               {bill.map((o, i) => (
                 <div key={o.id} className="flex justify-between items-center text-sm">
                   <span className="text-zinc-600">
-                    <span className="font-semibold text-zinc-900">Pedido {i + 1}</span>{" "}
+                    <span className={`font-semibold ${o.mine ? "text-emerald-600" : "text-zinc-900"}`}>
+                      {multiDiner ? dinerLabel(o) : `Pedido ${i + 1}`}
+                    </span>{" "}
                     <span className="text-zinc-400">#{o.id.slice(-4).toUpperCase()}</span>
                     {" · "}
-                    <span className="text-zinc-500">{ORDER_STATUS_LABELS[o.status]}</span>
+                    <span className="text-zinc-500">{o.status === "PAID" ? "Pagado ✓" : ORDER_STATUS_LABELS[o.status]}</span>
                   </span>
                   <span className="text-zinc-500 tabular-nums">${o.total.toLocaleString("es-AR")}</span>
                 </div>
@@ -222,24 +227,37 @@ export default function OrderStatusView({ orderId, tableToken, onPedirMas, sessi
             : "💳  Pago online procesado"}
         </div>
 
-        {/* Pago de la cuenta de la mesa (MercadoPago) — compartido entre dispositivos */}
-        {isPaid ? (
+        {/* Pago con MercadoPago — dividir (lo mío) o pagar toda la cuenta. Compartido entre dispositivos. */}
+        {fullyPaid ? (
           <div className="rounded-3xl p-4 text-center text-sm font-semibold border bg-emerald-50 border-emerald-200 text-emerald-700">
             ✓ Cuenta pagada
           </div>
-        ) : payEnabled && unpaidTotal > 0 ? (
-          <>
+        ) : payEnabled && allUnpaid > 0 ? (
+          <div className="space-y-2">
+            {multiDiner && myUnpaid > 0 && (
+              <button
+                onClick={() => payBill("MINE")}
+                disabled={paying}
+                className="w-full bg-emerald-600 active:bg-emerald-700 disabled:opacity-50 text-white font-bold py-4 rounded-2xl transition-all text-[15px] min-h-[56px]"
+              >
+                {paying ? "Abriendo MercadoPago…" : `Pagar lo mío · $${myUnpaid.toLocaleString("es-AR")}`}
+              </button>
+            )}
             <button
-              onClick={payBill}
+              onClick={() => payBill("ALL")}
               disabled={paying}
-              className="w-full bg-emerald-600 active:bg-emerald-700 disabled:opacity-50 text-white font-bold py-4 rounded-2xl transition-all text-[15px] min-h-[56px]"
+              className={`w-full disabled:opacity-50 font-bold py-4 rounded-2xl transition-all text-[15px] min-h-[56px] ${
+                multiDiner && myUnpaid > 0
+                  ? "bg-white border border-zinc-300 text-zinc-800 active:bg-zinc-50"
+                  : "bg-emerald-600 active:bg-emerald-700 text-white"
+              }`}
             >
-              {paying ? "Abriendo MercadoPago…" : `Pagar la cuenta · $${unpaidTotal.toLocaleString("es-AR")}`}
+              {paying ? "Abriendo MercadoPago…" : `${multiDiner ? "Pagar toda la cuenta" : "Pagar la cuenta"} · $${allUnpaid.toLocaleString("es-AR")}`}
             </button>
-            {paymentStatus === "PENDING" && (
+            {paymentPending && (
               <p className="text-center text-xs text-amber-600">Hay un pago en proceso para esta mesa.</p>
             )}
-          </>
+          </div>
         ) : null}
 
         {/* Seguir pidiendo */}
