@@ -50,6 +50,7 @@ export async function joinOrCreateSession(opts: {
   restaurantId: string;
   maxDevices: number;
   deviceId: string;
+  startStatus?: string; // "OPEN" | "PENDING_CONFIRM" (si el restorán exige confirmar la mesa)
 }): Promise<{ session: SessionRow; full: boolean }> {
   const { tableId, restaurantId, maxDevices, deviceId } = opts;
   const cutoff = new Date(Date.now() - SESSION_TTL_MS);
@@ -79,7 +80,11 @@ export async function joinOrCreateSession(opts: {
   }
 
   const created = await db.tableSession.create({
-    data: { tableId, restaurantId, maxDevices, deviceIds: JSON.stringify([deviceId]) },
+    data: {
+      tableId, restaurantId, maxDevices,
+      deviceIds: JSON.stringify([deviceId]),
+      status: opts.startStatus === "PENDING_CONFIRM" ? "PENDING_CONFIRM" : "OPEN",
+    },
   });
   return { session: created, full: false };
 }

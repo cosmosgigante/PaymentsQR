@@ -31,7 +31,7 @@ const STEPS: { status: Status; icon: React.ReactNode; label: string }[] = [
 
 type SessionOrderLite = { id: string; status: Status; total: number };
 
-export default function OrderStatusView({ orderId, tableToken, onPedirMas, sessionOrders }: { orderId: string; tableToken: string; onPedirMas: () => void; sessionOrders?: SessionOrderLite[] }) {
+export default function OrderStatusView({ orderId, tableToken, onPedirMas, sessionOrders, pendingConfirm }: { orderId: string; tableToken: string; onPedirMas: () => void; sessionOrders?: SessionOrderLite[]; pendingConfirm?: boolean }) {
   const [order, setOrder] = useState<Order | null>(null);
 
   const bill = (sessionOrders ?? []).filter((o) => o.status !== "CANCELLED");
@@ -76,6 +76,13 @@ export default function OrderStatusView({ orderId, tableToken, onPedirMas, sessi
       style={{ paddingTop: "env(safe-area-inset-top)", paddingBottom: "max(1.5rem, env(safe-area-inset-bottom))" }}
     >
       <div className="max-w-md mx-auto px-4 py-6 space-y-3">
+        {/* Aviso: la mesa todavía no fue confirmada por el mozo */}
+        {pendingConfirm && (
+          <div className="bg-amber-50 border border-amber-200 text-amber-700 rounded-2xl px-4 py-3 text-sm text-center font-medium">
+            ⏳ Esperando que el mozo confirme tu mesa. Tu pedido ya quedó registrado.
+          </div>
+        )}
+
         {/* Estado principal */}
         <motion.div
           initial={{ opacity: 0, y: 12 }}
