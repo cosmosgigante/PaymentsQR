@@ -1,13 +1,13 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { ShoppingBag } from "lucide-react";
+import { ShoppingBag, Users } from "lucide-react";
 import { useCart } from "@/hooks/useCart";
 import MenuView from "@/components/customer/MenuView";
 import CartDrawer from "@/components/customer/CartDrawer";
 import OrderStatusView from "@/components/customer/OrderStatus";
-import { MenuCategory } from "@/lib/types";
+import { MenuCategory, OrderStatus as Status } from "@/lib/types";
 
 type Props = {
   token: string;
@@ -16,42 +16,101 @@ type Props = {
   categories: MenuCategory[];
 };
 
+export type SessionOrder = {
+  id: string;
+  status: Status;
+  paymentMode: string;
+  total: number;
+  table: { number: number; label: string | null };
+  items: { quantity: number; unitPrice: number; notes: string | null; menuItem: { name: string } }[];
+  createdAt: string;
+};
+
+const ACTIVE_STATUSES: Status[] = ["PENDING", "CONFIRMED", "PREPARING", "READY", "DELIVERED"];
+
 export default function MesaClient({ token, table, restaurant, categories }: Props) {
-  const [cartOpen, setCartOpen] = useState(false);
-  const [orderId, setOrderId]   = useState<string | null>(null);
+  const [cartOpen, setCartOpen]   = useState(false);
+  const [phase, setPhase]         = useState<"loading" | "full" | "ready">("loading");
+  const [maxDevices, setMaxDevices] = useState(2);
+  const [orders, setOrders]       = useState<SessionOrder[]>([]);
+  const [forceMenu, setForceMenu] = useState(false);
   const { cart, add, updateQty, clear, total, itemCount } = useCart();
 
-  const orderKey = `pqr_order_${token}`;
-
-  // Al montar: restaurar el pedido activo (sobrevive recarga / vuelta del login)
-  // y reabrir el carrito si veníamos de loguearnos con Google.
-  useEffect(() => {
+  // Resuelve la sesión de mesa en el backend: une este dispositivo (aplicando el
+  // límite por mesa) y trae el historial real de pedidos de la sesión.
+  const loadSession = useCallback(async () => {
     try {
-      const saved = localStorage.getItem(orderKey);
-      if (saved) setOrderId(saved);
+      const r = await fetch("/api/mesa/session", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ tableToken: token }),
+      });
+      const d = await r.json();
+      if (d?.full) { setMaxDevices(d.maxDevices ?? 2); setPhase("full"); return; }
+      if (d?.ok) setOrders(Array.isArray(d.orders) ? d.orders : []);
+      setPhase("ready");
+    } catch {
+      setPhase("ready"); // ante un fallo de red no bloqueamos el pedido
+    }
+  }, [token]);
+
+  useEffect(() => {
+    loadSession();
+    // Al volver del login de Google reabrimos el carrito (round-trip de página completa).
+    try {
       if (localStorage.getItem("pqr_reopen_cart")) {
         localStorage.removeItem("pqr_reopen_cart");
         setCartOpen(true);
       }
     } catch { /* ignore */ }
-  }, [orderKey]);
+  }, [loadSession]);
 
-  function handleOrderCreated(id: string) {
-    try { localStorage.setItem(orderKey, id); } catch { /* ignore */ }
-    setOrderId(id);
+  function handleOrderCreated() {
     setCartOpen(false);
     clear();
+    setForceMenu(false);
+    loadSession(); // refresca historial y muestra el estado del nuevo pedido
   }
 
-  function pedirMas() {
-    try { localStorage.removeItem(orderKey); } catch { /* ignore */ }
-    setOrderId(null);
-  }
+  function pedirMas() { setForceMenu(true); }
 
   const tableLabel = table.label ?? `Mesa ${table.number}`;
+  const activeOrder = [...orders].reverse().find((o) => ACTIVE_STATUSES.includes(o.status));
 
-  if (orderId) {
-    return <OrderStatusView orderId={orderId} tableToken={token} onPedirMas={pedirMas} />;
+  if (phase === "loading") {
+    return (
+      <div className="min-h-screen-dvh flex items-center justify-center bg-[#fafafa]">
+        <div className="w-8 h-8 border-2 border-zinc-900 border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  if (phase === "full") {
+    return (
+      <div className="min-h-screen-dvh flex items-center justify-center bg-[#fafafa] px-6 text-center">
+        <div className="max-w-xs">
+          <div className="w-14 h-14 rounded-2xl bg-zinc-900 text-white flex items-center justify-center mx-auto mb-4">
+            <Users size={24} />
+          </div>
+          <h1 className="text-xl font-bold text-zinc-900">Mesa en uso</h1>
+          <p className="text-zinc-500 text-sm mt-2 leading-relaxed">
+            Esta mesa ya tiene {maxDevices} {maxDevices === 1 ? "dispositivo conectado" : "dispositivos conectados"}.
+            Pedí desde uno de los celulares que ya está usando la mesa, o avisá al personal.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  if (activeOrder && !forceMenu) {
+    return (
+      <OrderStatusView
+        orderId={activeOrder.id}
+        tableToken={token}
+        onPedirMas={pedirMas}
+        sessionOrders={orders}
+      />
+    );
   }
 
   return (

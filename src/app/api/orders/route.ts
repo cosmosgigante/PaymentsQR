@@ -5,6 +5,7 @@ import { CartItem } from "@/lib/types";
 import { emitEvent } from "@/lib/events";
 import { rateLimit } from "@/lib/rateLimit";
 import { isRestaurantOperative } from "@/lib/restaurant";
+import { joinOrCreateSession, readDeviceId, setDeviceCookie } from "@/lib/tableSession";
 
 export async function POST(req: NextRequest) {
 
@@ -70,10 +71,23 @@ export async function POST(req: NextRequest) {
 
   const safeNotes = notes ? String(notes).slice(0, 300) : undefined;
 
+  // Atar el pedido a la sesión de mesa del dispositivo (estado real, no del navegador).
+  const { deviceId } = readDeviceId(req);
+  const { session, full } = await joinOrCreateSession({
+    tableId: table.id,
+    restaurantId: table.restaurantId,
+    maxDevices: table.restaurant.maxTableDevices ?? 2,
+    deviceId,
+  });
+  if (full) {
+    return NextResponse.json({ error: "Esta mesa alcanzó el máximo de dispositivos conectados" }, { status: 409 });
+  }
+
   const order = await db.order.create({
     data: {
       restaurantId:  table.restaurantId,
       tableId:       table.id,
+      tableSessionId: session.id,
       paymentMode,
       total,
       notes:         safeNotes,
@@ -94,7 +108,9 @@ export async function POST(req: NextRequest) {
 
   emitEvent(table.restaurantId, { type: "NEW_ORDER", order });
 
-  return NextResponse.json(order, { status: 201 });
+  const res = NextResponse.json(order, { status: 201 });
+  setDeviceCookie(res, deviceId);
+  return res;
 }
 
 export async function GET(req: NextRequest) {

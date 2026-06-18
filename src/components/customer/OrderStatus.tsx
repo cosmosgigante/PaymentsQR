@@ -29,8 +29,13 @@ const STEPS: { status: Status; icon: React.ReactNode; label: string }[] = [
   { status: "DELIVERED", icon: <Utensils size={14} />,     label: "Servido"   },
 ];
 
-export default function OrderStatusView({ orderId, tableToken, onPedirMas }: { orderId: string; tableToken: string; onPedirMas: () => void }) {
+type SessionOrderLite = { id: string; status: Status; total: number };
+
+export default function OrderStatusView({ orderId, tableToken, onPedirMas, sessionOrders }: { orderId: string; tableToken: string; onPedirMas: () => void; sessionOrders?: SessionOrderLite[] }) {
   const [order, setOrder] = useState<Order | null>(null);
+
+  const bill = (sessionOrders ?? []).filter((o) => o.status !== "CANCELLED");
+  const billTotal = bill.reduce((s, o) => s + o.total, 0);
 
   useEffect(() => {
     let active = true;
@@ -157,6 +162,30 @@ export default function OrderStatusView({ orderId, tableToken, onPedirMas }: { o
             </span>
           </div>
         </div>
+
+        {/* Cuenta de la mesa — historial real de la sesión */}
+        {bill.length > 1 && (
+          <div className="bg-white rounded-3xl p-5 border border-zinc-100">
+            <p className="text-[11px] font-semibold text-zinc-400 tracking-widest uppercase mb-3">Cuenta de la mesa</p>
+            <div className="space-y-2">
+              {bill.map((o, i) => (
+                <div key={o.id} className="flex justify-between items-center text-sm">
+                  <span className="text-zinc-600">
+                    <span className="font-semibold text-zinc-900">Pedido {i + 1}</span>{" "}
+                    <span className="text-zinc-400">#{o.id.slice(-4).toUpperCase()}</span>
+                    {" · "}
+                    <span className="text-zinc-500">{ORDER_STATUS_LABELS[o.status]}</span>
+                  </span>
+                  <span className="text-zinc-500 tabular-nums">${o.total.toLocaleString("es-AR")}</span>
+                </div>
+              ))}
+            </div>
+            <div className="border-t border-zinc-100 mt-3 pt-3 flex justify-between">
+              <span className="font-semibold text-zinc-900 text-sm">Total mesa</span>
+              <span className="font-bold text-zinc-900 tabular-nums">${billTotal.toLocaleString("es-AR")}</span>
+            </div>
+          </div>
+        )}
 
         {/* Pago */}
         <div className={`rounded-3xl p-4 text-center text-sm font-medium border ${

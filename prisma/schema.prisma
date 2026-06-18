@@ -67,11 +67,21 @@ model Restaurant {
   primaryColor   String         @default("#f97316")
   isActive            Boolean        @default(true)
   status              String         @default("PENDING") // "PENDING" | "ACTIVE"
-  subscriptionEndsAt  DateTime?      // legacy; la suscripción real vive en Account
+  // Columnas legacy: la suscripción real vive en Account. Se conservan porque
+  // hay datos en producción (no las borramos para no perder información).
+  subscriptionEndsAt    DateTime?
+  subscriptionStartedAt DateTime?
+  planType              String?
+  extraBranches         Int            @default(0)
+  priceArs              Int?
+  paymentSource         String?        @default("MANUAL")
+  maxTableDevices     Int            @default(2)     // dispositivos por sesión de mesa
+  confirmTableEnabled Boolean        @default(false) // "confirmar mesa" antes de pedir (slice 2)
   tables         Table[]
   menuCategories MenuCategory[]
   menuItems      MenuItem[]
   orders         Order[]
+  tableSessions  TableSession[]
   admins         Admin[]
   createdAt      DateTime       @default(now())
 }
@@ -85,6 +95,7 @@ model Table {
   qrToken      String     @unique @default(cuid())
   isActive     Boolean    @default(true)
   orders       Order[]
+  tableSessions TableSession[]
   createdAt    DateTime   @default(now())
 
   @@unique([restaurantId, number])
@@ -127,8 +138,33 @@ model Order {
   notes         String?
   customerName  String?
   customerEmail String?
+  tableSessionId String?
+  tableSession   TableSession? @relation(fields: [tableSessionId], references: [id])
   createdAt     DateTime    @default(now())
   updatedAt     DateTime    @updatedAt
+
+  @@index([tableSessionId])
+}
+
+// Sesión de mesa: agrupa los pedidos de un grupo de comensales sentados en una
+// mesa, persistida en la base (no en memoria del navegador). Habilita historial
+// real, límite de dispositivos por mesa, y confirmar/cerrar mesa (slices 2 y 3).
+model TableSession {
+  id             String     @id @default(cuid())
+  tableId        String
+  table          Table      @relation(fields: [tableId], references: [id])
+  restaurantId   String
+  restaurant     Restaurant @relation(fields: [restaurantId], references: [id])
+  status         String     @default("OPEN") // "OPEN" | "PENDING_CONFIRM" | "CLOSED"
+  deviceIds      String     @default("[]")   // JSON: ids de dispositivos unidos (límite anti-escaneo ajeno)
+  maxDevices     Int        @default(2)
+  orders         Order[]
+  openedAt       DateTime   @default(now())
+  lastActivityAt DateTime   @default(now())
+  confirmedAt    DateTime?
+  closedAt       DateTime?
+
+  @@index([tableId, status])
 }
 
 model OrderItem {
