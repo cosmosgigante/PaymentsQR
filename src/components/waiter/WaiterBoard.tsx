@@ -24,8 +24,19 @@ type Order = {
   items: OrderItem[];
 };
 
+type TableSess = {
+  id: string;
+  status: string;
+  table: { number: number; label: string | null };
+  orderCount: number;
+  total: number;
+  openedAt: string;
+};
+
 export default function WaiterBoard({ initialOrders }: { initialOrders: Order[] }) {
   const [orders, setOrders] = useState<Order[]>(initialOrders);
+  const [sessions, setSessions] = useState<TableSess[]>([]);
+  const [busySession, setBusySession] = useState<string | null>(null);
   const [alertOrderId, setAlertOrderId] = useState<string | null>(null);
   const audioCtxRef = useRef<AudioContext | null>(null);
 
@@ -70,19 +81,45 @@ export default function WaiterBoard({ initialOrders }: { initialOrders: Order[] 
 
   useSSE("/api/events", handleSSE);
 
+  const fetchSessions = useCallback(async () => {
+    try {
+      const res = await fetch("/api/sessions");
+      if (res.ok) setSessions(await res.json());
+    } catch { /* ignorar error de red */ }
+  }, []);
+
   // Polling cada 4s — garantiza sincronización entre instancias serverless
   useEffect(() => {
     const ACTIVE = ["PENDING", "CONFIRMED", "PREPARING", "READY", "DELIVERED"];
+    fetchSessions();
     const poll = setInterval(async () => {
       try {
         const res = await fetch("/api/orders");
-        if (!res.ok) return;
-        const data = await res.json();
-        setOrders(data.filter((o: Order) => ACTIVE.includes(o.status)));
+        if (res.ok) {
+          const data = await res.json();
+          setOrders(data.filter((o: Order) => ACTIVE.includes(o.status)));
+        }
       } catch { /* ignorar error de red */ }
+      fetchSessions();
     }, 4000);
     return () => clearInterval(poll);
-  }, []);
+  }, [fetchSessions]);
+
+  async function sessionAction(id: string, action: "confirm" | "close") {
+    if (action === "close" && !confirm("¿Cerrar esta mesa? Se da por terminada la cuenta.")) return;
+    setBusySession(id);
+    try {
+      const res = await fetch(`/api/sessions/${id}`, {
+        method: "PATCH", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action }),
+      });
+      if (res.ok) {
+        if (action === "close") setSessions((prev) => prev.filter((s) => s.id !== id));
+        else setSessions((prev) => prev.map((s) => s.id === id ? { ...s, status: "OPEN" } : s));
+      }
+    } catch { /* ignorar */ }
+    setBusySession(null);
+  }
 
   async function markDelivered(orderId: string) {
     const res = await fetch(`/api/orders/${orderId}`, {
@@ -103,6 +140,9 @@ export default function WaiterBoard({ initialOrders }: { initialOrders: Order[] 
   const ready      = orders.filter((o) => o.status === "READY");
   const inProgress = orders.filter((o) => ["PENDING","CONFIRMED","PREPARING"].includes(o.status));
   const delivered  = orders.filter((o) => o.status === "DELIVERED");
+
+  const pendingSessions = sessions.filter((s) => s.status === "PENDING_CONFIRM");
+  const openSessions    = sessions.filter((s) => s.status === "OPEN");
 
   const hour = new Date().getHours();
   const greeting = hour < 12 ? "Buenos días" : hour < 19 ? "Buenas tardes" : "Buenas noches";
@@ -159,6 +199,52 @@ export default function WaiterBoard({ initialOrders }: { initialOrders: Order[] 
       </div>
 
       <div className="max-w-2xl mx-auto px-4 py-5 space-y-5">
+
+        {/* MESAS POR CONFIRMAR */}
+        {pendingSessions.length > 0 && (
+          <div>
+            <p className="text-[11px] font-bold text-amber-600 uppercase tracking-widest mb-3">⏳ Por confirmar ({pendingSessions.length})</p>
+            <div className="space-y-2">
+              {pendingSessions.map((s) => (
+                <div key={s.id} className="bg-white border-2 border-amber-300/70 rounded-2xl p-4 shadow-sm flex items-center justify-between gap-3">
+                  <div>
+                    <p className="font-black text-gray-900 text-xl leading-none">Mesa {s.table.number}</p>
+                    <p className="text-gray-400 text-xs mt-1">
+                      {s.orderCount > 0 ? `${s.orderCount} pedido${s.orderCount > 1 ? "s" : ""} · $${s.total.toLocaleString("es-AR")}` : "Sin pedidos aún"}
+                    </p>
+                  </div>
+                  <button onClick={() => sessionAction(s.id, "confirm")} disabled={busySession === s.id}
+                    className="bg-amber-500 hover:bg-amber-600 disabled:opacity-50 text-white text-sm font-bold px-4 py-2.5 rounded-xl transition-all shrink-0">
+                    Confirmar ✓
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* MESAS ABIERTAS */}
+        {openSessions.length > 0 && (
+          <div>
+            <p className="text-[11px] font-bold text-blue-600 uppercase tracking-widest mb-3">🍽️ Mesas abiertas ({openSessions.length})</p>
+            <div className="space-y-2">
+              {openSessions.map((s) => (
+                <div key={s.id} className="bg-white border border-gray-100 rounded-2xl p-4 shadow-sm flex items-center justify-between gap-3">
+                  <div>
+                    <p className="font-black text-gray-900 text-xl leading-none">Mesa {s.table.number}</p>
+                    <p className="text-gray-400 text-xs mt-1">
+                      {s.orderCount} pedido{s.orderCount === 1 ? "" : "s"} · ${s.total.toLocaleString("es-AR")}
+                    </p>
+                  </div>
+                  <button onClick={() => sessionAction(s.id, "close")} disabled={busySession === s.id}
+                    className="bg-gray-800 hover:bg-gray-700 disabled:opacity-50 text-white text-sm font-bold px-4 py-2.5 rounded-xl transition-all shrink-0">
+                    Cerrar mesa
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* EN COCINA */}
         {inProgress.length > 0 && (

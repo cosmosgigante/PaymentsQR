@@ -13,7 +13,7 @@ export default async function AjustesPage({ params }: { params: Promise<{ restau
 
   const restaurant = await db.restaurant.findFirst({
     where: { id: restaurantId, accountId: admin.account.id },
-    select: { id: true, name: true },
+    select: { id: true, name: true, confirmTableEnabled: true, maxTableDevices: true },
   });
   if (!restaurant) redirect("/cuenta");
 
@@ -28,6 +28,10 @@ export default async function AjustesPage({ params }: { params: Promise<{ restau
     <AjustesClient
       restaurantId={restaurantId}
       restaurantName={restaurant.name}
+      operations={{
+        confirmTableEnabled: restaurant.confirmTableEnabled,
+        maxTableDevices: restaurant.maxTableDevices,
+      }}
       mercadopago={{
         enabled: pm?.enabled ?? false,
         hasToken: !!pm?.encryptedToken,

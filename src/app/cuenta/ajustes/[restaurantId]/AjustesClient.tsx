@@ -12,9 +12,11 @@ type MP = {
   accountName: string | null;
 };
 
+type Ops = { confirmTableEnabled: boolean; maxTableDevices: number };
+
 export default function AjustesClient({
-  restaurantId, restaurantName, mercadopago,
-}: { restaurantId: string; restaurantName: string; mercadopago: MP }) {
+  restaurantId, restaurantName, mercadopago, operations,
+}: { restaurantId: string; restaurantName: string; mercadopago: MP; operations: Ops }) {
   const [enabled, setEnabled] = useState(mercadopago.enabled);
   const [replacing, setReplacing] = useState(!mercadopago.hasToken);
   const [accessToken, setAccessToken] = useState("");
@@ -25,6 +27,24 @@ export default function AjustesClient({
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+
+  // Flujo operativo
+  const [confirmTable, setConfirmTable] = useState(operations.confirmTableEnabled);
+  const [maxDevices, setMaxDevices] = useState(operations.maxTableDevices);
+  const [savingOps, setSavingOps] = useState(false);
+  const [opsMsg, setOpsMsg] = useState<string | null>(null);
+
+  async function saveOps() {
+    setSavingOps(true); setOpsMsg(null);
+    const res = await fetch(`/api/account/restaurants/${restaurantId}/settings`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ confirmTableEnabled: confirmTable, maxTableDevices: maxDevices }),
+    });
+    setSavingOps(false);
+    setOpsMsg(res.ok ? "Guardado ✓" : "Error al guardar");
+    setTimeout(() => setOpsMsg(null), 4000);
+  }
 
   async function save() {
     setSaving(true); setError(null); setSuccess(null);
@@ -130,16 +150,46 @@ export default function AjustesClient({
           </div>
         </section>
 
-        {/* Flujo operativo (próximamente) */}
+        {/* Flujo operativo */}
         <section className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
           <div className="flex items-center gap-2 mb-1">
             <Workflow size={18} className="text-blue-700" />
             <h2 className="font-semibold text-gray-800">Flujo operativo</h2>
           </div>
-          <p className="text-sm text-gray-400">A dónde va cada pedido y los pasos del servicio.</p>
-          <span className="inline-block mt-3 text-[11px] font-semibold bg-amber-50 text-amber-600 border border-amber-200 px-2 py-0.5 rounded-full">
-            Próximamente
-          </span>
+          <p className="text-sm text-gray-400 mb-4">Cómo se maneja cada mesa durante el servicio.</p>
+
+          {/* Confirmar mesa */}
+          <div className="border border-gray-100 rounded-xl p-4 mb-3">
+            <label className="flex items-center justify-between gap-3 cursor-pointer">
+              <div>
+                <span className="font-semibold text-gray-800 text-sm">Confirmar mesa antes de pedir</span>
+                <p className="text-xs text-gray-400 mt-0.5">
+                  La mesa queda en &quot;Esperando confirmación&quot; hasta que un mozo la confirme
+                  (al traer el pedido mínimo). Evita pedidos falsos.
+                </p>
+              </div>
+              <input type="checkbox" checked={confirmTable} onChange={(e) => setConfirmTable(e.target.checked)} className="w-4 h-4 accent-blue-600 shrink-0" />
+            </label>
+          </div>
+
+          {/* Máx dispositivos */}
+          <div className="border border-gray-100 rounded-xl p-4">
+            <label className="flex items-center justify-between gap-3">
+              <div>
+                <span className="font-semibold text-gray-800 text-sm">Dispositivos por mesa</span>
+                <p className="text-xs text-gray-400 mt-0.5">Cuántos celulares pueden pedir desde la misma mesa a la vez.</p>
+              </div>
+              <input type="number" min={1} max={10} value={maxDevices}
+                onChange={(e) => setMaxDevices(Number(e.target.value))}
+                className="w-16 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm text-center focus:outline-none focus:ring-2 focus:ring-blue-500/30 shrink-0" />
+            </label>
+          </div>
+
+          {opsMsg && <p className={`text-sm mt-3 ${opsMsg.includes("✓") ? "text-emerald-600" : "text-red-500"}`}>{opsMsg}</p>}
+          <button onClick={saveOps} disabled={savingOps}
+            className="mt-4 bg-gray-900 text-white hover:bg-gray-700 disabled:opacity-50 font-semibold text-sm px-4 py-2.5 rounded-xl transition-all">
+            {savingOps ? "Guardando..." : "Guardar"}
+          </button>
         </section>
       </div>
     </div>

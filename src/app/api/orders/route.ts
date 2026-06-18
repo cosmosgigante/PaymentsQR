@@ -78,6 +78,7 @@ export async function POST(req: NextRequest) {
     restaurantId: table.restaurantId,
     maxDevices: table.restaurant.maxTableDevices ?? 2,
     deviceId,
+    startStatus: table.restaurant.confirmTableEnabled ? "PENDING_CONFIRM" : "OPEN",
   });
   if (full) {
     return NextResponse.json({ error: "Esta mesa alcanzó el máximo de dispositivos conectados" }, { status: 409 });

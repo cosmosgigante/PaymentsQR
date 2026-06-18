@@ -33,6 +33,7 @@ export default function MesaClient({ token, table, restaurant, categories }: Pro
   const [phase, setPhase]         = useState<"loading" | "full" | "ready">("loading");
   const [maxDevices, setMaxDevices] = useState(2);
   const [orders, setOrders]       = useState<SessionOrder[]>([]);
+  const [pendingConfirm, setPendingConfirm] = useState(false);
   const [forceMenu, setForceMenu] = useState(false);
   const { cart, add, updateQty, clear, total, itemCount } = useCart();
 
@@ -47,7 +48,10 @@ export default function MesaClient({ token, table, restaurant, categories }: Pro
       });
       const d = await r.json();
       if (d?.full) { setMaxDevices(d.maxDevices ?? 2); setPhase("full"); return; }
-      if (d?.ok) setOrders(Array.isArray(d.orders) ? d.orders : []);
+      if (d?.ok) {
+        setOrders(Array.isArray(d.orders) ? d.orders : []);
+        setPendingConfirm(d.session?.status === "PENDING_CONFIRM");
+      }
       setPhase("ready");
     } catch {
       setPhase("ready"); // ante un fallo de red no bloqueamos el pedido
@@ -63,6 +67,9 @@ export default function MesaClient({ token, table, restaurant, categories }: Pro
         setCartOpen(true);
       }
     } catch { /* ignore */ }
+    // Refresco liviano: estado de confirmación de la mesa e historial en vivo.
+    const poll = setInterval(loadSession, 15000);
+    return () => clearInterval(poll);
   }, [loadSession]);
 
   function handleOrderCreated() {
@@ -109,12 +116,19 @@ export default function MesaClient({ token, table, restaurant, categories }: Pro
         tableToken={token}
         onPedirMas={pedirMas}
         sessionOrders={orders}
+        pendingConfirm={pendingConfirm}
       />
     );
   }
 
   return (
     <div className="relative">
+      {pendingConfirm && (
+        <div className="sticky top-0 z-40 bg-amber-500 text-white text-center text-sm font-semibold py-2.5 px-4"
+          style={{ paddingTop: "max(0.625rem, env(safe-area-inset-top))" }}>
+          ⏳ Esperando que el mozo confirme tu mesa
+        </div>
+      )}
       <MenuView
         categories={categories}
         restaurantName={restaurant.name}

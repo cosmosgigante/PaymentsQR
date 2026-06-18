@@ -33,6 +33,7 @@ export async function POST(req: NextRequest) {
     restaurantId: table.restaurantId,
     maxDevices,
     deviceId,
+    startStatus: table.restaurant.confirmTableEnabled ? "PENDING_CONFIRM" : "OPEN",
   });
 
   if (full) {
