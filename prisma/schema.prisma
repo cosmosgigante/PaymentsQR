@@ -67,7 +67,14 @@ model Restaurant {
   primaryColor   String         @default("#f97316")
   isActive            Boolean        @default(true)
   status              String         @default("PENDING") // "PENDING" | "ACTIVE"
-  subscriptionEndsAt  DateTime?      // legacy; la suscripción real vive en Account
+  // Columnas legacy: la suscripción real vive en Account. Se conservan porque
+  // hay datos en producción (no las borramos para no perder información).
+  subscriptionEndsAt    DateTime?
+  subscriptionStartedAt DateTime?
+  planType              String?
+  extraBranches         Int            @default(0)
+  priceArs              Int?
+  paymentSource         String?        @default("MANUAL")
   maxTableDevices     Int            @default(2)     // dispositivos por sesión de mesa
   confirmTableEnabled Boolean        @default(false) // "confirmar mesa" antes de pedir (slice 2)
   tables         Table[]
