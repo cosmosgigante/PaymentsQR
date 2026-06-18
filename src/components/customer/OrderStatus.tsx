@@ -29,18 +29,29 @@ const STEPS: { status: Status; icon: React.ReactNode; label: string }[] = [
   { status: "DELIVERED", icon: <Utensils size={14} />,     label: "Servido"   },
 ];
 
-export default function OrderStatusView({ orderId, tableToken }: { orderId: string; tableToken: string }) {
+export default function OrderStatusView({ orderId, tableToken, onPedirMas }: { orderId: string; tableToken: string; onPedirMas: () => void }) {
   const [order, setOrder] = useState<Order | null>(null);
 
   useEffect(() => {
-    fetch(`/api/orders/${orderId}?t=${tableToken}`).then((r) => r.json()).then(setOrder);
+    let active = true;
+    const fetchOrder = () =>
+      fetch(`/api/orders/${orderId}?t=${tableToken}`)
+        .then((r) => (r.ok ? r.json() : null))
+        .then((o) => { if (active && o) setOrder(o); })
+        .catch(() => { /* ignore */ });
+
+    fetchOrder();
+    // Polling de respaldo: el SSE no entrega entre instancias serverless de Vercel.
+    const poll = setInterval(fetchOrder, 5000);
 
     const es = new EventSource(`/api/events/order?orderId=${orderId}`);
     es.onmessage = (e) => {
-      const data = JSON.parse(e.data);
-      if (data.type === "ORDER_UPDATED" && data.order.id === orderId) setOrder(data.order);
+      try {
+        const data = JSON.parse(e.data);
+        if (data.type === "ORDER_UPDATED" && data.order.id === orderId) setOrder(data.order);
+      } catch { /* ignore */ }
     };
-    return () => es.close();
+    return () => { active = false; clearInterval(poll); es.close(); };
   }, [orderId, tableToken]);
 
   if (!order) {
@@ -157,6 +168,16 @@ export default function OrderStatusView({ orderId, tableToken }: { orderId: stri
             ? "🧾  Vas a pagar en la caja al terminar"
             : "💳  Pago online procesado"}
         </div>
+
+        {/* Seguir pidiendo */}
+        {order.status !== "CANCELLED" && (
+          <button
+            onClick={onPedirMas}
+            className="w-full bg-zinc-900 active:bg-zinc-700 text-white font-semibold py-3.5 rounded-2xl transition-all text-[15px] min-h-[52px]"
+          >
+            + Pedir más
+          </button>
+        )}
       </div>
     </div>
   );

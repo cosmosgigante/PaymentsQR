@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { ShoppingBag } from "lucide-react";
 import { useCart } from "@/hooks/useCart";
@@ -21,10 +21,37 @@ export default function MesaClient({ token, table, restaurant, categories }: Pro
   const [orderId, setOrderId]   = useState<string | null>(null);
   const { cart, add, updateQty, clear, total, itemCount } = useCart();
 
+  const orderKey = `pqr_order_${token}`;
+
+  // Al montar: restaurar el pedido activo (sobrevive recarga / vuelta del login)
+  // y reabrir el carrito si veníamos de loguearnos con Google.
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(orderKey);
+      if (saved) setOrderId(saved);
+      if (localStorage.getItem("pqr_reopen_cart")) {
+        localStorage.removeItem("pqr_reopen_cart");
+        setCartOpen(true);
+      }
+    } catch { /* ignore */ }
+  }, [orderKey]);
+
+  function handleOrderCreated(id: string) {
+    try { localStorage.setItem(orderKey, id); } catch { /* ignore */ }
+    setOrderId(id);
+    setCartOpen(false);
+    clear();
+  }
+
+  function pedirMas() {
+    try { localStorage.removeItem(orderKey); } catch { /* ignore */ }
+    setOrderId(null);
+  }
+
   const tableLabel = table.label ?? `Mesa ${table.number}`;
 
   if (orderId) {
-    return <OrderStatusView orderId={orderId} tableToken={token} />;
+    return <OrderStatusView orderId={orderId} tableToken={token} onPedirMas={pedirMas} />;
   }
 
   return (
@@ -80,11 +107,7 @@ export default function MesaClient({ token, table, restaurant, categories }: Pro
           tableToken={token}
           onClose={() => setCartOpen(false)}
           onUpdateQty={updateQty}
-          onOrderCreated={(id) => {
-            setOrderId(id);
-            setCartOpen(false);
-            clear();
-          }}
+          onOrderCreated={handleOrderCreated}
         />
       )}
     </div>

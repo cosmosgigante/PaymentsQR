@@ -42,6 +42,8 @@ export default function CartDrawer({ cart, tableToken, onClose, onUpdateQty, onO
     // Guardamos la ruta de la mesa en cookie antes de salir a Google
     const mesaPath = window.location.pathname + window.location.search;
     document.cookie = `pqr_return=${encodeURIComponent(mesaPath)}; path=/; max-age=300; samesite=lax`;
+    // Flag para reabrir el carrito al volver del login (si no, queda cerrado y parece roto)
+    try { localStorage.setItem("pqr_reopen_cart", "1"); } catch { /* ignore */ }
     createClient().auth.signInWithOAuth({
       provider: "google",
       options: {
