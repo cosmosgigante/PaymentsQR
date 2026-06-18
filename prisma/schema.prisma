@@ -166,6 +166,24 @@ model Admin {
   createdAt    DateTime   @default(now())
 }
 
+// Método de cobro de un restorán (lo carga el cliente-admin en Ajustes).
+// El token va CIFRADO (AES-256-GCM, ver lib/secrets.ts) — nunca en texto plano,
+// nunca vuelve al navegador. Solo el backend lo descifra al cobrar.
+model PaymentMethod {
+  id             String   @id @default(cuid())
+  restaurantId   String
+  provider       String   // "MERCADOPAGO"
+  enabled        Boolean  @default(false)
+  encryptedToken String?  // Access Token cifrado
+  tokenHint      String?  // "••••1234" para mostrar sin revelar
+  publicKey      String?  // public key de MP (es pública por diseño)
+  accountName    String?  // nombre/email de la cuenta MP (validado al guardar)
+  updatedAt      DateTime @updatedAt
+  createdAt      DateTime @default(now())
+
+  @@unique([restaurantId, provider])
+}
+
 // Registro de actividad (auditoría). Sin relaciones para que el log sobreviva
 // a borrados; se filtra por accountId / restaurantId.
 model ActivityLog {

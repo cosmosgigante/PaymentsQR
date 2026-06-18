@@ -202,10 +202,16 @@ export default function CuentaClient({ account, restaurants: initial, isFull = t
                   <p className="text-xs text-gray-400 mt-0.5 font-mono truncate">/{r.slug} · {r._count.tables} mesas · {r._count.orders} pedidos</p>
                 </div>
                 {active ? (
-                  <a href={`/api/account/enter?restaurantId=${r.id}`}
-                    className="shrink-0 bg-blue-900 text-white hover:bg-blue-800 text-sm font-semibold px-4 py-2 rounded-xl transition-all">
-                    Entrar
-                  </a>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <Link href={`/cuenta/ajustes/${r.id}`}
+                      className="text-sm font-semibold text-gray-600 hover:text-gray-900 bg-gray-100 hover:bg-gray-200 px-3 py-2 rounded-xl transition-all">
+                      Ajustes
+                    </Link>
+                    <a href={`/api/account/enter?restaurantId=${r.id}`}
+                      className="bg-blue-900 text-white hover:bg-blue-800 text-sm font-semibold px-4 py-2 rounded-xl transition-all">
+                      Ingresar
+                    </a>
+                  </div>
                 ) : (
                   <span className="shrink-0 text-xs text-amber-600 font-medium px-3">Esperando habilitación</span>
                 )}
