@@ -17,6 +17,7 @@ export type SessionRow = {
   status: string;
   deviceIds: string;
   maxDevices: number;
+  paymentStatus: string | null;
 };
 
 /** Lee el id de dispositivo del cookie httpOnly, o genera uno nuevo. */

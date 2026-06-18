@@ -49,9 +49,17 @@ export async function POST(req: NextRequest) {
     include: { items: { include: { menuItem: true } }, table: true },
   });
 
+  // ¿El local tiene cobro online configurado? (para mostrar el botón "Pagar")
+  const pm = await db.paymentMethod.findUnique({
+    where: { restaurantId_provider: { restaurantId: table.restaurantId, provider: "MERCADOPAGO" } },
+    select: { enabled: true, encryptedToken: true },
+  });
+  const payEnabled = !!(pm?.enabled && pm.encryptedToken);
+
   const res = NextResponse.json({
     ok: true,
-    session: { id: session.id, status: session.status },
+    session: { id: session.id, status: session.status, paymentStatus: session.paymentStatus },
+    payEnabled,
     orders,
   });
   setDeviceCookie(res, deviceId);
