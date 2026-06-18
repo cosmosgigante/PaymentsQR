@@ -89,6 +89,7 @@ export async function POST(req: NextRequest) {
       restaurantId:  table.restaurantId,
       tableId:       table.id,
       tableSessionId: session.id,
+      deviceId,
       paymentMode,
       total,
       notes:         safeNotes,

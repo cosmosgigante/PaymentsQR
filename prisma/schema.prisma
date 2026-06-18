@@ -140,10 +140,30 @@ model Order {
   customerEmail String?
   tableSessionId String?
   tableSession   TableSession? @relation(fields: [tableSessionId], references: [id])
+  deviceId       String?    // qué dispositivo de la mesa hizo el pedido (para dividir la cuenta)
   createdAt     DateTime    @default(now())
   updatedAt     DateTime    @updatedAt
 
   @@index([tableSessionId])
+}
+
+// Un intento de cobro (Checkout Pro). Cubre un conjunto FIJO de pedidos
+// (snapshot al crearse) para que dividir la cuenta sea correcto con la plata.
+model Payment {
+  id           String       @id @default(cuid())
+  sessionId    String
+  session      TableSession @relation(fields: [sessionId], references: [id])
+  restaurantId String
+  deviceId     String?      // quién inició el pago
+  scope        String       // "MINE" | "ALL"
+  orderIds     String       @default("[]") // JSON: pedidos cubiertos por este pago
+  amount       Float
+  preferenceId String?
+  status       String       @default("PENDING") // "PENDING" | "APPROVED"
+  createdAt    DateTime     @default(now())
+  paidAt       DateTime?
+
+  @@index([sessionId])
 }
 
 // Sesión de mesa: agrupa los pedidos de un grupo de comensales sentados en una
@@ -161,6 +181,7 @@ model TableSession {
   paymentStatus       String?  // null | "PENDING" (alguien inició el pago) | "APPROVED"
   paymentPreferenceId String?  // id de la preferencia de Checkout Pro vigente
   orders         Order[]
+  payments       Payment[]
   openedAt       DateTime   @default(now())
   lastActivityAt DateTime   @default(now())
   confirmedAt    DateTime?

@@ -24,9 +24,9 @@ export type SessionOrder = {
   table: { number: number; label: string | null };
   items: { quantity: number; unitPrice: number; notes: string | null; menuItem: { name: string } }[];
   createdAt: string;
+  mine?: boolean;
+  dinerIndex?: number;
 };
-
-const ACTIVE_STATUSES: Status[] = ["PENDING", "CONFIRMED", "PREPARING", "READY", "DELIVERED"];
 
 export default function MesaClient({ token, table, restaurant, categories }: Props) {
   const [cartOpen, setCartOpen]   = useState(false);
@@ -35,7 +35,8 @@ export default function MesaClient({ token, table, restaurant, categories }: Pro
   const [orders, setOrders]       = useState<SessionOrder[]>([]);
   const [pendingConfirm, setPendingConfirm] = useState(false);
   const [payEnabled, setPayEnabled] = useState(false);
-  const [paymentStatus, setPaymentStatus] = useState<string | null>(null);
+  const [multiDiner, setMultiDiner] = useState(false);
+  const [paymentPending, setPaymentPending] = useState(false);
   const [forceMenu, setForceMenu] = useState(false);
   const { cart, add, updateQty, clear, total, itemCount } = useCart();
 
@@ -54,7 +55,8 @@ export default function MesaClient({ token, table, restaurant, categories }: Pro
         setOrders(Array.isArray(d.orders) ? d.orders : []);
         setPendingConfirm(d.session?.status === "PENDING_CONFIRM");
         setPayEnabled(!!d.payEnabled);
-        setPaymentStatus(d.session?.paymentStatus ?? null);
+        setMultiDiner(!!d.multiDiner);
+        setPaymentPending(!!d.paymentPending);
       }
       setPhase("ready");
     } catch {
@@ -86,7 +88,7 @@ export default function MesaClient({ token, table, restaurant, categories }: Pro
   function pedirMas() { setForceMenu(true); }
 
   const tableLabel = table.label ?? `Mesa ${table.number}`;
-  const activeOrder = [...orders].reverse().find((o) => ACTIVE_STATUSES.includes(o.status));
+  const currentOrder = orders.length ? orders[orders.length - 1] : null;
 
   if (phase === "loading") {
     return (
@@ -113,16 +115,17 @@ export default function MesaClient({ token, table, restaurant, categories }: Pro
     );
   }
 
-  if (activeOrder && !forceMenu) {
+  if (currentOrder && !forceMenu) {
     return (
       <OrderStatusView
-        orderId={activeOrder.id}
+        orderId={currentOrder.id}
         tableToken={token}
         onPedirMas={pedirMas}
         sessionOrders={orders}
         pendingConfirm={pendingConfirm}
         payEnabled={payEnabled}
-        paymentStatus={paymentStatus}
+        multiDiner={multiDiner}
+        paymentPending={paymentPending}
       />
     );
   }
