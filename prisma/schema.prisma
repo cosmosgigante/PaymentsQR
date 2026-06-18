@@ -158,6 +158,8 @@ model TableSession {
   status         String     @default("OPEN") // "OPEN" | "PENDING_CONFIRM" | "CLOSED"
   deviceIds      String     @default("[]")   // JSON: ids de dispositivos unidos (límite anti-escaneo ajeno)
   maxDevices     Int        @default(2)
+  paymentStatus       String?  // null | "PENDING" (alguien inició el pago) | "APPROVED"
+  paymentPreferenceId String?  // id de la preferencia de Checkout Pro vigente
   orders         Order[]
   openedAt       DateTime   @default(now())
   lastActivityAt DateTime   @default(now())

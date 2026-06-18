@@ -34,6 +34,8 @@ export default function MesaClient({ token, table, restaurant, categories }: Pro
   const [maxDevices, setMaxDevices] = useState(2);
   const [orders, setOrders]       = useState<SessionOrder[]>([]);
   const [pendingConfirm, setPendingConfirm] = useState(false);
+  const [payEnabled, setPayEnabled] = useState(false);
+  const [paymentStatus, setPaymentStatus] = useState<string | null>(null);
   const [forceMenu, setForceMenu] = useState(false);
   const { cart, add, updateQty, clear, total, itemCount } = useCart();
 
@@ -51,6 +53,8 @@ export default function MesaClient({ token, table, restaurant, categories }: Pro
       if (d?.ok) {
         setOrders(Array.isArray(d.orders) ? d.orders : []);
         setPendingConfirm(d.session?.status === "PENDING_CONFIRM");
+        setPayEnabled(!!d.payEnabled);
+        setPaymentStatus(d.session?.paymentStatus ?? null);
       }
       setPhase("ready");
     } catch {
@@ -117,6 +121,8 @@ export default function MesaClient({ token, table, restaurant, categories }: Pro
         onPedirMas={pedirMas}
         sessionOrders={orders}
         pendingConfirm={pendingConfirm}
+        payEnabled={payEnabled}
+        paymentStatus={paymentStatus}
       />
     );
   }

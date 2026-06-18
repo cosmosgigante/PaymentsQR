@@ -31,11 +31,28 @@ const STEPS: { status: Status; icon: React.ReactNode; label: string }[] = [
 
 type SessionOrderLite = { id: string; status: Status; total: number };
 
-export default function OrderStatusView({ orderId, tableToken, onPedirMas, sessionOrders, pendingConfirm }: { orderId: string; tableToken: string; onPedirMas: () => void; sessionOrders?: SessionOrderLite[]; pendingConfirm?: boolean }) {
+export default function OrderStatusView({ orderId, tableToken, onPedirMas, sessionOrders, pendingConfirm, payEnabled, paymentStatus }: { orderId: string; tableToken: string; onPedirMas: () => void; sessionOrders?: SessionOrderLite[]; pendingConfirm?: boolean; payEnabled?: boolean; paymentStatus?: string | null }) {
   const [order, setOrder] = useState<Order | null>(null);
+  const [paying, setPaying] = useState(false);
 
   const bill = (sessionOrders ?? []).filter((o) => o.status !== "CANCELLED");
   const billTotal = bill.reduce((s, o) => s + o.total, 0);
+  const unpaidTotal = bill.filter((o) => o.status !== "PAID").reduce((s, o) => s + o.total, 0);
+  const isPaid = paymentStatus === "APPROVED";
+
+  async function payBill() {
+    setPaying(true);
+    try {
+      const r = await fetch("/api/mesa/pay", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ tableToken }),
+      });
+      const d = await r.json();
+      if (d?.initPoint) { window.location.href = d.initPoint; return; }
+      alert(d?.error ?? "No se pudo iniciar el pago");
+    } catch { alert("No se pudo iniciar el pago"); }
+    setPaying(false);
+  }
 
   useEffect(() => {
     let active = true;
@@ -204,6 +221,26 @@ export default function OrderStatusView({ orderId, tableToken, onPedirMas, sessi
             ? "🧾  Vas a pagar en la caja al terminar"
             : "💳  Pago online procesado"}
         </div>
+
+        {/* Pago de la cuenta de la mesa (MercadoPago) — compartido entre dispositivos */}
+        {isPaid ? (
+          <div className="rounded-3xl p-4 text-center text-sm font-semibold border bg-emerald-50 border-emerald-200 text-emerald-700">
+            ✓ Cuenta pagada
+          </div>
+        ) : payEnabled && unpaidTotal > 0 ? (
+          <>
+            <button
+              onClick={payBill}
+              disabled={paying}
+              className="w-full bg-emerald-600 active:bg-emerald-700 disabled:opacity-50 text-white font-bold py-4 rounded-2xl transition-all text-[15px] min-h-[56px]"
+            >
+              {paying ? "Abriendo MercadoPago…" : `Pagar la cuenta · $${unpaidTotal.toLocaleString("es-AR")}`}
+            </button>
+            {paymentStatus === "PENDING" && (
+              <p className="text-center text-xs text-amber-600">Hay un pago en proceso para esta mesa.</p>
+            )}
+          </>
+        ) : null}
 
         {/* Seguir pidiendo */}
         {order.status !== "CANCELLED" && (
