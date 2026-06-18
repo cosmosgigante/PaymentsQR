@@ -77,6 +77,10 @@ export async function POST(req: NextRequest) {
   if (!emailRegex.test(String(adminEmail))) {
     return NextResponse.json({ error: "Email inválido" }, { status: 400 });
   }
+  // Los Clientes A se agendan SÍ O SÍ con Gmail (autenticación con Google).
+  if (!/@(gmail|googlemail)\.com$/i.test(String(adminEmail).trim())) {
+    return NextResponse.json({ error: "El Cliente A debe registrarse con un correo de Gmail" }, { status: 400 });
+  }
 
   const cleanSlug = String(slug).toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "").slice(0, 60);
   if (cleanSlug.length < 2) {
