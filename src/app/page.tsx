@@ -189,7 +189,8 @@ export default function LoginPage() {
         {/* Formulario login */}
         {mode === "login" && (
           <form method="POST" action="/api/auth/login" className="space-y-3">
-            <input type="email" name="email" required autoComplete="email" inputMode="email" placeholder="Email"
+            {/* Acepta email (dueños) o usuario sin @ (personal/socios). El backend resuelve ambos. */}
+            <input type="text" name="email" required autoComplete="username" placeholder="Email o usuario"
               className="w-full bg-white/10 border border-white/15 text-white rounded-xl px-4 py-3.5 text-[16px] focus:outline-none focus:ring-2 focus:ring-white/30 placeholder:text-white/40 min-h-[52px]" />
             <input type="password" name="password" required autoComplete="current-password" placeholder="Contraseña"
               className="w-full bg-white/10 border border-white/15 text-white rounded-xl px-4 py-3.5 text-[16px] focus:outline-none focus:ring-2 focus:ring-white/30 placeholder:text-white/40 min-h-[52px]" />
