@@ -12,7 +12,7 @@ type MP = {
   accountName: string | null;
 };
 
-type Ops = { confirmTableEnabled: boolean; maxTableDevices: number };
+type Ops = { confirmTableEnabled: boolean; maxTableDevices: number; flowConfirmEnabled: boolean; flowDeliveredEnabled: boolean };
 
 export default function AjustesClient({
   restaurantId, restaurantName, mercadopago, operations,
@@ -31,6 +31,8 @@ export default function AjustesClient({
   // Flujo operativo
   const [confirmTable, setConfirmTable] = useState(operations.confirmTableEnabled);
   const [maxDevices, setMaxDevices] = useState(operations.maxTableDevices);
+  const [flowConfirm, setFlowConfirm] = useState(operations.flowConfirmEnabled);
+  const [flowDelivered, setFlowDelivered] = useState(operations.flowDeliveredEnabled);
   const [savingOps, setSavingOps] = useState(false);
   const [opsMsg, setOpsMsg] = useState<string | null>(null);
 
@@ -39,7 +41,7 @@ export default function AjustesClient({
     const res = await fetch(`/api/account/restaurants/${restaurantId}/settings`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ confirmTableEnabled: confirmTable, maxTableDevices: maxDevices }),
+      body: JSON.stringify({ confirmTableEnabled: confirmTable, maxTableDevices: maxDevices, flowConfirmEnabled: flowConfirm, flowDeliveredEnabled: flowDelivered }),
     });
     setSavingOps(false);
     setOpsMsg(res.ok ? "Guardado ✓" : "Error al guardar");
@@ -182,6 +184,44 @@ export default function AjustesClient({
               <input type="number" min={1} max={10} value={maxDevices}
                 onChange={(e) => setMaxDevices(Number(e.target.value))}
                 className="w-16 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm text-center focus:outline-none focus:ring-2 focus:ring-blue-500/30 shrink-0" />
+            </label>
+          </div>
+
+          <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest pt-1">Pasos del flujo de órdenes</p>
+
+          {/* Paso Confirmación */}
+          <div className="border border-gray-100 rounded-xl p-4">
+            <label className="flex items-center justify-between gap-3 cursor-pointer">
+              <div>
+                <span className="font-semibold text-gray-800 text-sm">Confirmación de recepción</span>
+                <p className="text-xs text-gray-400 mt-0.5">
+                  {flowConfirm
+                    ? "Cocina debe confirmar que recibió la orden antes de preparar."
+                    : "Sin confirmación — la orden va directo a Preparando al llegar."}
+                </p>
+                <p className="text-[11px] text-gray-300 mt-0.5 font-mono">
+                  {flowConfirm ? "PENDIENTE → Confirmado → Preparando" : "PENDIENTE → Preparando"}
+                </p>
+              </div>
+              <input type="checkbox" checked={flowConfirm} onChange={(e) => setFlowConfirm(e.target.checked)} className="w-4 h-4 accent-blue-600 shrink-0" />
+            </label>
+          </div>
+
+          {/* Paso Entregado */}
+          <div className="border border-gray-100 rounded-xl p-4">
+            <label className="flex items-center justify-between gap-3 cursor-pointer">
+              <div>
+                <span className="font-semibold text-gray-800 text-sm">Paso de entrega</span>
+                <p className="text-xs text-gray-400 mt-0.5">
+                  {flowDelivered
+                    ? "El mozo marca 'Entregado' antes de que caja lo cierre como pagado."
+                    : "Sin paso de entrega — al estar Listo pasa directo a Cobrar."}
+                </p>
+                <p className="text-[11px] text-gray-300 mt-0.5 font-mono">
+                  {flowDelivered ? "Listo → Entregado → Pagado" : "Listo → Pagado"}
+                </p>
+              </div>
+              <input type="checkbox" checked={flowDelivered} onChange={(e) => setFlowDelivered(e.target.checked)} className="w-4 h-4 accent-blue-600 shrink-0" />
             </label>
           </div>
 
