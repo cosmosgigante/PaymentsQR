@@ -3,20 +3,22 @@
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
-import { Users, Bell, BarChart2, MessageCircle, Menu, X, LogOut, Activity, CreditCard } from "lucide-react";
+import { Users, Bell, BarChart2, MessageCircle, Menu, X, LogOut, Activity, CreditCard, Building2 } from "lucide-react";
 import PanelBoundary from "@/components/setup/PanelBoundary";
 import ClientesPanel from "./panels/ClientesPanel";
 import TrazabilidadPanel from "./panels/TrazabilidadPanel";
 import MembresiasPanel from "./panels/MembresiasPanel";
+import OrganizacionesPanel from "./panels/OrganizacionesPanel";
 import PlaceholderPanel from "./panels/PlaceholderPanel";
 
 const SECTIONS = [
-  { key: "clientes",      label: "Clientes",       icon: Users },
-  { key: "membresias",   label: "Membresías",      icon: CreditCard },
-  { key: "trazabilidad", label: "Trazabilidad",    icon: Activity },
-  { key: "notificaciones",label: "Notificaciones", icon: Bell },
-  { key: "analytics",    label: "Analytics",       icon: BarChart2 },
-  { key: "soporte",      label: "Soporte",         icon: MessageCircle },
+  { key: "clientes",        label: "Clientes",        icon: Users },
+  { key: "organizaciones",  label: "Organizaciones",  icon: Building2 },
+  { key: "membresias",      label: "Membresías",      icon: CreditCard },
+  { key: "trazabilidad",    label: "Trazabilidad",    icon: Activity },
+  { key: "notificaciones",  label: "Notificaciones",  icon: Bell },
+  { key: "analytics",       label: "Analytics",       icon: BarChart2 },
+  { key: "soporte",         label: "Soporte",         icon: MessageCircle },
 ] as const;
 
 type SectionKey = (typeof SECTIONS)[number]["key"];
@@ -106,6 +108,7 @@ export default function SuperAdminPage() {
         <main className="flex-1 p-5 lg:p-8 max-w-4xl w-full mx-auto">
           <PanelBoundary name={section.label}>
             {active === "clientes"       && <ClientesPanel />}
+            {active === "organizaciones" && <OrganizacionesPanel />}
             {active === "membresias"     && <MembresiasPanel onPendingCount={setPendingMemberships} />}
             {active === "trazabilidad"   && <TrazabilidadPanel />}
             {active === "notificaciones" && <PlaceholderPanel name="Notificaciones" description="Invitaciones a sociedades y cambios de permisos a tokens. Próximamente." />}
