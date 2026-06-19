@@ -6,38 +6,30 @@ import { useSSE } from "@/hooks/useSSE";
 import { ArrowLeft, Clock, BellRing } from "lucide-react";
 import Link from "next/link";
 
-type OrderItem = {
-  id: string;
-  quantity: number;
-  notes: string | null;
-  menuItem: { name: string };
-};
-
+type OrderItem = { id: string; quantity: number; notes: string | null; menuItem: { name: string } };
 type Order = {
-  id: string;
-  status: string;
-  paymentMode: string;
-  total: number;
-  notes: string | null;
-  createdAt: string;
+  id: string; status: string; paymentMode: string; total: number;
+  notes: string | null; createdAt: string;
   table: { number: number; label: string | null };
   items: OrderItem[];
 };
+type TableGroup = { tableNumber: number; tableLabel: string | null; orders: Order[] };
 
-type TableSess = {
-  id: string;
-  status: string;
-  table: { number: number; label: string | null };
-  orderCount: number;
-  total: number;
-  openedAt: string;
-};
+const ACTIVE = ["PENDING", "CONFIRMED", "PREPARING", "READY", "DELIVERED"];
+
+function groupByTable(orders: Order[]): TableGroup[] {
+  const map = new Map<number, TableGroup>();
+  for (const o of orders) {
+    const n = o.table.number;
+    if (!map.has(n)) map.set(n, { tableNumber: n, tableLabel: o.table.label, orders: [] });
+    map.get(n)!.orders.push(o);
+  }
+  return Array.from(map.values()).sort((a, b) => a.tableNumber - b.tableNumber);
+}
 
 export default function WaiterBoard({ initialOrders }: { initialOrders: Order[] }) {
   const [orders, setOrders] = useState<Order[]>(initialOrders);
-  const [sessions, setSessions] = useState<TableSess[]>([]);
-  const [busySession, setBusySession] = useState<string | null>(null);
-  const [alertOrderId, setAlertOrderId] = useState<string | null>(null);
+  const [alertTableNum, setAlertTableNum] = useState<number | null>(null);
   const audioCtxRef = useRef<AudioContext | null>(null);
 
   function playBeep() {
@@ -51,10 +43,9 @@ export default function WaiterBoard({ initialOrders }: { initialOrders: Order[] 
         osc.frequency.value = 880; osc.type = "sine";
         gain.gain.setValueAtTime(0.4, ctx.currentTime + delay);
         gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + delay + 0.3);
-        osc.start(ctx.currentTime + delay);
-        osc.stop(ctx.currentTime + delay + 0.3);
+        osc.start(ctx.currentTime + delay); osc.stop(ctx.currentTime + delay + 0.3);
       });
-    } catch { /* ignorar si el browser bloquea audio */ }
+    } catch { /* ignorar */ }
   }
 
   const handleSSE = useCallback((data: { type: string; [k: string]: unknown }) => {
@@ -69,8 +60,8 @@ export default function WaiterBoard({ initialOrders }: { initialOrders: Order[] 
           return exists ? prev.map((o) => o.id === updated.id ? updated : o) : [...prev, updated];
         });
         playBeep();
-        setAlertOrderId(updated.id);
-        setTimeout(() => setAlertOrderId(null), 4000);
+        setAlertTableNum(updated.table.number);
+        setTimeout(() => setAlertTableNum(null), 4000);
       } else if (updated.status === "PAID" || updated.status === "CANCELLED") {
         setOrders((prev) => prev.filter((o) => o.id !== updated.id));
       } else {
@@ -81,88 +72,44 @@ export default function WaiterBoard({ initialOrders }: { initialOrders: Order[] 
 
   useSSE("/api/events", handleSSE);
 
-  const fetchSessions = useCallback(async () => {
-    try {
-      const res = await fetch("/api/sessions");
-      if (res.ok) setSessions(await res.json());
-    } catch { /* ignorar error de red */ }
-  }, []);
-
-  // Polling cada 4s — garantiza sincronización entre instancias serverless
   useEffect(() => {
-    const ACTIVE = ["PENDING", "CONFIRMED", "PREPARING", "READY", "DELIVERED"];
-    fetchSessions();
     const poll = setInterval(async () => {
       try {
         const res = await fetch("/api/orders");
-        if (res.ok) {
-          const data = await res.json();
-          setOrders(data.filter((o: Order) => ACTIVE.includes(o.status)));
-        }
-      } catch { /* ignorar error de red */ }
-      fetchSessions();
+        if (!res.ok) return;
+        const data = await res.json();
+        setOrders(data.filter((o: Order) => ACTIVE.includes(o.status)));
+      } catch { /* ignorar */ }
     }, 4000);
     return () => clearInterval(poll);
-  }, [fetchSessions]);
+  }, []);
 
-  async function sessionAction(id: string, action: "confirm" | "close") {
-    if (action === "close" && !confirm("¿Cerrar esta mesa? Se da por terminada la cuenta.")) return;
-    setBusySession(id);
-    try {
-      const res = await fetch(`/api/sessions/${id}`, {
-        method: "PATCH", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action }),
-      });
-      if (res.ok) {
-        if (action === "close") setSessions((prev) => prev.filter((s) => s.id !== id));
-        else setSessions((prev) => prev.map((s) => s.id === id ? { ...s, status: "OPEN" } : s));
+  async function patchOrder(orderId: string, status: string) {
+    const res = await fetch(`/api/orders/${orderId}`, {
+      method: "PATCH", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ status }),
+    });
+    if (res.ok) {
+      if (status === "PAID" || status === "CANCELLED") {
+        setOrders((prev) => prev.filter((o) => o.id !== orderId));
+      } else {
+        setOrders((prev) => prev.map((o) => o.id === orderId ? { ...o, status } : o));
       }
-    } catch { /* ignorar */ }
-    setBusySession(null);
+    }
   }
 
-  async function markDelivered(orderId: string) {
-    const res = await fetch(`/api/orders/${orderId}`, {
-      method: "PATCH", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ status: "DELIVERED" }),
-    });
-    if (res.ok) setOrders((prev) => prev.filter((o) => o.id !== orderId));
-  }
-
-  async function markPaid(orderId: string) {
-    const res = await fetch(`/api/orders/${orderId}`, {
-      method: "PATCH", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ status: "PAID" }),
-    });
-    if (res.ok) setOrders((prev) => prev.filter((o) => o.id !== orderId));
-  }
-
-  const ready      = orders.filter((o) => o.status === "READY");
-  const inProgress = orders.filter((o) => ["PENDING","CONFIRMED","PREPARING"].includes(o.status));
-  const delivered  = orders.filter((o) => o.status === "DELIVERED");
-
-  const pendingSessions = sessions.filter((s) => s.status === "PENDING_CONFIRM");
-  const openSessions    = sessions.filter((s) => s.status === "OPEN");
+  const readyOrders = orders.filter((o) => o.status === "READY");
+  const groups = groupByTable(orders);
+  const readyGroups = groups.filter((g) => g.orders.some((o) => o.status === "READY"));
+  const otherGroups = groups.filter((g) => g.orders.every((o) => o.status !== "READY"));
 
   const hour = new Date().getHours();
   const greeting = hour < 12 ? "Buenos días" : hour < 19 ? "Buenas tardes" : "Buenas noches";
 
   return (
     <div className="min-h-screen bg-slate-100">
-
-      {/* Hero — mismo estilo que panel admin */}
-      <div
-        className="relative overflow-hidden px-4 sm:px-6 pb-6"
-        style={{
-          background: "linear-gradient(135deg, #1e2d4e 0%, #1a3a6b 60%, #1e3a8a 100%)",
-          paddingTop: "max(1.25rem, env(safe-area-inset-top))",
-        }}
-      >
-        <div className="absolute inset-0 pointer-events-none overflow-hidden">
-          <div className="absolute -top-20 -right-20 w-64 h-64 rounded-full bg-white/5" />
-          <div className="absolute -bottom-10 -left-10 w-48 h-48 rounded-full bg-white/5" />
-        </div>
-
+      <div className="relative overflow-hidden px-4 sm:px-6 pb-6"
+        style={{ background: "linear-gradient(135deg, #1e2d4e 0%, #1a3a6b 60%, #1e3a8a 100%)", paddingTop: "max(1.25rem, env(safe-area-inset-top))" }}>
         <div className="relative max-w-2xl mx-auto">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
@@ -171,145 +118,58 @@ export default function WaiterBoard({ initialOrders }: { initialOrders: Order[] 
               </Link>
               <span className="font-bold text-white text-lg">Panel Mozos</span>
             </div>
-            <div className="flex items-center gap-2">
-              <AnimatePresence>
-                {alertOrderId && (
-                  <motion.div
-                    initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.8, opacity: 0 }}
-                    className="flex items-center gap-1.5 bg-emerald-500 text-white text-xs font-bold px-3 py-1.5 rounded-full shadow"
-                  >
-                    <BellRing size={12} className="animate-bounce" /> ¡Pedido listo!
-                  </motion.div>
-                )}
-              </AnimatePresence>
-              {ready.length > 0 && (
-                <span className="bg-emerald-500 text-white text-sm font-bold w-7 h-7 rounded-full flex items-center justify-center shadow">
-                  {ready.length}
-                </span>
+            <AnimatePresence>
+              {alertTableNum !== null && (
+                <motion.div initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.8, opacity: 0 }}
+                  className="flex items-center gap-1.5 bg-emerald-500 text-white text-xs font-bold px-3 py-1.5 rounded-full shadow">
+                  <BellRing size={12} className="animate-bounce" /> Mesa {alertTableNum} lista
+                </motion.div>
               )}
-            </div>
+            </AnimatePresence>
+            {readyOrders.length > 0 && (
+              <span className="bg-emerald-500 text-white text-sm font-bold w-7 h-7 rounded-full flex items-center justify-center shadow">{readyOrders.length}</span>
+            )}
           </div>
           <p className="text-white/70 text-sm">{greeting} 👋</p>
           <h1 className="text-white font-bold text-2xl mt-0.5">
-            {ready.length > 0
-              ? `${ready.length} pedido${ready.length > 1 ? "s" : ""} listo${ready.length > 1 ? "s" : ""} para entregar`
-              : "Sin pedidos listos aún"}
+            {readyGroups.length > 0 ? `${readyGroups.length} mesa${readyGroups.length > 1 ? "s" : ""} lista${readyGroups.length > 1 ? "s" : ""} para entregar` : "Sin mesas listas aún"}
           </h1>
         </div>
       </div>
 
       <div className="max-w-2xl mx-auto px-4 py-5 space-y-5">
 
-        {/* MESAS POR CONFIRMAR */}
-        {pendingSessions.length > 0 && (
+        {/* MESAS CON ALGO LISTO */}
+        {readyGroups.length > 0 && (
           <div>
-            <p className="text-[11px] font-bold text-amber-600 uppercase tracking-widest mb-3">⏳ Por confirmar ({pendingSessions.length})</p>
-            <div className="space-y-2">
-              {pendingSessions.map((s) => (
-                <div key={s.id} className="bg-white border-2 border-amber-300/70 rounded-2xl p-4 shadow-sm flex items-center justify-between gap-3">
-                  <div>
-                    <p className="font-black text-gray-900 text-xl leading-none">Mesa {s.table.number}</p>
-                    <p className="text-gray-400 text-xs mt-1">
-                      {s.orderCount > 0 ? `${s.orderCount} pedido${s.orderCount > 1 ? "s" : ""} · $${s.total.toLocaleString("es-AR")}` : "Sin pedidos aún"}
-                    </p>
-                  </div>
-                  <button onClick={() => sessionAction(s.id, "confirm")} disabled={busySession === s.id}
-                    className="bg-amber-500 hover:bg-amber-600 disabled:opacity-50 text-white text-sm font-bold px-4 py-2.5 rounded-xl transition-all shrink-0">
-                    Confirmar ✓
-                  </button>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* MESAS ABIERTAS */}
-        {openSessions.length > 0 && (
-          <div>
-            <p className="text-[11px] font-bold text-blue-600 uppercase tracking-widest mb-3">🍽️ Mesas abiertas ({openSessions.length})</p>
-            <div className="space-y-2">
-              {openSessions.map((s) => (
-                <div key={s.id} className="bg-white border border-gray-100 rounded-2xl p-4 shadow-sm flex items-center justify-between gap-3">
-                  <div>
-                    <p className="font-black text-gray-900 text-xl leading-none">Mesa {s.table.number}</p>
-                    <p className="text-gray-400 text-xs mt-1">
-                      {s.orderCount} pedido{s.orderCount === 1 ? "" : "s"} · ${s.total.toLocaleString("es-AR")}
-                    </p>
-                  </div>
-                  <button onClick={() => sessionAction(s.id, "close")} disabled={busySession === s.id}
-                    className="bg-gray-800 hover:bg-gray-700 disabled:opacity-50 text-white text-sm font-bold px-4 py-2.5 rounded-xl transition-all shrink-0">
-                    Cerrar mesa
-                  </button>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* EN COCINA */}
-        {inProgress.length > 0 && (
-          <div>
-            <p className="text-[11px] font-bold text-orange-500 uppercase tracking-widest mb-3">🟠 En cocina ({inProgress.length})</p>
-            <div className="space-y-2">
-              {inProgress.map((order) => (
-                <div key={order.id} className="bg-white border border-gray-100 rounded-2xl p-4 shadow-sm">
-                  <div className="flex items-center justify-between mb-2">
-                    <div>
-                      <p className="font-black text-gray-900 text-2xl leading-none">Mesa {order.table.number}</p>
-                      {order.table.label && <p className="text-gray-400 text-xs mt-0.5">{order.table.label}</p>}
-                    </div>
-                    <span className="text-[11px] px-2.5 py-1 rounded-full font-semibold bg-orange-100 text-orange-600 border border-orange-200">
-                      {order.status === "PENDING" ? "Pendiente" : order.status === "CONFIRMED" ? "Confirmado" : "Preparando"}
-                    </span>
-                  </div>
-                  <p className="text-sm text-gray-600">{order.items.map((i) => `${i.quantity}× ${i.menuItem.name}`).join(", ")}</p>
-                  <div className="mt-2">
-                    {order.paymentMode === "ONLINE"
-                      ? <span className="text-[11px] font-semibold text-emerald-600">✓ Ya pagó online</span>
-                      : <span className="text-[11px] font-semibold text-amber-600">💵 Paga en caja</span>}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* LISTOS PARA ENTREGAR */}
-        <div>
-          <p className="text-[11px] font-bold text-emerald-600 uppercase tracking-widest mb-3">🟢 Listos para entregar ({ready.length})</p>
-          {ready.length === 0 ? (
-            <div className="bg-white border border-gray-100 rounded-2xl p-8 text-center shadow-sm">
-              <p className="text-gray-400 text-sm">Ningún pedido listo todavía</p>
-              <p className="text-gray-300 text-xs mt-1">Aparecen acá automáticamente</p>
-            </div>
-          ) : (
+            <p className="text-[11px] font-bold text-emerald-600 uppercase tracking-widest mb-3">🟢 Listas para entregar</p>
             <div className="space-y-3">
               <AnimatePresence>
-                {ready.map((order) => (
-                  <motion.div
-                    key={order.id}
-                    initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95 }}
-                    className="bg-white border-2 border-emerald-400/60 rounded-2xl overflow-hidden shadow-sm"
-                  >
-                    <OrderCard order={order} onDeliver={() => markDelivered(order.id)} onPaid={() => markPaid(order.id)} />
+                {readyGroups.map((g) => (
+                  <motion.div key={g.tableNumber} initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95 }}>
+                    <TableCard group={g} onPatch={patchOrder} />
                   </motion.div>
                 ))}
               </AnimatePresence>
             </div>
-          )}
-        </div>
+          </div>
+        )}
 
-        {/* ENTREGADOS */}
-        {delivered.length > 0 && (
+        {/* MESAS EN COCINA / ENTREGADAS */}
+        {otherGroups.length > 0 && (
           <div>
-            <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-3">⏳ Entregados — cobrar ({delivered.length})</p>
+            <p className="text-[11px] font-bold text-orange-500 uppercase tracking-widest mb-3">🟠 En proceso</p>
             <div className="space-y-3">
-              {delivered.map((order) => (
-                <div key={order.id} className="bg-white border border-gray-100 rounded-2xl overflow-hidden shadow-sm opacity-75">
-                  <OrderCard order={order} onDeliver={() => {}} onPaid={() => markPaid(order.id)} />
-                </div>
+              {otherGroups.map((g) => (
+                <TableCard key={g.tableNumber} group={g} onPatch={patchOrder} />
               ))}
             </div>
+          </div>
+        )}
+
+        {groups.length === 0 && (
+          <div className="bg-white border border-gray-100 rounded-2xl p-10 text-center shadow-sm">
+            <p className="text-gray-400 text-sm">Sin mesas activas</p>
           </div>
         )}
       </div>
@@ -317,65 +177,81 @@ export default function WaiterBoard({ initialOrders }: { initialOrders: Order[] 
   );
 }
 
-function OrderCard({ order, onDeliver, onPaid }: { order: Order; onDeliver: () => void; onPaid: () => void }) {
-  const elapsed = Math.floor((Date.now() - new Date(order.createdAt).getTime()) / 60000);
-  const isReady = order.status === "READY";
+function TableCard({ group, onPatch }: { group: TableGroup; onPatch: (id: string, status: string) => void }) {
+  const tableTotal = group.orders.reduce((s, o) => s + o.total, 0);
+  const hasReady = group.orders.some((o) => o.status === "READY");
+  const allDelivered = group.orders.every((o) => o.status === "DELIVERED");
 
   return (
-    <div>
+    <div className={`bg-white rounded-2xl overflow-hidden shadow-sm border-2 ${hasReady ? "border-emerald-400/70" : "border-gray-100"}`}>
+      {/* Cabecera de mesa */}
       <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
         <div>
-          <p className="font-black text-gray-900 text-3xl leading-none">Mesa {order.table.number}</p>
-          {order.table.label && <p className="text-gray-400 text-xs mt-0.5">{order.table.label}</p>}
-          <p className="text-gray-300 text-xs font-mono mt-0.5">#{order.id.slice(-6).toUpperCase()}</p>
+          <p className="font-black text-gray-900 text-3xl leading-none">Mesa {group.tableNumber}</p>
+          {group.tableLabel && <p className="text-gray-400 text-xs mt-0.5">{group.tableLabel}</p>}
         </div>
-        <div className="flex items-center gap-1.5 text-gray-400">
-          <Clock size={12} strokeWidth={2} />
-          <span className="text-xs">{elapsed}min</span>
+        <div className="text-right">
+          <p className="text-xs text-gray-400">{group.orders.length} pedido{group.orders.length !== 1 ? "s" : ""}</p>
+          <p className="text-sm font-bold text-gray-700 tabular-nums">${tableTotal.toLocaleString("es-AR")}</p>
         </div>
       </div>
 
-      <div className="px-4 py-3 space-y-1.5">
-        {order.items.map((item) => (
-          <div key={item.id} className="flex gap-2 text-sm">
-            <span className="text-gray-400 font-bold w-6 text-right flex-shrink-0">{item.quantity}×</span>
-            <div>
-              <span className="text-gray-800">{item.menuItem.name}</span>
-              {item.notes && <p className="text-xs text-gray-400 italic mt-0.5">{item.notes}</p>}
+      {/* Pedidos */}
+      <div className="divide-y divide-gray-50">
+        {group.orders.map((order) => {
+          const elapsed = Math.floor((Date.now() - new Date(order.createdAt).getTime()) / 60000);
+          const isReady = order.status === "READY";
+          const isDelivered = order.status === "DELIVERED";
+          return (
+            <div key={order.id} className="px-4 py-3">
+              <div className="flex items-center justify-between gap-2 mb-1.5">
+                <div className="flex items-center gap-2">
+                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
+                    isReady ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                    : isDelivered ? "bg-gray-50 text-gray-500 border-gray-200"
+                    : "bg-orange-50 text-orange-600 border-orange-200"
+                  }`}>
+                    {isReady ? "Listo ✓" : isDelivered ? "Entregado" : "En cocina"}
+                  </span>
+                  <span className="text-gray-300 font-mono text-[10px]">#{order.id.slice(-5).toUpperCase()}</span>
+                </div>
+                <div className="flex items-center gap-1 text-gray-400">
+                  <Clock size={10} /><span className="text-[10px]">{elapsed}min</span>
+                </div>
+              </div>
+              <p className="text-sm text-gray-600 mb-2">{order.items.map((i) => `${i.quantity}× ${i.menuItem.name}`).join(", ")}</p>
+              {order.notes && <p className="text-xs text-amber-600 italic mb-2">{order.notes}</p>}
+              <div className="flex items-center justify-between gap-2">
+                <span className={`text-[11px] font-semibold ${order.paymentMode === "ONLINE" ? "text-emerald-600" : "text-amber-600"}`}>
+                  {order.paymentMode === "ONLINE" ? "✓ Pagó online" : "💵 Paga en caja"}
+                </span>
+                {isReady && (
+                  <button onClick={() => onPatch(order.id, "DELIVERED")}
+                    className="bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-bold px-4 py-2 rounded-xl">
+                    Entregar ✓
+                  </button>
+                )}
+                {isDelivered && (
+                  <button onClick={() => onPatch(order.id, "PAID")}
+                    className="bg-gray-800 hover:bg-gray-700 text-white text-xs font-bold px-4 py-2 rounded-xl">
+                    {order.paymentMode === "ONLINE" ? "Cerrar ✓" : "Cobrado ✓"}
+                  </button>
+                )}
+              </div>
             </div>
-          </div>
-        ))}
-        {order.notes && (
-          <div className="mt-2 px-3 py-2 bg-amber-50 border border-amber-200 rounded-xl">
-            <p className="text-[10px] font-bold text-amber-600 uppercase tracking-widest mb-0.5">Aclaraciones</p>
-            <p className="text-xs text-amber-700">{order.notes}</p>
-          </div>
-        )}
+          );
+        })}
       </div>
 
-      <div className="px-4 py-3 border-t border-gray-100 flex items-center justify-between gap-3">
-        {order.paymentMode === "ONLINE" ? (
-          <span className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-600 bg-emerald-50 border border-emerald-200 px-3 py-1.5 rounded-full">
-            ✓ Ya pagó online
-          </span>
-        ) : (
-          <span className="inline-flex items-center gap-1 text-xs font-semibold text-amber-600 bg-amber-50 border border-amber-200 px-3 py-1.5 rounded-full">
-            💵 Paga en caja
-          </span>
-        )}
-        <div className="flex gap-2">
-          {isReady && (
-            <button onClick={onDeliver} className="bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-bold px-4 py-2 rounded-xl transition-all">
-              Entregar ✓
-            </button>
-          )}
-          {!isReady && (
-            <button onClick={onPaid} className="bg-gray-800 hover:bg-gray-700 text-white text-xs font-bold px-4 py-2 rounded-xl transition-all">
-              {order.paymentMode === "ONLINE" ? "Cerrar ✓" : "Cobrado ✓"}
-            </button>
-          )}
+      {/* Acción global de mesa (si todos entregados) */}
+      {allDelivered && (
+        <div className="px-4 py-3 border-t border-gray-100 bg-gray-50">
+          <button onClick={() => group.orders.forEach((o) => onPatch(o.id, "PAID"))}
+            className="w-full bg-gray-900 hover:bg-gray-700 text-white text-sm font-bold py-2.5 rounded-xl">
+            Cobrar mesa completa ✓
+          </button>
         </div>
-      </div>
+      )}
     </div>
   );
 }

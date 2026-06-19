@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { createClient } from "@/lib/supabase/client";
-import { ChefHat, BookOpen, QrCode, LogOut, TrendingUp, Package, Grid2X2, UtensilsCrossed, X, ArrowLeft } from "lucide-react";
+import { ChefHat, BookOpen, QrCode, LogOut, TrendingUp, Package, Grid2X2, UtensilsCrossed, X, ArrowLeft, History } from "lucide-react";
 import { ORDER_STATUS_LABELS, ORDER_STATUS_COLORS, OrderStatus } from "@/lib/types";
 import { useSSE } from "@/hooks/useSSE";
 import { useState, useCallback } from "react";
@@ -30,6 +30,10 @@ export default function AdminDashboard({ stats, recentOrders: initialOrders, gen
   const [orders, setOrders] = useState<Order[]>(initialOrders);
   const [ordersToday, setOrdersToday] = useState(stats.ordersToday);
   const [newOrderId, setNewOrderId] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<"active" | "history">("active");
+  const [history, setHistory] = useState<Order[]>([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
+  const [historyTotal, setHistoryTotal] = useState(0);
 
   const handleSSE = useCallback((data: { type: string; [k: string]: unknown }) => {
     if (data.type === "NEW_ORDER") {
@@ -57,6 +61,17 @@ export default function AdminDashboard({ stats, recentOrders: initialOrders, gen
     await supabase.auth.signOut(); // cierra también la sesión Google/Supabase
     router.push("/");
     router.refresh();
+  }
+
+  async function loadHistory() {
+    setHistoryLoading(true);
+    const res = await fetch("/api/orders?status=PAID&status=CANCELLED&today=1");
+    if (res.ok) {
+      const data = await res.json();
+      setHistory(data);
+      setHistoryTotal(data.filter((o: Order) => o.status === "PAID").reduce((s: number, o: Order) => s + o.total, 0));
+    }
+    setHistoryLoading(false);
   }
 
   async function updateStatus(orderId: string, status: OrderStatus) {
@@ -160,28 +175,73 @@ export default function AdminDashboard({ stats, recentOrders: initialOrders, gen
           <NavCard href="/admin/mesas" icon={<QrCode size={22} strokeWidth={1.5} />}          title="Mesas"      subtitle="Códigos QR"        iconBg="bg-violet-100"  iconColor="text-violet-500" />
         </div>
 
-        {/* Pedidos recientes */}
+        {/* Pedidos — tabs Activos / Historial */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-          <div className="px-4 sm:px-5 py-4 border-b border-gray-50 flex items-center justify-between">
-            <h2 className="font-bold text-gray-900">Pedidos recientes</h2>
+          <div className="px-4 sm:px-5 py-3 border-b border-gray-50 flex items-center justify-between gap-3">
+            <div className="flex gap-1 bg-gray-100 rounded-xl p-1">
+              <button onClick={() => setActiveTab("active")}
+                className={`flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-lg transition-all ${activeTab === "active" ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-700"}`}>
+                Activos {orders.length > 0 && <span className="bg-orange-100 text-orange-600 px-1.5 py-0.5 rounded-full text-[10px]">{orders.length}</span>}
+              </button>
+              <button onClick={() => { setActiveTab("history"); loadHistory(); }}
+                className={`flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-lg transition-all ${activeTab === "history" ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-700"}`}>
+                <History size={11} /> Historial hoy
+              </button>
+            </div>
             <AnimatePresence>
               {newOrderId && (
-                <motion.span
-                  initial={{ opacity: 0, scale: 0.8 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0 }}
-                  className="text-[11px] font-bold bg-orange-100 text-orange-600 px-3 py-1 rounded-full border border-orange-200"
-                >
+                <motion.span initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }}
+                  className="text-[11px] font-bold bg-orange-100 text-orange-600 px-3 py-1 rounded-full border border-orange-200">
                   🔔 ¡Nuevo pedido!
                 </motion.span>
               )}
             </AnimatePresence>
           </div>
 
+          {/* Historial */}
+          {activeTab === "history" && (
+            <div>
+              {historyLoading ? (
+                <div className="p-8 flex justify-center"><div className="w-5 h-5 border-2 border-gray-300 border-t-blue-600 rounded-full animate-spin" /></div>
+              ) : history.length === 0 ? (
+                <div className="p-10 text-center"><p className="text-gray-400 text-sm">Sin pedidos completados hoy</p></div>
+              ) : (
+                <>
+                  <div className="px-4 sm:px-5 py-2.5 bg-emerald-50 border-b border-emerald-100 flex items-center justify-between">
+                    <span className="text-xs text-emerald-700 font-semibold">{history.filter((o) => o.status === "PAID").length} pagados · {history.filter((o) => o.status === "CANCELLED").length} cancelados</span>
+                    <span className="text-sm font-bold text-emerald-700">${historyTotal.toLocaleString("es-AR")} recaudado</span>
+                  </div>
+                  <div className="divide-y divide-gray-50">
+                    {history.map((order) => (
+                      <div key={order.id} className="px-4 sm:px-5 py-3 flex items-center gap-3">
+                        <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${order.status === "PAID" ? "bg-emerald-50" : "bg-red-50"}`}>
+                          <span className={`font-black text-sm ${order.status === "PAID" ? "text-emerald-600" : "text-red-400"}`}>{order.table.number}</span>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-semibold text-gray-800">Mesa {order.table.number}{order.table.label ? ` — ${order.table.label}` : ""}</p>
+                          <p className="text-xs text-gray-400 truncate">{order.items.map((i) => `${i.quantity}× ${i.menuItem.name}`).join(", ")}</p>
+                        </div>
+                        <div className="text-right shrink-0">
+                          <p className="text-sm font-bold text-gray-900 tabular-nums">${order.total.toLocaleString("es-AR")}</p>
+                          <p className={`text-[10px] font-semibold ${order.status === "PAID" ? "text-emerald-600" : "text-red-400"}`}>
+                            {order.status === "PAID" ? "Pagado ✓" : "Cancelado"}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
+          )}
+
+          {/* Activos */}
+          {activeTab === "active" && (
+          <div>
           {orders.length === 0 ? (
             <div className="p-12 text-center">
               <p className="text-4xl mb-3">🍽️</p>
-              <p className="text-gray-400 text-sm font-medium">Sin pedidos aún</p>
+              <p className="text-gray-400 text-sm font-medium">Sin pedidos activos</p>
               <p className="text-gray-300 text-xs mt-1">Los pedidos aparecen acá en tiempo real</p>
             </div>
           ) : (
@@ -244,6 +304,8 @@ export default function AdminDashboard({ stats, recentOrders: initialOrders, gen
                 </motion.div>
               ))}
             </div>
+          )}
+          </div>
           )}
         </div>
       </div>
