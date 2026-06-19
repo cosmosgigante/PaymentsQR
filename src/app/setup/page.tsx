@@ -25,6 +25,7 @@ export default function SuperAdminPage() {
   const router = useRouter();
   const [active, setActive] = useState<SectionKey>("clientes");
   const [navOpen, setNavOpen] = useState(false);
+  const [pendingMemberships, setPendingMemberships] = useState(0);
 
   async function signOut() {
     await createClient().auth.signOut();
@@ -71,7 +72,12 @@ export default function SuperAdminPage() {
                   isActive ? "bg-white/15 text-white" : "text-white/60 hover:text-white hover:bg-white/8"
                 }`}>
                 <Icon size={16} strokeWidth={isActive ? 2.5 : 2} />
-                {s.label}
+                <span className="flex-1">{s.label}</span>
+                {s.key === "membresias" && pendingMemberships > 0 && (
+                  <span className="bg-amber-400 text-amber-900 text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[18px] text-center">
+                    {pendingMemberships}
+                  </span>
+                )}
               </button>
             );
           })}
@@ -100,7 +106,7 @@ export default function SuperAdminPage() {
         <main className="flex-1 p-5 lg:p-8 max-w-4xl w-full mx-auto">
           <PanelBoundary name={section.label}>
             {active === "clientes"       && <ClientesPanel />}
-            {active === "membresias"     && <MembresiasPanel />}
+            {active === "membresias"     && <MembresiasPanel onPendingCount={setPendingMemberships} />}
             {active === "trazabilidad"   && <TrazabilidadPanel />}
             {active === "notificaciones" && <PlaceholderPanel name="Notificaciones" description="Invitaciones a sociedades y cambios de permisos a tokens. Próximamente." />}
             {active === "analytics"      && <PlaceholderPanel name="Analytics" description="Actividad por negocio, usuario y grupo societario. Próximamente." />}
