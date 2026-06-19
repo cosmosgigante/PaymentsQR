@@ -120,18 +120,22 @@ export async function GET(req: NextRequest) {
   if (!session) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
 
   const { searchParams } = new URL(req.url);
-  const status = searchParams.get("status");
+  const statuses = searchParams.getAll("status");
+  const today = searchParams.get("today") === "1";
+
+  const VALID = ["PENDING","CONFIRMED","PREPARING","READY","DELIVERED","PAID","CANCELLED"];
+  const validStatuses = statuses.filter((s) => VALID.includes(s));
+
+  const todayStart = today ? new Date(new Date().setHours(0, 0, 0, 0)) : null;
 
   const orders = await db.order.findMany({
     where: {
       restaurantId: session.restaurantId,
-      ...(status && ["PENDING","CONFIRMED","PREPARING","READY","DELIVERED","PAID","CANCELLED"].includes(status) ? { status } : {}),
+      ...(validStatuses.length === 1 ? { status: validStatuses[0] } : validStatuses.length > 1 ? { status: { in: validStatuses } } : {}),
+      ...(todayStart ? { createdAt: { gte: todayStart } } : {}),
     },
     orderBy: { createdAt: "desc" },
-    include: {
-      items: { include: { menuItem: true } },
-      table: true,
-    },
+    include: { items: { include: { menuItem: true } }, table: true },
   });
 
   return NextResponse.json(orders);
