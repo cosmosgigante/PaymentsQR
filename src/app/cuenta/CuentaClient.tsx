@@ -7,7 +7,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import { createClient } from "@/lib/supabase/client";
 import UsersManager from "./UsersManager";
 import ActivityFeed from "./ActivityFeed";
-import { Store, Users, Activity, Settings } from "lucide-react";
+import { Store, Users, Activity, Settings, ChevronLeft, Building2, CreditCard } from "lucide-react";
+import { PLANS, formatArs, type PlanType } from "@/lib/plans";
 
 export type Restaurant = {
   id: string;
@@ -22,6 +23,7 @@ export type Restaurant = {
 type Tab = "restoranes" | "usuarios" | "actividad";
 
 type Account = {
+  id: string;
   ownerEmail: string;
   name: string | null;
   planType: string | null;
@@ -30,6 +32,8 @@ type Account = {
   subscriptionEndsAt: string | null;
   paymentSource: string | null;
   isActive: boolean;
+  pendingPlanType: string | null;
+  membershipActive: boolean;
 };
 
 export default function CuentaClient({ account, restaurants: initial, isFull = true }: { account: Account; restaurants: Restaurant[]; isFull?: boolean }) {
@@ -41,6 +45,8 @@ export default function CuentaClient({ account, restaurants: initial, isFull = t
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [tab, setTab] = useState<Tab>("restoranes");
+  const [requestingPlan, setRequestingPlan] = useState(false);
+  const [selectedPlan, setSelectedPlan] = useState<PlanType>("MENSUAL");
 
   function handleName(name: string) {
     const slug = name.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "");
@@ -71,12 +77,23 @@ export default function CuentaClient({ account, restaurants: initial, isFull = t
   }
 
   async function handleSignOut() {
-    await fetch("/api/auth/login", { method: "DELETE" }); // borra el JWT admin_token
+    await fetch("/api/auth/login", { method: "DELETE" });
     const supabase = createClient();
-    await supabase.auth.signOut(); // cierra también la sesión de Google/Supabase
+    await supabase.auth.signOut();
     router.push("/");
     router.refresh();
   }
+
+  async function requestMembership() {
+    setRequestingPlan(true);
+    await fetch(`/api/orgs/${account.id}/membership`, {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ planType: selectedPlan }),
+    });
+    setRequestingPlan(false);
+    router.refresh();
+  }
+
 
   return (
     <div className="min-h-screen bg-slate-100">
@@ -87,20 +104,25 @@ export default function CuentaClient({ account, restaurants: initial, isFull = t
       >
         <div className="relative max-w-3xl mx-auto">
           <div className="flex items-center justify-between mb-5">
-            {isFull ? (
-              <Link href="/cuenta/config" className="flex items-center gap-2 group" title="Configuración de la cuenta">
-                <div className="w-9 h-9 bg-white/20 rounded-xl flex items-center justify-center text-lg backdrop-blur-sm">🏢</div>
-                <span className="font-bold text-white text-lg tracking-tight">Mi cuenta</span>
-                <Settings size={16} className="text-white/50 group-hover:text-white transition-colors" />
+            <div className="flex items-center gap-3">
+              {/* Mi Perfil → vuelve al selector de orgs */}
+              <Link href="/perfil" className="flex items-center gap-1.5 text-white/60 hover:text-white transition-colors text-sm">
+                <ChevronLeft size={16} /><span className="hidden sm:inline">Mis orgs</span>
               </Link>
-            ) : (
               <div className="flex items-center gap-2">
-                <div className="w-9 h-9 bg-white/20 rounded-xl flex items-center justify-center text-lg backdrop-blur-sm">🏢</div>
-                <span className="font-bold text-white text-lg tracking-tight">Mi cuenta</span>
+                <Building2 size={18} className="text-white/70" />
+                {isFull ? (
+                  <Link href="/cuenta/config" className="flex items-center gap-1 group">
+                    <span className="font-bold text-white text-lg tracking-tight">{account.name ?? "Mi organización"}</span>
+                    <Settings size={14} className="text-white/40 group-hover:text-white transition-colors ml-1" />
+                  </Link>
+                ) : (
+                  <span className="font-bold text-white text-lg tracking-tight">{account.name ?? "Mi organización"}</span>
+                )}
               </div>
-            )}
+            </div>
             <button onClick={handleSignOut} className="text-white/60 hover:text-white text-sm transition-colors px-3 py-1.5 rounded-lg hover:bg-white/10">
-              Cerrar sesión
+              Salir
             </button>
           </div>
           <h1 className="text-white font-bold text-2xl">{account.name ?? account.ownerEmail}</h1>
@@ -111,8 +133,43 @@ export default function CuentaClient({ account, restaurants: initial, isFull = t
         </div>
       </div>
 
-      {/* Barra de pestañas — solo para acceso completo */}
-      {isFull && (
+      {/* Muro de membresía — bloquea el dashboard completo si no hay plan activo */}
+      {!account.membershipActive && (
+        <div className="max-w-3xl mx-auto px-4 py-8">
+          <div className="bg-white border border-gray-100 rounded-2xl p-6 shadow-sm text-center">
+            <CreditCard size={36} className="text-blue-900 mx-auto mb-3" />
+            <h2 className="text-xl font-bold text-gray-900 mb-1">Activá la membresía para operar</h2>
+            {account.pendingPlanType ? (
+              <div className="mt-3">
+                <p className="text-gray-500 text-sm">Tu solicitud de plan <strong>{account.pendingPlanType}</strong> está pendiente de aprobación.</p>
+                <p className="text-gray-400 text-xs mt-1">Te avisamos cuando esté activo.</p>
+              </div>
+            ) : (
+              <>
+                <p className="text-gray-500 text-sm mb-5">Elegí un plan para empezar a gestionar tu organización.</p>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-5">
+                  {(Object.keys(PLANS) as PlanType[]).map((pt) => (
+                    <button key={pt} type="button" onClick={() => setSelectedPlan(pt)}
+                      className={`rounded-xl p-4 border-2 text-left transition-all ${selectedPlan === pt ? "border-blue-900 bg-blue-50" : "border-gray-100 bg-gray-50 hover:border-gray-300"}`}>
+                      <p className="font-bold text-gray-900 text-sm">{PLANS[pt].label}</p>
+                      <p className="text-blue-900 font-bold text-lg mt-1">{formatArs(PLANS[pt].priceArs)}</p>
+                      <p className="text-gray-400 text-xs mt-0.5">{PLANS[pt].months === 1 ? "por mes" : `por ${PLANS[pt].months} meses`}</p>
+                    </button>
+                  ))}
+                </div>
+                <button onClick={requestMembership} disabled={requestingPlan}
+                  className="bg-blue-900 text-white font-bold px-6 py-3 rounded-xl hover:bg-blue-800 disabled:opacity-50 transition-all">
+                  {requestingPlan ? "Enviando solicitud..." : `Solicitar plan ${PLANS[selectedPlan].label}`}
+                </button>
+                <p className="text-gray-400 text-xs mt-3">Un gestor aprobará tu membresía y te notificará. Mientras tanto podés configurar tu organización.</p>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Barra de pestañas — solo para acceso completo y con membresía */}
+      {isFull && account.membershipActive && (
       <div className="max-w-3xl mx-auto px-4 -mt-4 mb-1">
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-1 flex gap-1">
           {([
@@ -135,7 +192,7 @@ export default function CuentaClient({ account, restaurants: initial, isFull = t
       </div>
       )}
 
-      <div className="max-w-3xl mx-auto px-4 py-5 space-y-4">
+      {account.membershipActive && <div className="max-w-3xl mx-auto px-4 py-5 space-y-4">
         <AnimatePresence>
           {success && (
             <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
@@ -229,7 +286,7 @@ export default function CuentaClient({ account, restaurants: initial, isFull = t
         {tab === "actividad" && (
           <ActivityFeed restaurants={restaurants} />
         )}
-      </div>
+      </div>}
     </div>
   );
 }

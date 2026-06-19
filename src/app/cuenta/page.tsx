@@ -16,20 +16,16 @@ export default async function CuentaPage() {
       ? { accountId: account.id }
       : { accountId: account.id, id: { in: access.allowedRestaurantIds ?? [] } },
     orderBy: { createdAt: "asc" },
-    select: {
-      id: true,
-      name: true,
-      slug: true,
-      status: true,
-      isActive: true,
-      createdAt: true,
-      _count: { select: { tables: true, orders: true } },
-    },
+    select: { id: true, name: true, slug: true, status: true, isActive: true, createdAt: true, _count: { select: { tables: true, orders: true } } },
   });
+
+  const now = new Date();
+  const membershipActive = account.isActive && !!account.subscriptionEndsAt && account.subscriptionEndsAt > now;
 
   return (
     <CuentaClient
       account={{
+        id: account.id,
         ownerEmail: account.ownerEmail,
         name: account.name,
         planType: account.planType,
@@ -38,6 +34,8 @@ export default async function CuentaPage() {
         subscriptionEndsAt: account.subscriptionEndsAt?.toISOString() ?? null,
         paymentSource: account.paymentSource,
         isActive: account.isActive,
+        pendingPlanType: account.pendingPlanType ?? null,
+        membershipActive,
       }}
       restaurants={JSON.parse(JSON.stringify(restaurants))}
       isFull={access.isFull}
