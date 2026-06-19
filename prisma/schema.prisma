@@ -111,8 +111,10 @@ model Restaurant {
   extraBranches         Int            @default(0)
   priceArs              Int?
   paymentSource         String?        @default("MANUAL")
-  maxTableDevices     Int            @default(2)     // dispositivos por sesión de mesa
-  confirmTableEnabled Boolean        @default(false) // "confirmar mesa" antes de pedir (slice 2)
+  maxTableDevices     Int            @default(2)
+  confirmTableEnabled Boolean        @default(false) // "confirmar mesa" antes de pedir
+  flowConfirmEnabled  Boolean        @default(true)  // paso CONFIRMED en cocina (si false: PENDING→PREPARING)
+  flowDeliveredEnabled Boolean       @default(true)  // paso DELIVERED (si false: READY→PAID directo)
   tables         Table[]
   menuCategories MenuCategory[]
   menuItems      MenuItem[]

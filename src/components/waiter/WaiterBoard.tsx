@@ -30,6 +30,7 @@ function groupByTable(orders: Order[]): TableGroup[] {
 export default function WaiterBoard({ initialOrders }: { initialOrders: Order[] }) {
   const [orders, setOrders] = useState<Order[]>(initialOrders);
   const [alertTableNum, setAlertTableNum] = useState<number | null>(null);
+  const [flowDelivered, setFlowDelivered] = useState(true);
   const audioCtxRef = useRef<AudioContext | null>(null);
 
   function playBeep() {
@@ -70,6 +71,12 @@ export default function WaiterBoard({ initialOrders }: { initialOrders: Order[] 
     }
   }, []);
 
+  useEffect(() => {
+    fetch("/api/restaurant/flow").then((r) => r.ok ? r.json() : null).then((d) => {
+      if (d) setFlowDelivered(d.flowDeliveredEnabled);
+    }).catch(() => {});
+  }, []);
+
   useSSE("/api/events", handleSSE);
 
   useEffect(() => {
@@ -100,7 +107,7 @@ export default function WaiterBoard({ initialOrders }: { initialOrders: Order[] 
 
   const readyOrders = orders.filter((o) => o.status === "READY");
   const groups = groupByTable(orders);
-  const readyGroups = groups.filter((g) => g.orders.some((o) => o.status === "READY"));
+  const readyGroups = groups.filter((g) => g.orders.some((o) => o.status === "READY" || (!flowDelivered && o.status === "READY")));
   const otherGroups = groups.filter((g) => g.orders.every((o) => o.status !== "READY"));
 
   const hour = new Date().getHours();
@@ -147,7 +154,7 @@ export default function WaiterBoard({ initialOrders }: { initialOrders: Order[] 
               <AnimatePresence>
                 {readyGroups.map((g) => (
                   <motion.div key={g.tableNumber} initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95 }}>
-                    <TableCard group={g} onPatch={patchOrder} />
+                    <TableCard group={g} onPatch={patchOrder} flowDelivered={flowDelivered} />
                   </motion.div>
                 ))}
               </AnimatePresence>
@@ -161,7 +168,7 @@ export default function WaiterBoard({ initialOrders }: { initialOrders: Order[] 
             <p className="text-[11px] font-bold text-orange-500 uppercase tracking-widest mb-3">🟠 En proceso</p>
             <div className="space-y-3">
               {otherGroups.map((g) => (
-                <TableCard key={g.tableNumber} group={g} onPatch={patchOrder} />
+                <TableCard key={g.tableNumber} group={g} onPatch={patchOrder} flowDelivered={flowDelivered} />
               ))}
             </div>
           </div>
@@ -177,7 +184,7 @@ export default function WaiterBoard({ initialOrders }: { initialOrders: Order[] 
   );
 }
 
-function TableCard({ group, onPatch }: { group: TableGroup; onPatch: (id: string, status: string) => void }) {
+function TableCard({ group, onPatch, flowDelivered }: { group: TableGroup; onPatch: (id: string, status: string) => void; flowDelivered: boolean }) {
   const tableTotal = group.orders.reduce((s, o) => s + o.total, 0);
   const hasReady = group.orders.some((o) => o.status === "READY");
   const allDelivered = group.orders.every((o) => o.status === "DELIVERED");
@@ -225,10 +232,16 @@ function TableCard({ group, onPatch }: { group: TableGroup; onPatch: (id: string
                 <span className={`text-[11px] font-semibold ${order.paymentMode === "ONLINE" ? "text-emerald-600" : "text-amber-600"}`}>
                   {order.paymentMode === "ONLINE" ? "✓ Pagó online" : "💵 Paga en caja"}
                 </span>
-                {isReady && (
+                {isReady && flowDelivered && (
                   <button onClick={() => onPatch(order.id, "DELIVERED")}
                     className="bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-bold px-4 py-2 rounded-xl">
                     Entregar ✓
+                  </button>
+                )}
+                {isReady && !flowDelivered && (
+                  <button onClick={() => onPatch(order.id, "PAID")}
+                    className="bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-bold px-4 py-2 rounded-xl">
+                    Cobrar ✓
                   </button>
                 )}
                 {isDelivered && (

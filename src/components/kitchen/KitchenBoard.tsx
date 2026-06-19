@@ -8,11 +8,15 @@ import { getOrders, updateOrderStatus } from "@/lib/api";
 
 const ACTIVE: OrderStatus[] = ["PENDING", "CONFIRMED", "PREPARING", "READY"];
 
-const NEXT: Partial<Record<OrderStatus, OrderStatus>> = {
-  PENDING: "CONFIRMED",
-  CONFIRMED: "PREPARING",
-  PREPARING: "READY",
-};
+// El flujo se carga dinámicamente según la config del restorán
+function buildNext(flowConfirm: boolean, flowDelivered: boolean): Partial<Record<OrderStatus, OrderStatus>> {
+  return {
+    PENDING: flowConfirm ? "CONFIRMED" : "PREPARING",
+    CONFIRMED: "PREPARING",
+    PREPARING: "READY",
+    // READY → si sin paso entrega, va directo a PAID (lo maneja mozos/cocina)
+  };
+}
 
 const ACTION: Partial<Record<OrderStatus, string>> = {
   PENDING: "Confirmar recibido",
@@ -50,6 +54,8 @@ export default function KitchenBoard() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [connected, setConnected] = useState(false);
+  const [flowConfirm, setFlowConfirm] = useState(true);
+  const [flowDelivered, setFlowDelivered] = useState(true);
 
   const fetchOrders = useCallback(async () => {
     try {
@@ -60,6 +66,9 @@ export default function KitchenBoard() {
   }, []);
 
   useEffect(() => {
+    fetch("/api/restaurant/flow").then((r) => r.ok ? r.json() : null).then((d) => {
+      if (d) { setFlowConfirm(d.flowConfirmEnabled); setFlowDelivered(d.flowDeliveredEnabled); }
+    }).catch(() => {});
     fetchOrders();
     const poll = setInterval(fetchOrders, 4000);
     const es = new EventSource("/api/events");
@@ -86,6 +95,7 @@ export default function KitchenBoard() {
   }, [fetchOrders]);
 
   async function advance(order: Order) {
+    const NEXT = buildNext(flowConfirm, flowDelivered);
     const next = NEXT[order.status];
     if (!next) return;
     const updated = await updateOrderStatus(order.id, next);
@@ -125,7 +135,7 @@ export default function KitchenBoard() {
           <AnimatePresence>
             {groups.map((group) => (
               <motion.div key={group.tableNumber} layout initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.96 }} transition={{ duration: 0.18 }}>
-                <TableCard group={group} onAdvance={advance} />
+                <TableCard group={group} onAdvance={advance} flowConfirm={flowConfirm} />
               </motion.div>
             ))}
           </AnimatePresence>
@@ -135,7 +145,7 @@ export default function KitchenBoard() {
   );
 }
 
-function TableCard({ group, onAdvance }: { group: TableGroup; onAdvance: (o: Order) => Promise<void> }) {
+function TableCard({ group, onAdvance, flowConfirm }: { group: TableGroup; onAdvance: (o: Order) => Promise<void>; flowConfirm: boolean }) {
   const allReady = group.orders.every((o) => o.status === "READY");
   const colorClass = tableColor(group.orders);
   const tableTotal = group.orders.reduce((s, o) => s + o.total, 0);
@@ -158,17 +168,23 @@ function TableCard({ group, onAdvance }: { group: TableGroup; onAdvance: (o: Ord
       {/* Pedidos de la mesa */}
       <div className="divide-y divide-zinc-800/60">
         {group.orders.map((order) => (
-          <OrderRow key={order.id} order={order} onAdvance={onAdvance} />
+          <OrderRow key={order.id} order={order} onAdvance={onAdvance} flowConfirm={flowConfirm} />
         ))}
       </div>
     </div>
   );
 }
 
-function OrderRow({ order, onAdvance }: { order: Order; onAdvance: (o: Order) => Promise<void> }) {
+function OrderRow({ order, onAdvance, flowConfirm }: { order: Order; onAdvance: (o: Order) => Promise<void>; flowConfirm: boolean }) {
   const [updating, setUpdating] = useState(false);
   const elapsed = Math.floor((Date.now() - new Date(order.createdAt).getTime()) / 60000);
-  const nextAction = ACTION[order.status];
+  // Acción según el flujo configurado
+  const effectiveAction: Partial<Record<OrderStatus, string>> = {
+    PENDING: flowConfirm ? "Confirmar recibido" : "En preparación",
+    CONFIRMED: "En preparación",
+    PREPARING: "Listo 🔔",
+  };
+  const nextAction = effectiveAction[order.status];
   const style = STATUS_STYLE[order.status];
   const hasAllergyNote = order.notes || order.items.some((i) => i.notes);
 
