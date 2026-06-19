@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useSSE } from "@/hooks/useSSE";
 import { ArrowLeft, Clock, BellRing } from "lucide-react";
 import Link from "next/link";
+import WaitlistPanel from "@/components/waiter/WaitlistPanel";
 
 type OrderItem = { id: string; quantity: number; notes: string | null; menuItem: { name: string } };
 type Order = {
@@ -145,6 +146,9 @@ export default function WaiterBoard({ initialOrders }: { initialOrders: Order[] 
       </div>
 
       <div className="max-w-2xl mx-auto px-4 py-5 space-y-5">
+
+        {/* LISTA DE ESPERA */}
+        <WaitlistPanel />
 
         {/* MESAS CON ALGO LISTO */}
         {readyGroups.length > 0 && (

@@ -12,11 +12,12 @@ export async function GET() {
 
   const r = await db.restaurant.findUnique({
     where: { id: session.restaurantId },
-    select: { flowConfirmEnabled: true, flowDeliveredEnabled: true },
+    select: { flowConfirmEnabled: true, flowDeliveredEnabled: true, waitlistEnabled: true },
   });
 
   return NextResponse.json({
     flowConfirmEnabled: r?.flowConfirmEnabled ?? true,
     flowDeliveredEnabled: r?.flowDeliveredEnabled ?? true,
+    waitlistEnabled: r?.waitlistEnabled ?? false,
   });
 }
