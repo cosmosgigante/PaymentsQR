@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Plus, QrCode, Power, Trash2, ArrowLeft, Download, X } from "lucide-react";
+import { Plus, QrCode, Power, Trash2, ArrowLeft, Download, X, DoorOpen } from "lucide-react";
 import Link from "next/link";
 import QRCode from "qrcode";
 
@@ -16,6 +16,7 @@ type Table = {
 
 export default function TablesManager({
   initialTables,
+  restaurantSlug,
 }: {
   initialTables: Table[];
   restaurantSlug: string;
@@ -26,6 +27,8 @@ export default function TablesManager({
   const [saving, setSaving] = useState(false);
   const [selectedQr, setSelectedQr] = useState<Table | null>(null);
   const [qrDataUrl, setQrDataUrl] = useState("");
+  const [showDoorQr, setShowDoorQr] = useState(false);
+  const [doorQrUrl, setDoorQrUrl] = useState("");
 
   useEffect(() => {
     if (!selectedQr) { setQrDataUrl(""); return; }
@@ -36,6 +39,24 @@ export default function TablesManager({
       color: { dark: "#09090b", light: "#ffffff" },
     }).then(setQrDataUrl);
   }, [selectedQr]);
+
+  useEffect(() => {
+    if (!showDoorQr || !restaurantSlug) { setDoorQrUrl(""); return; }
+    const url = `${window.location.origin}/esperar/${restaurantSlug}`;
+    QRCode.toDataURL(url, {
+      width: 280,
+      margin: 2,
+      color: { dark: "#5b21b6", light: "#ffffff" },
+    }).then(setDoorQrUrl);
+  }, [showDoorQr, restaurantSlug]);
+
+  function downloadDoorQr() {
+    if (!doorQrUrl) return;
+    const a = document.createElement("a");
+    a.href = doorQrUrl;
+    a.download = `qr-puerta-${restaurantSlug}.png`;
+    a.click();
+  }
 
   async function createTable() {
     if (!newNumber) return;
@@ -106,6 +127,21 @@ export default function TablesManager({
       </div>
 
       <div className="max-w-2xl mx-auto px-4 sm:px-5 py-5 space-y-3">
+        {/* QR de puerta — lista de espera */}
+        <button
+          onClick={() => setShowDoorQr(true)}
+          className="w-full bg-violet-50 border border-violet-100 rounded-2xl p-4 flex items-center gap-3 text-left active:bg-violet-100 transition-colors"
+        >
+          <div className="w-10 h-10 rounded-xl bg-violet-600 flex items-center justify-center text-white shrink-0">
+            <DoorOpen size={18} strokeWidth={2} />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="font-bold text-zinc-900 text-[15px] leading-snug">QR de puerta · Lista de espera</p>
+            <p className="text-xs text-zinc-500 mt-0.5">Pegalo en la entrada para que los clientes se anoten en la fila.</p>
+          </div>
+          <QrCode size={17} className="text-violet-400 shrink-0" />
+        </button>
+
         {/* Crear mesa */}
         <div className="bg-white rounded-2xl border border-zinc-100 p-4">
           <p className="text-[11px] font-semibold text-zinc-400 uppercase tracking-widest mb-3">
@@ -249,6 +285,65 @@ export default function TablesManager({
                 <button
                   onClick={downloadQr}
                   className="flex-1 bg-zinc-900 active:bg-zinc-700 text-white py-3.5 rounded-2xl text-sm font-medium transition-colors flex items-center justify-center gap-2 min-h-[52px]"
+                >
+                  <Download size={14} />
+                  Descargar
+                </button>
+              </div>
+            </div>
+          </motion.div>
+        </div>
+      )}
+
+      {/* Modal QR de puerta — lista de espera */}
+      {showDoorQr && (
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
+          <div className="absolute inset-0 bg-black/40" style={{ WebkitBackdropFilter: "blur(2px)", backdropFilter: "blur(2px)" }} onClick={() => setShowDoorQr(false)} />
+          <motion.div
+            initial={{ y: "100%", opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: "100%", opacity: 0 }}
+            transition={{ type: "spring", damping: 30, stiffness: 300 }}
+            className="relative bg-white rounded-t-[28px] sm:rounded-3xl w-full sm:max-w-xs shadow-2xl"
+            style={{ paddingBottom: "max(1.5rem, env(safe-area-inset-bottom))" }}
+          >
+            <div className="flex justify-center pt-3 sm:hidden">
+              <div className="w-8 h-1 bg-zinc-200 rounded-full" />
+            </div>
+            <div className="p-5 sm:p-6 text-center">
+              <div className="flex items-center justify-between mb-1">
+                <div />
+                <h3 className="font-bold text-zinc-900 text-lg">QR de puerta</h3>
+                <button
+                  onClick={() => setShowDoorQr(false)}
+                  className="w-8 h-8 rounded-full bg-zinc-100 flex items-center justify-center text-zinc-500 active:bg-zinc-200"
+                >
+                  <X size={15} />
+                </button>
+              </div>
+              <p className="text-xs text-zinc-400 mb-5">Escaneá para anotarte en la lista de espera</p>
+
+              {doorQrUrl ? (
+                <img
+                  src={doorQrUrl}
+                  alt="QR de puerta"
+                  className="mx-auto rounded-2xl border border-violet-100"
+                  style={{ width: 200, height: 200 }}
+                />
+              ) : (
+                <div className="w-[200px] h-[200px] mx-auto bg-zinc-100 rounded-2xl animate-pulse" />
+              )}
+
+              <div className="flex gap-2 mt-5">
+                <button
+                  onClick={() => setShowDoorQr(false)}
+                  className="flex-1 border border-zinc-200 text-zinc-600 py-3.5 rounded-2xl text-sm font-medium active:bg-zinc-50 transition-colors min-h-[52px]"
+                >
+                  Cerrar
+                </button>
+                <button
+                  onClick={downloadDoorQr}
+                  className="flex-1 bg-violet-600 active:bg-violet-700 text-white py-3.5 rounded-2xl text-sm font-medium transition-colors flex items-center justify-center gap-2 min-h-[52px]"
                 >
                   <Download size={14} />
                   Descargar

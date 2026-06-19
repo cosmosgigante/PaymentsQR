@@ -29,13 +29,23 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     maxTableDevices?: number;
     flowConfirmEnabled?: boolean;
     flowDeliveredEnabled?: boolean;
+    waitlistEnabled?: boolean;
+    waitlistEstimatedWait?: number;
+    waitlistExpiryMinutes?: number;
   };
 
-  const data: { confirmTableEnabled?: boolean; maxTableDevices?: number; flowConfirmEnabled?: boolean; flowDeliveredEnabled?: boolean } = {};
+  const data: {
+    confirmTableEnabled?: boolean; maxTableDevices?: number;
+    flowConfirmEnabled?: boolean; flowDeliveredEnabled?: boolean;
+    waitlistEnabled?: boolean; waitlistEstimatedWait?: number; waitlistExpiryMinutes?: number;
+  } = {};
   if (typeof body.confirmTableEnabled === "boolean") data.confirmTableEnabled = body.confirmTableEnabled;
   if (typeof body.maxTableDevices === "number") data.maxTableDevices = Math.min(10, Math.max(1, Math.round(body.maxTableDevices)));
   if (typeof body.flowConfirmEnabled === "boolean") data.flowConfirmEnabled = body.flowConfirmEnabled;
   if (typeof body.flowDeliveredEnabled === "boolean") data.flowDeliveredEnabled = body.flowDeliveredEnabled;
+  if (typeof body.waitlistEnabled === "boolean") data.waitlistEnabled = body.waitlistEnabled;
+  if (typeof body.waitlistEstimatedWait === "number") data.waitlistEstimatedWait = Math.min(120, Math.max(1, Math.round(body.waitlistEstimatedWait)));
+  if (typeof body.waitlistExpiryMinutes === "number") data.waitlistExpiryMinutes = Math.min(30, Math.max(1, Math.round(body.waitlistExpiryMinutes)));
   if (Object.keys(data).length === 0) return NextResponse.json({ error: "Nada para guardar" }, { status: 400 });
 
   await db.restaurant.update({ where: { id }, data });
@@ -48,6 +58,9 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
       data.maxTableDevices !== undefined && `máx ${data.maxTableDevices} disp.`,
       data.flowConfirmEnabled !== undefined && `paso confirmación ${data.flowConfirmEnabled ? "ON" : "OFF"}`,
       data.flowDeliveredEnabled !== undefined && `paso entrega ${data.flowDeliveredEnabled ? "ON" : "OFF"}`,
+      data.waitlistEnabled !== undefined && `lista de espera ${data.waitlistEnabled ? "ON" : "OFF"}`,
+      data.waitlistEstimatedWait !== undefined && `espera ${data.waitlistEstimatedWait} min/pers.`,
+      data.waitlistExpiryMinutes !== undefined && `expira en ${data.waitlistExpiryMinutes} min`,
     ].filter(Boolean).join(" · ") || "sin cambios",
   });
 
