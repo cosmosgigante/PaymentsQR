@@ -18,24 +18,29 @@ async function requireSuperAdmin(req: NextRequest) {
   return admin?.role === "SUPERADMIN" ? { admin, email: user.email.toLowerCase() } : null;
 }
 
-// Clase calculada de un Admin dentro del sistema.
-// A  = responsable de pago de ≥1 cuenta activa con subscripción vigente
-// A2 = miembro de una cuenta pero no es el ownerEmail
-// A3 = sin cuenta (perfil sin sociedad ni membresía)
-function calcClass(email: string, accounts: { ownerEmail: string; isActive: boolean; subscriptionEndsAt: Date | null }[]): "A" | "A2" | "A3" {
+// Clases de cliente (calculadas, no guardadas):
+// A  = responsable de pago en ≥1 cuenta activa y con subscripción vigente
+// A2 = en una cuenta pero no paga (socio que no es ownerEmail)
+// A3 = en múltiples cuentas/sociedades, siendo A en algunas y A2 en otras
+// A4 = sin sociedad ni membresía (perfil puro, sin vínculo a ninguna cuenta)
+type ClientClass = "A" | "A2" | "A3" | "A4";
+
+function calcClass(email: string, memberships: { ownerEmail: string; isActive: boolean; subscriptionEndsAt: Date | null }[]): ClientClass {
   const now = new Date();
-  const owned = accounts.filter((a) => a.ownerEmail === email && a.isActive && a.subscriptionEndsAt && a.subscriptionEndsAt > now);
-  if (owned.length > 0) return "A";
-  if (accounts.length > 0) return "A2";
-  return "A3";
+  if (memberships.length === 0) return "A4";
+  const payingOwner = memberships.filter((a) => a.ownerEmail === email && a.isActive && a.subscriptionEndsAt && a.subscriptionEndsAt > now);
+  const nonPayingMember = memberships.filter((a) => a.ownerEmail !== email);
+  if (payingOwner.length > 0 && nonPayingMember.length > 0) return "A3"; // mezcla: paga en algunos, A2 en otros
+  if (payingOwner.length > 0) return "A";
+  return "A2";
 }
 
-// GET — todos los perfiles (A/A2/A3) con su membresía y restoranes
+// GET — todos los perfiles con su clase A/A2/A3/A4 y detalle de membresías
 export async function GET(req: NextRequest) {
   const sa = await requireSuperAdmin(req);
   if (!sa) return NextResponse.json({ error: "No autorizado" }, { status: 403 });
 
-  // Traer todos los Admins que NO son SUPERADMIN
+  // Todos los Admins no-superadmin
   const admins = await db.admin.findMany({
     where: { role: { not: "SUPERADMIN" } },
     orderBy: { email: "asc" },
@@ -49,12 +54,33 @@ export async function GET(req: NextRequest) {
     },
   });
 
+  // Membresías adicionales via AccountMember (para detectar A3: en múltiples cuentas)
+  const allEmails = admins.map((a) => a.email);
+  const extraMemberships = await db.accountMember.findMany({
+    where: { email: { in: allEmails } },
+    include: { account: { select: { id: true, ownerEmail: true, name: true, isActive: true, subscriptionEndsAt: true } } },
+  });
+
   const now = new Date();
   const clients = admins.map((a) => {
     const acc = a.account;
-    const subActive = acc ? acc.isActive && !!acc.subscriptionEndsAt && acc.subscriptionEndsAt > now : false;
-    const clientClass = calcClass(a.email, acc ? [{ ownerEmail: acc.ownerEmail, isActive: acc.isActive, subscriptionEndsAt: acc.subscriptionEndsAt }] : []);
-    const daysLeft = acc?.subscriptionEndsAt ? Math.ceil((acc.subscriptionEndsAt.getTime() - now.getTime()) / 86400000) : null;
+
+    // Construir lista de todas las membresías del email (la cuenta directa + AccountMember)
+    type Membership = { accountId: string; accountName: string | null; ownerEmail: string; isActive: boolean; subscriptionEndsAt: Date | null; isPayingOwner: boolean };
+    const memberships: Membership[] = [];
+    if (acc) memberships.push({ accountId: acc.id, accountName: acc.name, ownerEmail: acc.ownerEmail, isActive: acc.isActive, subscriptionEndsAt: acc.subscriptionEndsAt, isPayingOwner: acc.ownerEmail === a.email });
+    extraMemberships.filter((m) => m.email === a.email).forEach((m) => {
+      if (!memberships.find((x) => x.accountId === m.accountId)) {
+        memberships.push({ accountId: m.accountId, accountName: m.account.name, ownerEmail: m.account.ownerEmail, isActive: m.account.isActive, subscriptionEndsAt: m.account.subscriptionEndsAt, isPayingOwner: m.isPayingOwner });
+      }
+    });
+
+    const clientClass = calcClass(a.email, memberships.map((m) => ({ ownerEmail: m.isPayingOwner ? a.email : m.ownerEmail, isActive: m.isActive, subscriptionEndsAt: m.subscriptionEndsAt })));
+
+    // Cuenta principal (donde es owner o la primera)
+    const primaryAcc = memberships.find((m) => m.ownerEmail === a.email) ?? memberships[0] ?? null;
+    const subActive = primaryAcc ? primaryAcc.isActive && !!primaryAcc.subscriptionEndsAt && primaryAcc.subscriptionEndsAt > now : false;
+    const daysLeft = primaryAcc?.subscriptionEndsAt ? Math.ceil((primaryAcc.subscriptionEndsAt.getTime() - now.getTime()) / 86400000) : null;
 
     return {
       email: a.email,
@@ -65,13 +91,20 @@ export async function GET(req: NextRequest) {
       isOwner: acc?.ownerEmail === a.email,
       planType: acc?.planType ?? null,
       priceArs: acc?.priceArs ?? null,
-      subscriptionEndsAt: acc?.subscriptionEndsAt ?? null,
-      isActive: acc?.isActive ?? false,
+      subscriptionEndsAt: primaryAcc?.subscriptionEndsAt ?? null,
+      isActive: primaryAcc?.isActive ?? false,
       membershipActive: subActive,
       daysLeft,
       canceledAt: acc?.canceledAt ?? null,
       members: acc?.admins ?? [],
       restaurants: acc?.restaurants ?? [],
+      // Para A3: detalle de todas sus sociedades
+      societyMemberships: memberships.map((m) => ({
+        accountId: m.accountId,
+        accountName: m.accountName,
+        role: m.ownerEmail === a.email || m.isPayingOwner ? "A" : "A2",
+        membershipActive: m.isActive && !!m.subscriptionEndsAt && m.subscriptionEndsAt > now,
+      })),
     };
   });
 
@@ -105,11 +138,11 @@ export async function POST(req: NextRequest) {
 
   const type = body.type ?? "A";
 
-  // A3 — perfil sin cuenta ni membresía
+  // A4 — perfil sin cuenta ni membresía
   if (type === "A3") {
     const admin = await db.admin.create({ data: { email, role: "OWNER" } });
-    await logActivity({ accountId: null, restaurantId: null, actorType: "SUPERADMIN", actorName: sa.email, category: "CUENTA", action: "CLIENT_CREATE", detail: `Cliente A3 creado: ${email}` });
-    return NextResponse.json({ ok: true, email: admin.email, clientClass: "A3" }, { status: 201 });
+    await logActivity({ accountId: null, restaurantId: null, actorType: "SUPERADMIN", actorName: sa.email, category: "CUENTA", action: "CLIENT_CREATE", detail: `Cliente A4 creado: ${email}` });
+    return NextResponse.json({ ok: true, email: admin.email, clientClass: "A4" }, { status: 201 });
   }
 
   // A2 — vincular a cuenta existente como socio

@@ -20,7 +20,23 @@ model Account {
   restaurants           Restaurant[]
   admins                Admin[]
   accessTokens          AccessToken[]
+  members               AccountMember[]
   createdAt             DateTime     @default(now())
+}
+
+// Vínculo muchos-a-muchos persona↔cuenta, permite que un mismo email
+// esté en múltiples sociedades con roles distintos (base del estado A3).
+model AccountMember {
+  id          String   @id @default(cuid())
+  accountId   String
+  account     Account  @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  email       String
+  role        String   @default("MEMBER") // "OWNER" | "MEMBER"
+  isPayingOwner Boolean @default(false)   // true = responsable de pago en esta cuenta
+  joinedAt    DateTime @default(now())
+
+  @@unique([accountId, email])
+  @@index([email])
 }
 
 // Credencial de acceso para el personal (la crea el cliente-administrador).

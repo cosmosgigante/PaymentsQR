@@ -6,18 +6,21 @@ import { PLANS, formatArs, type PlanType } from "@/lib/plans";
 
 type RestaurantLite = { id: string; name: string; slug: string; isActive: boolean; status: string; _count: { tables: number; orders: number } };
 type Member = { email: string; role: string; accessScope: string | null };
+type SocietyMembership = { accountId: string; accountName: string | null; role: "A" | "A2"; membershipActive: boolean };
 type Client = {
-  email: string; clientClass: "A" | "A2" | "A3";
+  email: string; clientClass: "A" | "A2" | "A3" | "A4";
   accountId: string | null; accountName: string | null; ownerEmail: string | null; isOwner: boolean;
   planType: string | null; priceArs: number | null; subscriptionEndsAt: string | null;
   isActive: boolean; membershipActive: boolean; daysLeft: number | null; canceledAt: string | null;
   members: Member[]; restaurants: RestaurantLite[];
+  societyMemberships: SocietyMembership[];
 };
 
-const CLASS_BADGE = {
+const CLASS_BADGE: Record<string, string> = {
   A:  "bg-blue-900 text-white",
   A2: "bg-blue-100 text-blue-800",
-  A3: "bg-gray-200 text-gray-600",
+  A3: "bg-purple-100 text-purple-800",
+  A4: "bg-gray-200 text-gray-600",
 };
 
 function useClients() {
@@ -82,10 +85,16 @@ function ClientDetail({ client, onBack, onReload, accounts }: { client: Client; 
           </div>
           <div className="flex gap-2 flex-wrap">
             {c.accountId && (
-              <button onClick={() => call("toggle_active", { isActive: !c.isActive })} disabled={busy}
-                className={`text-xs font-semibold px-3 py-1.5 rounded-xl border transition-all ${c.isActive ? "border-amber-200 text-amber-600 hover:bg-amber-50" : "border-emerald-200 text-emerald-600 hover:bg-emerald-50"}`}>
-                {c.isActive ? "Suspender cuenta" : "Activar cuenta"}
-              </button>
+              <>
+                <a href={`/api/setup/impersonate?accountId=${c.accountId}`}
+                  className="text-xs font-semibold px-3 py-1.5 rounded-xl border border-blue-200 text-blue-700 hover:bg-blue-50 transition-all">
+                  Ingresar en cuenta
+                </a>
+                <button onClick={() => call("toggle_active", { isActive: !c.isActive })} disabled={busy}
+                  className={`text-xs font-semibold px-3 py-1.5 rounded-xl border transition-all ${c.isActive ? "border-amber-200 text-amber-600 hover:bg-amber-50" : "border-emerald-200 text-emerald-600 hover:bg-emerald-50"}`}>
+                  {c.isActive ? "Suspender" : "Activar"}
+                </button>
+              </>
             )}
           </div>
         </div>
@@ -100,12 +109,27 @@ function ClientDetail({ client, onBack, onReload, accounts }: { client: Client; 
             <button onClick={() => setShowMembershipForm((v) => !v)} className="text-xs text-blue-700 font-semibold">Intervenir</button>
           )}
         </div>
-        {c.clientClass === "A3" ? (
+        {c.clientClass === "A4" ? (
           <div className="flex items-center justify-between">
-            <p className="text-gray-400 text-sm">Sin membresía — cliente A3</p>
+            <p className="text-gray-400 text-sm">Sin membresía ni sociedad — cliente A4</p>
             <button onClick={() => setShowUpgradeForm((v) => !v)} className="text-xs font-semibold bg-blue-900 text-white px-3 py-1.5 rounded-xl hover:bg-blue-800">
               Promover a A
             </button>
+          </div>
+        ) : c.clientClass === "A3" ? (
+          <div>
+            <p className="text-gray-500 text-sm mb-2">Está en múltiples sociedades con roles distintos:</p>
+            <div className="space-y-1.5">
+              {c.societyMemberships.map((s) => (
+                <div key={s.accountId} className="flex items-center justify-between bg-gray-50 rounded-xl px-3 py-2">
+                  <span className="text-sm text-gray-700">{s.accountName ?? s.accountId}</span>
+                  <div className="flex items-center gap-2">
+                    <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${CLASS_BADGE[s.role]}`}>{s.role}</span>
+                    <span className={`text-[11px] font-semibold ${s.membershipActive ? "text-emerald-600" : "text-red-400"}`}>{s.membershipActive ? "activa" : "inactiva"}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         ) : c.accountId ? (
           <div className="space-y-1">
@@ -246,7 +270,7 @@ function ClientDetail({ client, onBack, onReload, accounts }: { client: Client; 
 // ──────────────────────────────
 export default function ClientesPanel() {
   const { clients, loading, reload } = useClients();
-  const [filter, setFilter] = useState<"ALL" | "A" | "A2" | "A3">("ALL");
+  const [filter, setFilter] = useState<"ALL" | "A" | "A2" | "A3" | "A4">("ALL");
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<Client | null>(null);
   const [showForm, setShowForm] = useState(false);
@@ -257,7 +281,7 @@ export default function ClientesPanel() {
   const [msg, setMsg] = useState<string | null>(null);
 
   const filtered = useMemo(() => {
-    let list = filter === "ALL" ? clients : clients.filter((c) => c.clientClass === filter);
+    let list = filter === "ALL" ? clients : clients.filter((c: Client) => c.clientClass === filter);
     if (search.trim()) list = list.filter((c) => c.email.includes(search.toLowerCase()) || (c.accountName ?? "").toLowerCase().includes(search.toLowerCase()));
     return list;
   }, [clients, filter, search]);
@@ -282,14 +306,14 @@ export default function ClientesPanel() {
     return <ClientDetail client={selected} onBack={() => setSelected(null)} onReload={() => { reload(); setSelected(null); }} accounts={clients} />;
   }
 
-  const counts = { A: clients.filter((c) => c.clientClass === "A").length, A2: clients.filter((c) => c.clientClass === "A2").length, A3: clients.filter((c) => c.clientClass === "A3").length };
+  const counts = { A: clients.filter((c: Client) => c.clientClass === "A").length, A2: clients.filter((c: Client) => c.clientClass === "A2").length, A3: clients.filter((c: Client) => c.clientClass === "A3").length, A4: clients.filter((c: Client) => c.clientClass === "A4").length };
 
   return (
     <div>
       <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
         <div>
           <h1 className="text-xl font-bold text-gray-900">Clientes</h1>
-          <p className="text-gray-400 text-sm">{clients.length} perfiles · {counts.A}A · {counts.A2}A2 · {counts.A3}A3</p>
+          <p className="text-gray-400 text-sm">{clients.length} perfiles · {counts.A}A · {counts.A2}A2 · {counts.A3}A3 · {counts.A4}A4</p>
         </div>
         <button onClick={() => { setShowForm((v) => !v); setError(null); }} className="bg-gray-900 text-white text-sm font-semibold px-4 py-2 rounded-xl flex items-center gap-1.5">
           <Plus size={14} />Nuevo cliente
@@ -350,10 +374,10 @@ export default function ClientesPanel() {
           <input placeholder="Buscar por email o nombre..." value={search} onChange={(e) => setSearch(e.target.value)}
             className="w-full pl-8 pr-3 py-2 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30" />
         </div>
-        {(["ALL", "A", "A2", "A3"] as const).map((f) => (
+        {(["ALL", "A", "A2", "A3", "A4"] as const).map((f) => (
           <button key={f} onClick={() => setFilter(f)}
             className={`text-xs font-semibold px-3 py-2 rounded-xl border transition-all ${filter === f ? "bg-gray-900 text-white border-gray-900" : "bg-white border-gray-200 text-gray-500 hover:border-gray-400"}`}>
-            {f === "ALL" ? "Todos" : f}{f !== "ALL" && ` (${counts[f as "A" | "A2" | "A3"]})`}
+            {f === "ALL" ? "Todos" : f}{f !== "ALL" && ` (${counts[f as "A" | "A2" | "A3" | "A4"]})`}
           </button>
         ))}
       </div>
@@ -374,8 +398,8 @@ export default function ClientesPanel() {
                   {c.accountName && <span className="text-gray-400 text-xs truncate hidden sm:block">{c.accountName}</span>}
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
-                  <span className={`text-[11px] font-semibold ${c.membershipActive ? "text-emerald-600" : c.clientClass === "A3" ? "text-gray-400" : "text-red-500"}`}>
-                    {c.clientClass === "A3" ? "Sin membresía" : c.membershipActive ? `${c.daysLeft}d` : "Vencida"}
+                  <span className={`text-[11px] font-semibold ${c.membershipActive ? "text-emerald-600" : c.clientClass === "A4" ? "text-gray-400" : c.clientClass === "A3" ? "text-purple-600" : "text-red-500"}`}>
+                    {c.clientClass === "A4" ? "Sin membresía" : c.clientClass === "A3" ? `Multi-sociedad (${c.societyMemberships.length})` : c.membershipActive ? `${c.daysLeft}d` : "Vencida"}
                   </span>
                   {c.restaurants.length === 0 && c.accountId && (
                     <span className="text-[10px] bg-red-50 text-red-500 border border-red-200 px-1.5 py-0.5 rounded-full">Sin restorán</span>
