@@ -16,12 +16,32 @@ model Account {
   subscriptionEndsAt    DateTime?
   paymentSource         String?      @default("MANUAL") // "MANUAL" | "WEB"
   isActive              Boolean      @default(true)
-  canceledAt            DateTime?    // si el cliente canceló el plan (sigue activo hasta subscriptionEndsAt)
+  canceledAt            DateTime?
+  pendingPlanType       String?      // plan solicitado pendiente de aprobación manual/automática
   restaurants           Restaurant[]
   admins                Admin[]
   accessTokens          AccessToken[]
   members               AccountMember[]
+  invitations           OrgInvitation[]
   createdAt             DateTime     @default(now())
+}
+
+// Invitación a una org. El invitado puede ser alguien ya en el sistema o nuevo.
+model OrgInvitation {
+  id            String   @id @default(cuid())
+  accountId     String
+  account       Account  @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  inviterEmail  String
+  inviteeEmail  String
+  role          String   @default("MEMBER")     // "OWNER" | "MEMBER"
+  isPayingOwner Boolean  @default(false)         // si comparte gastos como responsable
+  paymentShare  Int      @default(0)             // porcentaje del total que le corresponde pagar
+  status        String   @default("PENDING")     // "PENDING" | "ACCEPTED" | "REJECTED" | "CANCELED"
+  createdAt     DateTime @default(now())
+  expiresAt     DateTime
+
+  @@unique([accountId, inviteeEmail])
+  @@index([inviteeEmail, status])
 }
 
 // Vínculo muchos-a-muchos persona↔cuenta, permite que un mismo email
