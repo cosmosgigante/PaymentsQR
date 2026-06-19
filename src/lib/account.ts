@@ -62,12 +62,18 @@ export async function getAccountAdmin(req: NextRequest) {
  * Devuelve el Admin (con su account) sin importar la vía de login, o null.
  */
 export async function resolveServerAdmin() {
+  // Si hay un JWT de impersonación (superadmin entró a cuenta ajena), tiene prioridad
+  // sobre la sesión Supabase del superadmin — así /cuenta carga la cuenta impersonada.
+  const session = await getSession();
+  if (session?.impersonating && session.adminId) {
+    return loadAdminWithAccount({ id: session.adminId });
+  }
+
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (user?.email) {
     return loadAdminWithAccount({ email: user.email.toLowerCase() });
   }
-  const session = await getSession();
   if (session?.adminId) return loadAdminWithAccount({ id: session.adminId });
   return null;
 }

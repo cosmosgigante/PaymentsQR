@@ -34,7 +34,7 @@ export async function GET(req: NextRequest) {
     const ownerAdmin = account.admins[0];
     if (!ownerAdmin) return NextResponse.redirect(new URL("/setup?error=no-admin", req.url));
 
-    const token = await signToken({ adminId: ownerAdmin.id, restaurantId: "", role: "OWNER", accountId });
+    const token = await signToken({ adminId: ownerAdmin.id, restaurantId: "", role: "OWNER", accountId, impersonating: true });
     await logActivity({
       accountId, restaurantId: null, actorType: "SUPERADMIN", actorName: sa.email,
       category: "CUENTA", action: "IMPERSONATE",
@@ -67,7 +67,7 @@ export async function GET(req: NextRequest) {
     adminId = legacyOwner?.id ?? sa.admin.id;
   }
 
-  const token = await signToken({ adminId, restaurantId: restaurant.id, role: "OWNER", accountId: restaurant.accountId ?? undefined });
+  const token = await signToken({ adminId, restaurantId: restaurant.id, role: "OWNER", accountId: restaurant.accountId ?? undefined, impersonating: true });
   await logActivity({
     accountId: restaurant.accountId, restaurantId: restaurant.id,
     actorType: "SUPERADMIN", actorName: sa.email,
