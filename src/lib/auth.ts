@@ -16,12 +16,12 @@ export type AdminPayload = {
   adminId: string;
   restaurantId: string;
   role: string; // "SUPERADMIN" | "OWNER" | "STAFF"
-  accountId?: string;   // cuenta a la que pertenece la sesión (para auditoría)
-  actorName?: string;   // email del dueño o nombre del acceso (para auditoría)
-  // Solo presentes cuando role === "STAFF" (personal con AccessToken)
+  accountId?: string;
+  actorName?: string;
   staffTokenId?: string;
   staffSessionId?: string;
-  permissions?: Record<string, string>; // matriz de permisos del token
+  permissions?: Record<string, string>;
+  impersonating?: boolean; // true cuando un superadmin ingresó a cuenta ajena
 };
 
 export async function signToken(payload: AdminPayload) {

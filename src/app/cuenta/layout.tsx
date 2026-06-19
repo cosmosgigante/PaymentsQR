@@ -1,11 +1,13 @@
 import { redirect } from "next/navigation";
 import { resolveServerAdmin } from "@/lib/account";
+import { getSession } from "@/lib/auth";
 
-// Panel general — solo el admin general (dueño de una Cuenta) puede entrar.
 export default async function CuentaLayout({ children }: { children: React.ReactNode }) {
+  const session = await getSession();
   const admin = await resolveServerAdmin();
 
-  if (admin?.role === "SUPERADMIN") redirect("/setup");
+  // Superadmin en impersonación → puede entrar, resolveServerAdmin ya devuelve el admin impersonado
+  if (admin?.role === "SUPERADMIN" && !session?.impersonating) redirect("/setup");
   if (!admin?.accountId) redirect("/?error=unauthorized");
 
   return <>{children}</>;
