@@ -36,7 +36,9 @@ export async function GET(req: NextRequest) {
     actorName: ctx.admin.email,
   });
 
-  const res = NextResponse.redirect(new URL("/admin", req.url));
+  const redirectTo = req.nextUrl.searchParams.get("redirect") || "/admin";
+  const safePath = redirectTo.startsWith("/") ? redirectTo : "/admin";
+  const res = NextResponse.redirect(new URL(safePath, req.url));
   res.cookies.set("admin_token", token, {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",

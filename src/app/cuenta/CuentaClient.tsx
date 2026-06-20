@@ -7,7 +7,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { createClient } from "@/lib/supabase/client";
 import UsersManager from "./UsersManager";
 import ActivityFeed from "./ActivityFeed";
-import { Store, Users, Activity, Settings, ChevronLeft, Building2, CreditCard } from "lucide-react";
+import { Store, Users, Activity, Settings, ChevronLeft, Building2, CreditCard, BarChart3 } from "lucide-react";
 import { PLANS, formatArs, type PlanType } from "@/lib/plans";
 
 export type Restaurant = {
@@ -260,6 +260,10 @@ export default function CuentaClient({ account, restaurants: initial, isFull = t
                 </div>
                 {active ? (
                   <div className="flex items-center gap-2 shrink-0">
+                    <a href={`/api/account/enter?restaurantId=${r.id}&redirect=/admin/reportes`}
+                      className="flex items-center gap-1 text-sm font-semibold text-indigo-600 hover:text-indigo-800 bg-indigo-50 hover:bg-indigo-100 px-3 py-2 rounded-xl transition-all">
+                      <BarChart3 size={14} /> Reportes
+                    </a>
                     <Link href={`/cuenta/ajustes/${r.id}`}
                       className="text-sm font-semibold text-gray-600 hover:text-gray-900 bg-gray-100 hover:bg-gray-200 px-3 py-2 rounded-xl transition-all">
                       Ajustes
