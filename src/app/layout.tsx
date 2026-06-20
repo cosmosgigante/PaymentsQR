@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Geist } from "next/font/google";
 import "./globals.css";
+import { Analytics } from "@vercel/analytics/next";
 import PWARegister from "./pwa-register";
 
 const geistSans = Geist({
@@ -39,6 +40,7 @@ export default function RootLayout({
       className={geistSans.variable}
     >
       <body className="bg-background text-foreground antialiased overscroll-none">
+        <Analytics />
         <PWARegister />
         {children}
       </body>
