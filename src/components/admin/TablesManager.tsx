@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Plus, QrCode, Power, Trash2, ArrowLeft, Download, X, DoorOpen } from "lucide-react";
+import { Plus, QrCode, Power, Trash2, ArrowLeft, Download, X, DoorOpen, ShoppingBag } from "lucide-react";
 import Link from "next/link";
 import QRCode from "qrcode";
 
@@ -17,9 +17,11 @@ type Table = {
 export default function TablesManager({
   initialTables,
   restaurantSlug,
+  activeOrders = {},
 }: {
   initialTables: Table[];
   restaurantSlug: string;
+  activeOrders?: Record<string, number>;
 }) {
   const [tables, setTables] = useState<Table[]>(initialTables);
   const [newNumber, setNewNumber] = useState("");
@@ -185,9 +187,17 @@ export default function TablesManager({
               className={`bg-white rounded-2xl border border-zinc-100 p-4 flex items-center gap-3 min-h-[72px] ${!table.isActive ? "opacity-60" : ""}`}
             >
               <div className="flex-1 min-w-0">
-                <p className="font-bold text-zinc-900 text-[15px] leading-snug">
-                  {table.label ?? `Mesa ${table.number}`}
-                </p>
+                <div className="flex items-center gap-2">
+                  <p className="font-bold text-zinc-900 text-[15px] leading-snug">
+                    {table.label ?? `Mesa ${table.number}`}
+                  </p>
+                  {(activeOrders[table.id] ?? 0) > 0 && (
+                    <span className="inline-flex items-center gap-1 bg-amber-100 text-amber-700 text-[11px] font-bold px-2 py-0.5 rounded-full">
+                      <ShoppingBag size={10} />
+                      {activeOrders[table.id]}
+                    </span>
+                  )}
+                </div>
                 {table.label && (
                   <p className="text-xs text-zinc-400 mt-0.5">N° {table.number}</p>
                 )}

@@ -14,6 +14,20 @@ export default async function AdminMesasPage() {
     orderBy: { number: "asc" },
   });
 
+  const activeOrders = await db.order.groupBy({
+    by: ["tableId"],
+    where: {
+      restaurantId: session.restaurantId,
+      status: { notIn: ["DELIVERED", "PAID", "CANCELLED"] },
+    },
+    _count: { id: true },
+  });
+
+  const ordersByTable: Record<string, number> = {};
+  for (const row of activeOrders) {
+    ordersByTable[row.tableId] = row._count.id;
+  }
+
   const restaurant = await db.restaurant.findUnique({
     where: { id: session.restaurantId },
     select: { slug: true },
@@ -23,6 +37,7 @@ export default async function AdminMesasPage() {
     <TablesManager
       initialTables={JSON.parse(JSON.stringify(tables))}
       restaurantSlug={restaurant?.slug ?? ""}
+      activeOrders={ordersByTable}
     />
   );
 }
