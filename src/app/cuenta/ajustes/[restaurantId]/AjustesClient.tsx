@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import Link from "next/link";
-import { ArrowLeft, CreditCard, Workflow, ShieldCheck, Users } from "lucide-react";
+import { ArrowLeft, CreditCard, Workflow, ShieldCheck, Users, Store, Upload, X } from "lucide-react";
 
 type MP = {
   enabled: boolean;
@@ -19,8 +19,48 @@ type Ops = {
 };
 
 export default function AjustesClient({
-  restaurantId, restaurantName, restaurantSlug, mercadopago, operations,
-}: { restaurantId: string; restaurantName: string; restaurantSlug: string; mercadopago: MP; operations: Ops }) {
+  restaurantId, restaurantName, restaurantSlug, restaurantLogo, mercadopago, operations,
+}: { restaurantId: string; restaurantName: string; restaurantSlug: string; restaurantLogo: string | null; mercadopago: MP; operations: Ops }) {
+  // Datos del restaurante
+  const [rName, setRName] = useState(restaurantName);
+  const [rSlug, setRSlug] = useState(restaurantSlug);
+  const [rLogo, setRLogo] = useState<string | null>(restaurantLogo);
+  const [savingInfo, setSavingInfo] = useState(false);
+  const [infoMsg, setInfoMsg] = useState<string | null>(null);
+  const [uploadingLogo, setUploadingLogo] = useState(false);
+  const logoInputRef = useRef<HTMLInputElement>(null);
+
+  async function uploadLogo(file: File) {
+    setUploadingLogo(true);
+    const form = new FormData();
+    form.append("file", file);
+    const res = await fetch("/api/upload", { method: "POST", body: form });
+    if (res.ok) {
+      const { url } = await res.json();
+      setRLogo(url);
+    }
+    setUploadingLogo(false);
+  }
+
+  async function saveInfo() {
+    setSavingInfo(true); setInfoMsg(null);
+    const slug = rSlug.toLowerCase().replace(/[^a-z0-9-]/g, "");
+    const res = await fetch(`/api/account/restaurants/${restaurantId}/settings`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: rName, slug, logo: rLogo }),
+    });
+    setSavingInfo(false);
+    if (res.ok) {
+      setInfoMsg("Guardado ✓");
+      setRSlug(slug);
+    } else {
+      const d = await res.json().catch(() => ({ error: "Error al guardar" }));
+      setInfoMsg(d.error ?? "Error al guardar");
+    }
+    setTimeout(() => setInfoMsg(null), 4000);
+  }
+
   const [enabled, setEnabled] = useState(mercadopago.enabled);
   const [replacing, setReplacing] = useState(!mercadopago.hasToken);
   const [accessToken, setAccessToken] = useState("");
@@ -103,6 +143,70 @@ export default function AjustesClient({
       </div>
 
       <div className="max-w-3xl mx-auto px-4 py-6 space-y-4">
+        {/* Datos del restaurante */}
+        <section className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+          <div className="flex items-center gap-2 mb-1">
+            <Store size={18} className="text-blue-700" />
+            <h2 className="font-semibold text-gray-800">Datos del restaurante</h2>
+          </div>
+          <p className="text-sm text-gray-400 mb-4">Nombre, URL y logo de tu restaurante.</p>
+
+          <div className="space-y-4">
+            {/* Logo */}
+            <div>
+              <label className="text-xs text-gray-500 uppercase tracking-widest block mb-2">Logo</label>
+              <div className="flex items-center gap-4">
+                {rLogo ? (
+                  <div className="relative w-20 h-20 rounded-xl overflow-hidden border border-gray-200 shrink-0">
+                    <img src={rLogo} alt="Logo" className="w-full h-full object-cover" />
+                    <button onClick={() => setRLogo(null)} className="absolute top-1 right-1 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600">
+                      <X size={12} />
+                    </button>
+                  </div>
+                ) : (
+                  <div className="w-20 h-20 rounded-xl border-2 border-dashed border-gray-200 flex items-center justify-center text-gray-300 shrink-0">
+                    <Store size={24} />
+                  </div>
+                )}
+                <div>
+                  <input ref={logoInputRef} type="file" accept="image/*" className="hidden"
+                    onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadLogo(f); }} />
+                  <button onClick={() => logoInputRef.current?.click()} disabled={uploadingLogo}
+                    className="flex items-center gap-1.5 text-sm font-semibold text-blue-600 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 px-3 py-2 rounded-xl transition-all disabled:opacity-50">
+                    <Upload size={14} /> {uploadingLogo ? "Subiendo..." : rLogo ? "Cambiar" : "Subir logo"}
+                  </button>
+                  <p className="text-[11px] text-gray-400 mt-1">Recomendado: cuadrado, mín. 200×200px</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Nombre */}
+            <div>
+              <label className="text-xs text-gray-500 uppercase tracking-widest block mb-1">Nombre</label>
+              <input type="text" value={rName} onChange={(e) => setRName(e.target.value)}
+                className="w-full bg-gray-50 border border-gray-200 text-gray-900 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30 placeholder:text-gray-300" />
+            </div>
+
+            {/* Slug/URL */}
+            <div>
+              <label className="text-xs text-gray-500 uppercase tracking-widest block mb-1">URL</label>
+              <div className="flex items-center bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 gap-1">
+                <span className="text-gray-400 text-sm font-mono">/</span>
+                <input type="text" value={rSlug}
+                  onChange={(e) => setRSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ""))}
+                  className="flex-1 bg-transparent text-gray-900 text-sm focus:outline-none placeholder:text-gray-300 font-mono" />
+              </div>
+              <p className="text-[11px] text-gray-400 mt-1">Solo letras minúsculas, números y guiones</p>
+            </div>
+          </div>
+
+          {infoMsg && <p className={`text-sm mt-3 ${infoMsg.includes("✓") ? "text-emerald-600" : "text-red-500"}`}>{infoMsg}</p>}
+          <button onClick={saveInfo} disabled={savingInfo || rName.trim().length < 2}
+            className="mt-4 bg-gray-900 text-white hover:bg-gray-700 disabled:opacity-50 font-semibold text-sm px-4 py-2.5 rounded-xl transition-all">
+            {savingInfo ? "Guardando..." : "Guardar"}
+          </button>
+        </section>
+
         {/* Métodos de cobro */}
         <section className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
           <div className="flex items-center gap-2 mb-1">

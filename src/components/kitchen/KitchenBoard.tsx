@@ -181,6 +181,7 @@ function TableCard({ group, onAdvance, flowConfirm }: { group: TableGroup; onAdv
   const allReady = group.orders.every((o) => o.status === "READY");
   const colorClass = tableColor(group.orders);
   const tableTotal = group.orders.reduce((s, o) => s + o.total, 0);
+  const customerNames = [...new Set(group.orders.map((o) => o.customerName).filter(Boolean))];
 
   return (
     <div className={`rounded-2xl border-2 overflow-hidden ${colorClass}`}>
@@ -189,6 +190,7 @@ function TableCard({ group, onAdvance, flowConfirm }: { group: TableGroup; onAdv
         <div>
           <p className="font-black text-white text-2xl leading-none">Mesa {group.tableNumber}</p>
           {group.tableLabel && <p className="text-zinc-400 text-xs mt-0.5">{group.tableLabel}</p>}
+          {customerNames.length > 0 && <p className="text-zinc-300 text-xs mt-0.5 font-semibold">{customerNames.join(", ")}</p>}
         </div>
         <div className="text-right">
           <p className="text-zinc-400 text-xs">{group.orders.length} pedido{group.orders.length !== 1 ? "s" : ""}</p>
@@ -230,10 +232,11 @@ function OrderRow({ order, onAdvance, flowConfirm }: { order: Order; onAdvance: 
     <div className={`border-l-4 ${style.border} px-3 py-3`}>
       {/* Meta */}
       <div className="flex items-center justify-between gap-2 mb-2">
-        <div className="flex items-center gap-2">
-          <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold border ${style.badge}`}>{style.label}</span>
-          <span className="text-zinc-600 font-mono text-[10px]">#{order.id.slice(-5).toUpperCase()}</span>
-          {hasAllergyNote && <AlertTriangle size={11} className="text-amber-400" />}
+        <div className="flex items-center gap-2 min-w-0">
+          <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold border shrink-0 ${style.badge}`}>{style.label}</span>
+          {order.customerName && <span className="text-zinc-300 text-[11px] font-semibold truncate">{order.customerName}</span>}
+          <span className="text-zinc-600 font-mono text-[10px] shrink-0">#{order.id.slice(-5).toUpperCase()}</span>
+          {hasAllergyNote && <AlertTriangle size={11} className="text-amber-400 shrink-0" />}
         </div>
         <div className="flex items-center gap-1 text-zinc-600">
           <Clock size={10} />

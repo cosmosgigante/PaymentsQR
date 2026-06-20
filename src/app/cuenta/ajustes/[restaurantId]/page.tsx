@@ -13,7 +13,7 @@ export default async function AjustesPage({ params }: { params: Promise<{ restau
 
   const restaurant = await db.restaurant.findFirst({
     where: { id: restaurantId, accountId: admin.account.id },
-    select: { id: true, name: true, slug: true, confirmTableEnabled: true, maxTableDevices: true, flowConfirmEnabled: true, flowDeliveredEnabled: true, waitlistEnabled: true, waitlistEstimatedWait: true, waitlistExpiryMinutes: true },
+    select: { id: true, name: true, slug: true, logo: true, confirmTableEnabled: true, maxTableDevices: true, flowConfirmEnabled: true, flowDeliveredEnabled: true, waitlistEnabled: true, waitlistEstimatedWait: true, waitlistExpiryMinutes: true },
   });
   if (!restaurant) redirect("/cuenta");
 
@@ -29,6 +29,7 @@ export default async function AjustesPage({ params }: { params: Promise<{ restau
       restaurantId={restaurantId}
       restaurantName={restaurant.name}
       restaurantSlug={restaurant.slug}
+      restaurantLogo={restaurant.logo}
       operations={{
         confirmTableEnabled: restaurant.confirmTableEnabled,
         maxTableDevices: restaurant.maxTableDevices,

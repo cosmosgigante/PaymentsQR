@@ -25,6 +25,9 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
   if (!ctx) return NextResponse.json({ error: "No autorizado" }, { status: 403 });
 
   const body = await req.json().catch(() => ({})) as {
+    name?: string;
+    slug?: string;
+    logo?: string | null;
     confirmTableEnabled?: boolean;
     maxTableDevices?: number;
     flowConfirmEnabled?: boolean;
@@ -34,11 +37,19 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     waitlistExpiryMinutes?: number;
   };
 
-  const data: {
-    confirmTableEnabled?: boolean; maxTableDevices?: number;
-    flowConfirmEnabled?: boolean; flowDeliveredEnabled?: boolean;
-    waitlistEnabled?: boolean; waitlistEstimatedWait?: number; waitlistExpiryMinutes?: number;
-  } = {};
+  const data: Record<string, unknown> = {};
+
+  if (typeof body.name === "string" && body.name.trim().length >= 2 && body.name.trim().length <= 100) {
+    data.name = body.name.trim();
+  }
+  if (typeof body.slug === "string" && /^[a-z0-9-]{2,60}$/.test(body.slug)) {
+    const existing = await db.restaurant.findFirst({ where: { slug: body.slug, id: { not: id } } });
+    if (existing) return NextResponse.json({ error: "Ese slug ya está en uso" }, { status: 409 });
+    data.slug = body.slug;
+  }
+  if (body.logo === null || (typeof body.logo === "string" && body.logo.startsWith("https://"))) {
+    data.logo = body.logo;
+  }
   if (typeof body.confirmTableEnabled === "boolean") data.confirmTableEnabled = body.confirmTableEnabled;
   if (typeof body.maxTableDevices === "number") data.maxTableDevices = Math.min(10, Math.max(1, Math.round(body.maxTableDevices)));
   if (typeof body.flowConfirmEnabled === "boolean") data.flowConfirmEnabled = body.flowConfirmEnabled;
@@ -54,6 +65,9 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     accountId: ctx.account.id, restaurantId: id, actorType: "OWNER", actorName: ctx.admin.email,
     category: "CUENTA", action: "OPERATIONS_CONFIG",
     detail: [
+      data.name !== undefined && `nombre → ${data.name}`,
+      data.slug !== undefined && `slug → ${data.slug}`,
+      data.logo !== undefined && (data.logo ? "logo actualizado" : "logo removido"),
       data.confirmTableEnabled !== undefined && `confirmar mesa ${data.confirmTableEnabled ? "ON" : "OFF"}`,
       data.maxTableDevices !== undefined && `máx ${data.maxTableDevices} disp.`,
       data.flowConfirmEnabled !== undefined && `paso confirmación ${data.flowConfirmEnabled ? "ON" : "OFF"}`,
