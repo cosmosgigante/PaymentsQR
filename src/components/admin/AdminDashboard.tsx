@@ -168,9 +168,9 @@ export default function AdminDashboard({ stats, recentOrders: initialOrders, gen
       <div className="max-w-5xl mx-auto px-4 sm:px-6 -mt-1 pb-8 space-y-4 pt-5">
 
         {/* Accesos rápidos */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          <NavCard href="/cocina"      icon={<ChefHat size={22} strokeWidth={1.5} />}         title="Cocina"     subtitle="Pedidos en vivo"   iconBg="bg-orange-100"  iconColor="text-orange-500" />
-          <NavCard href="/mozos"       icon={<UtensilsCrossed size={22} strokeWidth={1.5} />} title="Mozos"      subtitle="Entregar y cobrar" iconBg="bg-emerald-100" iconColor="text-emerald-600" />
+        <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+          <NavCard href="/cocina"          icon={<ChefHat size={22} strokeWidth={1.5} />}         title="Cocina"     subtitle="Pedidos en vivo"   iconBg="bg-orange-100"  iconColor="text-orange-500" />
+          <NavCard href="/mozos"           icon={<UtensilsCrossed size={22} strokeWidth={1.5} />} title="Mozos"      subtitle="Entregar y cobrar" iconBg="bg-emerald-100" iconColor="text-emerald-600" />
           <NavCard href="/admin/menu"      icon={<BookOpen size={22} strokeWidth={1.5} />}        title="Menú"       subtitle="Gestionar platos"  iconBg="bg-blue-100"    iconColor="text-blue-500" />
           <NavCard href="/admin/mesas"     icon={<QrCode size={22} strokeWidth={1.5} />}          title="Mesas"      subtitle="Códigos QR"        iconBg="bg-violet-100"  iconColor="text-violet-500" />
           <NavCard href="/admin/reportes"  icon={<BarChart3 size={22} strokeWidth={1.5} />}       title="Reportes"   subtitle="Ventas y métricas" iconBg="bg-indigo-100"  iconColor="text-indigo-500" />
