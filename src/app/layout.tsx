@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Geist } from "next/font/google";
 import "./globals.css";
+import PWARegister from "./pwa-register";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -10,6 +11,7 @@ const geistSans = Geist({
 export const metadata: Metadata = {
   title: "Menú Digital",
   description: "Pedí desde tu mesa",
+  manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
@@ -37,6 +39,7 @@ export default function RootLayout({
       className={geistSans.variable}
     >
       <body className="bg-background text-foreground antialiased overscroll-none">
+        <PWARegister />
         {children}
       </body>
     </html>
