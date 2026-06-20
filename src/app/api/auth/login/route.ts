@@ -83,17 +83,10 @@ export async function POST(req: NextRequest) {
     : await bcrypt.compare(password, DUMMY_HASH).then(() => false); // dummy: siempre false
 
   if (!admin || !valid) {
-    // Mismo error para email inexistente y contraseña incorrecta — no revela cuál es
-    if (admin && !admin.passwordHash) {
-      // Primera vez: el admin existe pero nunca configuró contraseña — registrarlo
-      const hash = await bcrypt.hash(password, 12);
-      await db.admin.update({ where: { email: email.toLowerCase().trim() }, data: { passwordHash: hash } });
-    } else {
-      // ¿Es personal (usuario + contraseña)?
-      const staffRes = await tryStaffPasswordLogin(email, password, req);
-      if (staffRes) return staffRes;
-      return NextResponse.redirect(new URL("/?error=invalid", req.url), { status: 303 });
-    }
+    // ¿Es personal (usuario + contraseña)?
+    const staffRes = await tryStaffPasswordLogin(email, password, req);
+    if (staffRes) return staffRes;
+    return NextResponse.redirect(new URL("/?error=invalid", req.url), { status: 303 });
   }
 
   const token = await signToken({

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
 import { put } from "@vercel/blob";
+import { rateLimit } from "@/lib/rateLimit";
 
 const MAX_SIZE = 4 * 1024 * 1024; // 4MB
 const ALLOWED_TYPES: Record<string, string> = {
@@ -14,6 +15,10 @@ const ALLOWED_TYPES: Record<string, string> = {
 export async function POST(req: NextRequest) {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+
+  if (!await rateLimit(`upload:${session.restaurantId}`, 20, 5 * 60 * 1000)) {
+    return NextResponse.json({ error: "Demasiadas subidas. Esperá un momento." }, { status: 429 });
+  }
 
   let formData: FormData;
   try {
