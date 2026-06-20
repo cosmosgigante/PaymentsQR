@@ -51,9 +51,10 @@ export async function joinOrCreateSession(opts: {
   restaurantId: string;
   maxDevices: number;
   deviceId: string;
+  customerEmail?: string;
   startStatus?: string; // "OPEN" | "PENDING_CONFIRM" (si el restorán exige confirmar la mesa)
 }): Promise<{ session: SessionRow; full: boolean }> {
-  const { tableId, restaurantId, maxDevices, deviceId } = opts;
+  const { tableId, restaurantId, maxDevices, deviceId, customerEmail } = opts;
   const cutoff = new Date(Date.now() - SESSION_TTL_MS);
 
   const existing = await db.tableSession.findFirst({
@@ -62,6 +63,30 @@ export async function joinOrCreateSession(opts: {
   });
 
   if (existing) {
+    // Detectar cambio de cliente: si el nuevo email es distinto al de los
+    // pedidos anteriores, cerrar la sesión vieja y abrir una nueva.
+    if (customerEmail) {
+      const prevOrder = await db.order.findFirst({
+        where: { tableSessionId: existing.id, customerEmail: { not: null } },
+        orderBy: { createdAt: "desc" },
+        select: { customerEmail: true },
+      });
+      if (prevOrder?.customerEmail && prevOrder.customerEmail !== customerEmail) {
+        await db.tableSession.update({
+          where: { id: existing.id },
+          data: { status: "CLOSED", closedAt: new Date() },
+        });
+        const created = await db.tableSession.create({
+          data: {
+            tableId, restaurantId, maxDevices,
+            deviceIds: JSON.stringify([deviceId]),
+            status: opts.startStatus === "PENDING_CONFIRM" ? "PENDING_CONFIRM" : "OPEN",
+          },
+        });
+        return { session: created, full: false };
+      }
+    }
+
     const devices = parseDevices(existing.deviceIds);
     if (devices.includes(deviceId)) {
       const updated = await db.tableSession.update({
