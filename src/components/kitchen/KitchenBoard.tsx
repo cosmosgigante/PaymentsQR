@@ -1,10 +1,29 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Wifi, WifiOff, ChefHat, Clock, AlertTriangle } from "lucide-react";
+import { Wifi, WifiOff, ChefHat, Clock, AlertTriangle, Volume2, VolumeX } from "lucide-react";
 import { Order, OrderStatus } from "@/lib/types";
 import { getOrders, updateOrderStatus } from "@/lib/api";
+
+function playOrderSound() {
+  try {
+    const ctx = new AudioContext();
+    // Doble beep agudo para que se escuche en cocina
+    [0, 0.2].forEach((delay) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.frequency.value = 880;
+      osc.type = "square";
+      gain.gain.setValueAtTime(0.3, ctx.currentTime + delay);
+      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + delay + 0.15);
+      osc.start(ctx.currentTime + delay);
+      osc.stop(ctx.currentTime + delay + 0.15);
+    });
+  } catch { /* navegador sin audio */ }
+}
 
 const ACTIVE: OrderStatus[] = ["PENDING", "CONFIRMED", "PREPARING", "READY"];
 
@@ -56,6 +75,9 @@ export default function KitchenBoard() {
   const [connected, setConnected] = useState(false);
   const [flowConfirm, setFlowConfirm] = useState(true);
   const [flowDelivered, setFlowDelivered] = useState(true);
+  const [soundEnabled, setSoundEnabled] = useState(true);
+  const soundRef = useRef(true);
+  soundRef.current = soundEnabled;
 
   const fetchOrders = useCallback(async () => {
     try {
@@ -78,6 +100,7 @@ export default function KitchenBoard() {
       try {
         const data = JSON.parse(e.data);
         if (data.type === "NEW_ORDER") {
+          if (soundRef.current) playOrderSound();
           setOrders((prev) =>
             ACTIVE.includes(data.order.status) && !prev.find((o) => o.id === data.order.id)
               ? [data.order, ...prev] : prev
@@ -115,9 +138,18 @@ export default function KitchenBoard() {
           <h1 className="font-bold text-base tracking-tight">Cocina</h1>
           <span className="text-zinc-500 text-sm">{groups.length} mesa{groups.length !== 1 ? "s" : ""} activa{groups.length !== 1 ? "s" : ""}</span>
         </div>
-        <div className="flex items-center gap-1.5">
-          {connected ? <Wifi size={13} className="text-emerald-400" /> : <WifiOff size={13} className="text-zinc-600" />}
-          <span className={`text-xs font-medium ${connected ? "text-emerald-400" : "text-zinc-600"}`}>{connected ? "En vivo" : "Sin conexión"}</span>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => setSoundEnabled((s) => !s)}
+            className="flex items-center gap-1 text-xs font-medium px-2 py-1 rounded-lg active:bg-zinc-800 transition-colors"
+          >
+            {soundEnabled ? <Volume2 size={14} className="text-emerald-400" /> : <VolumeX size={14} className="text-zinc-600" />}
+            <span className={soundEnabled ? "text-emerald-400" : "text-zinc-600"}>{soundEnabled ? "Sonido" : "Mudo"}</span>
+          </button>
+          <div className="flex items-center gap-1.5">
+            {connected ? <Wifi size={13} className="text-emerald-400" /> : <WifiOff size={13} className="text-zinc-600" />}
+            <span className={`text-xs font-medium ${connected ? "text-emerald-400" : "text-zinc-600"}`}>{connected ? "En vivo" : "Sin conexión"}</span>
+          </div>
         </div>
       </div>
 
