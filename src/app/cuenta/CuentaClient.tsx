@@ -205,7 +205,12 @@ export default function CuentaClient({ account, restaurants: initial, isFull = t
         {tab === "restoranes" && (
         <>
         <div className="flex items-center justify-between">
-          <h2 className="font-semibold text-gray-800">Mis restoranes</h2>
+          <div className="flex items-center gap-3">
+            <h2 className="font-semibold text-gray-800">Mis restoranes</h2>
+            <Link href="/cuenta/reportes" className="flex items-center gap-1 text-xs font-semibold text-indigo-600 bg-indigo-50 hover:bg-indigo-100 px-2.5 py-1.5 rounded-lg transition-all">
+              <BarChart3 size={13} /> Reportes
+            </Link>
+          </div>
           {isFull && (
             <button onClick={() => { setShowForm((v) => !v); setError(null); }}
               className="bg-blue-900 text-white hover:bg-blue-800 text-sm font-semibold px-4 py-2 rounded-xl transition-all">
@@ -260,10 +265,6 @@ export default function CuentaClient({ account, restaurants: initial, isFull = t
                 </div>
                 {active ? (
                   <div className="flex items-center gap-2 shrink-0">
-                    <a href={`/api/account/enter?restaurantId=${r.id}&redirect=/admin/reportes`}
-                      className="flex items-center gap-1 text-sm font-semibold text-indigo-600 hover:text-indigo-800 bg-indigo-50 hover:bg-indigo-100 px-3 py-2 rounded-xl transition-all">
-                      <BarChart3 size={14} /> Reportes
-                    </a>
                     <Link href={`/cuenta/ajustes/${r.id}`}
                       className="text-sm font-semibold text-gray-600 hover:text-gray-900 bg-gray-100 hover:bg-gray-200 px-3 py-2 rounded-xl transition-all">
                       Ajustes

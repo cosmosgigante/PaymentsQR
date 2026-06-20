@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { getSession } from "@/lib/auth";
+import { getAccountAdmin, accountAccess } from "@/lib/account";
 
 export async function GET(req: NextRequest) {
   const session = await getSession();
@@ -8,6 +9,24 @@ export async function GET(req: NextRequest) {
 
   const { searchParams } = new URL(req.url);
   const days = Math.min(Number(searchParams.get("days")) || 7, 30);
+  const reqRestaurantId = searchParams.get("restaurantId");
+
+  // Si pide un restaurantId distinto, verificar que sea dueño de esa cuenta
+  let restaurantId = session.restaurantId;
+  if (reqRestaurantId && reqRestaurantId !== session.restaurantId) {
+    const ctx = await getAccountAdmin(req);
+    if (!ctx) return NextResponse.json({ error: "No autorizado" }, { status: 403 });
+    const access = accountAccess(ctx.admin, ctx.account);
+    const restaurant = await db.restaurant.findFirst({
+      where: { id: reqRestaurantId, accountId: ctx.account.id },
+      select: { id: true },
+    });
+    if (!restaurant) return NextResponse.json({ error: "Restaurante no encontrado" }, { status: 404 });
+    if (!access.isFull && !(access.allowedRestaurantIds ?? []).includes(reqRestaurantId)) {
+      return NextResponse.json({ error: "No tenés acceso a este restaurante" }, { status: 403 });
+    }
+    restaurantId = reqRestaurantId;
+  }
 
   const since = new Date();
   since.setDate(since.getDate() - days);
@@ -15,7 +34,7 @@ export async function GET(req: NextRequest) {
 
   const orders = await db.order.findMany({
     where: {
-      restaurantId: session.restaurantId,
+      restaurantId,
       status: "PAID",
       createdAt: { gte: since },
     },
