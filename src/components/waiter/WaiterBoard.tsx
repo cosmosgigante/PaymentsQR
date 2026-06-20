@@ -31,7 +31,7 @@ function groupByTable(orders: Order[]): TableGroup[] {
 export default function WaiterBoard({ initialOrders }: { initialOrders: Order[] }) {
   const [orders, setOrders] = useState<Order[]>(initialOrders);
   const [alertTableNum, setAlertTableNum] = useState<number | null>(null);
-  const [flowDelivered, setFlowDelivered] = useState(true);
+  const [flowDelivered, setFlowDelivered] = useState(false);
   const audioCtxRef = useRef<AudioContext | null>(null);
 
   function playBeep() {

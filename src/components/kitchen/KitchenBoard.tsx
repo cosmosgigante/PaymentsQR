@@ -73,8 +73,8 @@ export default function KitchenBoard() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [connected, setConnected] = useState(false);
-  const [flowConfirm, setFlowConfirm] = useState(true);
-  const [flowDelivered, setFlowDelivered] = useState(true);
+  const [flowConfirm, setFlowConfirm] = useState(false);
+  const [flowDelivered, setFlowDelivered] = useState(false);
   const [soundEnabled, setSoundEnabled] = useState(true);
   const soundRef = useRef(true);
   soundRef.current = soundEnabled;

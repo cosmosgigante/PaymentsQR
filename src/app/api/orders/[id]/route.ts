@@ -60,7 +60,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   });
   if (!order) return NextResponse.json({ error: "Pedido no encontrado" }, { status: 404 });
 
-  const updated = await db.order.update({
+  let updated = await db.order.update({
     where: { id },
     data: { status },
     include: { items: { include: { menuItem: true } }, table: true },
@@ -68,11 +68,21 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 
   emitEvent(session.restaurantId, { type: "ORDER_UPDATED", order: updated });
 
+  // Auto-cerrar pedidos online cuando se marcan como READY (ya pagaron, no necesita más clicks)
+  if (status === "READY" && order.paymentMode === "ONLINE") {
+    updated = await db.order.update({
+      where: { id },
+      data: { status: "PAID" },
+      include: { items: { include: { menuItem: true } }, table: true },
+    });
+    emitEvent(session.restaurantId, { type: "ORDER_UPDATED", order: updated });
+  }
+
   await logActivity({
     accountId: session.accountId, restaurantId: session.restaurantId,
     actorType: session.role, actorName: session.actorName,
     category: "PEDIDOS", action: "ORDER_STATUS",
-    detail: `Mesa ${updated.table.number} → ${ORDER_STATUS_LABELS[status] ?? status}`,
+    detail: `Mesa ${updated.table.number} → ${ORDER_STATUS_LABELS[updated.status as OrderStatus] ?? updated.status}`,
   });
 
   return NextResponse.json(updated);

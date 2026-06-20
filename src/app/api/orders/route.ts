@@ -85,6 +85,8 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Esta mesa alcanzó el máximo de dispositivos conectados" }, { status: 409 });
   }
 
+  const initialStatus = table.restaurant.flowConfirmEnabled ? "PENDING" : "PREPARING";
+
   const order = await db.order.create({
     data: {
       restaurantId:  table.restaurantId,
@@ -96,7 +98,7 @@ export async function POST(req: NextRequest) {
       notes:         safeNotes,
       customerName:  safeName  || undefined,
       customerEmail: safeEmail || undefined,
-      status: "PENDING",
+      status: initialStatus,
       items: {
         create: items.map((item) => ({
           menuItemId: item.menuItemId,

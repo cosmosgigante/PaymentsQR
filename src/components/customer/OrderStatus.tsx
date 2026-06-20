@@ -21,13 +21,22 @@ type Order = {
   items: OrderItem[];
 };
 
-const STEPS: { status: Status; icon: React.ReactNode; label: string }[] = [
+const ALL_STEPS: { status: Status; icon: React.ReactNode; label: string }[] = [
   { status: "PENDING",   icon: <Clock size={14} />,        label: "Recibido"  },
   { status: "CONFIRMED", icon: <CheckCircle2 size={14} />, label: "Confirmado" },
   { status: "PREPARING", icon: <ChefHat size={14} />,      label: "En cocina" },
   { status: "READY",     icon: <Bell size={14} />,          label: "Listo"     },
   { status: "DELIVERED", icon: <Utensils size={14} />,     label: "Servido"   },
 ];
+
+function buildSteps(order: Order) {
+  const dominated = new Set<Status>();
+  if (!["PENDING"].includes(order.status)) dominated.add("PENDING");
+  if (!["CONFIRMED"].includes(order.status)) dominated.add("CONFIRMED");
+  if (!["DELIVERED"].includes(order.status) && order.status === "PAID") dominated.add("DELIVERED");
+  const history: Status[] = ["PREPARING", "READY", order.status];
+  return ALL_STEPS.filter((s) => !dominated.has(s.status) || history.includes(s.status));
+}
 
 type SessionOrderLite = { id: string; status: Status; total: number; mine?: boolean; dinerIndex?: number };
 
@@ -87,7 +96,8 @@ export default function OrderStatusView({ orderId, tableToken, onPedirMas, sessi
     );
   }
 
-  const currentIdx = STEPS.findIndex((s) => s.status === order.status);
+  const steps = buildSteps(order);
+  const currentIdx = steps.findIndex((s) => s.status === order.status);
   const isCancelled = order.status === "CANCELLED";
 
   return (
@@ -119,8 +129,8 @@ export default function OrderStatusView({ orderId, tableToken, onPedirMas, sessi
               transition={{ type: "spring", bounce: 0.4 }}
               className="flex justify-center mb-3 text-zinc-700"
             >
-              {STEPS[currentIdx]?.icon
-                ? <span className="scale-[2.5] inline-block">{STEPS[currentIdx].icon}</span>
+              {steps[currentIdx]?.icon
+                ? <span className="scale-[2.5] inline-block">{steps[currentIdx].icon}</span>
                 : <span className="text-4xl">📋</span>
               }
             </motion.div>
@@ -137,7 +147,7 @@ export default function OrderStatusView({ orderId, tableToken, onPedirMas, sessi
         {!isCancelled && order.status !== "PAID" && (
           <div className="bg-white rounded-3xl p-5 border border-zinc-100">
             <div className="flex items-center">
-              {STEPS.map((step, i) => (
+              {steps.map((step, i) => (
                 <div key={step.status} className="flex items-center flex-1 min-w-0">
                   <div className={`w-7 h-7 rounded-full flex items-center justify-center transition-all duration-500 flex-shrink-0 ${
                     i < currentIdx ? "bg-zinc-900 text-white"
@@ -146,7 +156,7 @@ export default function OrderStatusView({ orderId, tableToken, onPedirMas, sessi
                   }`}>
                     {i < currentIdx ? <CheckCircle2 size={13} /> : step.icon}
                   </div>
-                  {i < STEPS.length - 1 && (
+                  {i < steps.length - 1 && (
                     <div className={`flex-1 h-0.5 mx-1 rounded-full transition-all duration-500 ${
                       i < currentIdx ? "bg-zinc-900" : "bg-zinc-100"
                     }`} />
@@ -155,7 +165,7 @@ export default function OrderStatusView({ orderId, tableToken, onPedirMas, sessi
               ))}
             </div>
             <div className="flex justify-between mt-2.5">
-              {STEPS.map((step, i) => (
+              {steps.map((step, i) => (
                 <p key={step.status} className={`text-[10px] text-center font-medium flex-1 leading-tight ${
                   i <= currentIdx ? "text-zinc-700" : "text-zinc-300"
                 }`}>

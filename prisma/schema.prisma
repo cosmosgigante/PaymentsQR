@@ -113,8 +113,8 @@ model Restaurant {
   paymentSource         String?        @default("MANUAL")
   maxTableDevices     Int            @default(2)
   confirmTableEnabled Boolean        @default(false) // "confirmar mesa" antes de pedir
-  flowConfirmEnabled   Boolean        @default(true)
-  flowDeliveredEnabled Boolean        @default(true)
+  flowConfirmEnabled   Boolean        @default(false)
+  flowDeliveredEnabled Boolean        @default(false)
   waitlistEnabled      Boolean        @default(false)
   waitlistEstimatedWait Int           @default(15)   // minutos estimados de espera por defecto
   waitlistExpiryMinutes Int           @default(5)    // minutos para ocupar la mesa tras el llamado
