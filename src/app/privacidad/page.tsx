@@ -109,7 +109,7 @@ export default function PrivacidadPage() {
             <section>
               <h2 className="text-base font-bold text-zinc-900 mb-2">Tus derechos</h2>
               <p>De acuerdo con la Ley N° 25.326 de Protección de los Datos Personales (Argentina), tenés derecho a acceder, rectificar y solicitar la eliminación de tus datos personales (derechos ARCO).</p>
-              <p className="mt-2">Para ejercer estos derechos escribí a <a href="mailto:quintaescala5@gmail.com" className="text-blue-600 underline hover:text-blue-800">quintaescala5@gmail.com</a>. Respondemos dentro de los 10 días hábiles.</p>
+              <p className="mt-2">Podés <a href="/mis-datos" className="text-blue-600 underline hover:text-blue-800 font-semibold">consultar y eliminar tus datos desde acá</a> (requiere iniciar sesión con Google). También podés escribir a <a href="mailto:quintaescala5@gmail.com" className="text-blue-600 underline hover:text-blue-800">quintaescala5@gmail.com</a>. Respondemos dentro de los 10 días hábiles.</p>
               <p className="mt-2 text-zinc-500 text-sm">También podés presentar un reclamo ante la AAIP en <a href="https://www.argentina.gob.ar/aaip" target="_blank" rel="noopener noreferrer" className="underline hover:text-zinc-700">www.argentina.gob.ar/aaip</a>.</p>
             </section>
 

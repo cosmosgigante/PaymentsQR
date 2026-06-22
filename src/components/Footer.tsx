@@ -14,6 +14,8 @@ export default function Footer({ dark = false }: { dark?: boolean }) {
           <span className={`text-xs ${dot}`}>·</span>
           <a href="/privacidad" className={`text-xs transition-colors underline underline-offset-2 ${text}`}>Privacidad</a>
           <span className={`text-xs ${dot}`}>·</span>
+          <a href="/mis-datos"  className={`text-xs transition-colors underline underline-offset-2 ${text}`}>Mis datos</a>
+          <span className={`text-xs ${dot}`}>·</span>
           <a href="/faq"       className={`text-xs transition-colors underline underline-offset-2 ${text}`}>FAQ</a>
           <span className={`text-xs ${dot}`}>·</span>
           <a href="mailto:quintaescala5@gmail.com" className={`text-xs transition-colors underline underline-offset-2 ${text}`}>Contacto</a>
