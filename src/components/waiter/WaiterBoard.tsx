@@ -6,6 +6,7 @@ import { useSSE } from "@/hooks/useSSE";
 import { ArrowLeft, Clock, BellRing } from "lucide-react";
 import Link from "next/link";
 import WaitlistPanel from "@/components/waiter/WaitlistPanel";
+import { WAITER_ACTIVE } from "@/lib/orderFlow";
 
 type OrderItem = { id: string; quantity: number; notes: string | null; menuItem: { name: string } };
 type Order = {
@@ -16,7 +17,7 @@ type Order = {
 };
 type TableGroup = { tableNumber: number; tableLabel: string | null; orders: Order[] };
 
-const ACTIVE = ["PENDING", "CONFIRMED", "PREPARING", "READY", "DELIVERED"];
+const ACTIVE = WAITER_ACTIVE as string[];
 
 function groupByTable(orders: Order[]): TableGroup[] {
   const map = new Map<number, TableGroup>();

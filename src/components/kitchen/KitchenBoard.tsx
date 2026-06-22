@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Wifi, WifiOff, ChefHat, Clock, AlertTriangle, Volume2, VolumeX } from "lucide-react";
 import { Order, OrderStatus } from "@/lib/types";
 import { getOrders, updateOrderStatus } from "@/lib/api";
+import { KITCHEN_ACTIVE, nextKitchenStatus, kitchenActionLabel } from "@/lib/orderFlow";
 
 function playOrderSound() {
   try {
@@ -25,23 +26,7 @@ function playOrderSound() {
   } catch { /* navegador sin audio */ }
 }
 
-const ACTIVE: OrderStatus[] = ["PENDING", "CONFIRMED", "PREPARING", "READY"];
-
-// El flujo se carga dinámicamente según la config del restorán
-function buildNext(flowConfirm: boolean, flowDelivered: boolean): Partial<Record<OrderStatus, OrderStatus>> {
-  return {
-    PENDING: flowConfirm ? "CONFIRMED" : "PREPARING",
-    CONFIRMED: "PREPARING",
-    PREPARING: "READY",
-    // READY → si sin paso entrega, va directo a PAID (lo maneja mozos/cocina)
-  };
-}
-
-const ACTION: Partial<Record<OrderStatus, string>> = {
-  PENDING: "Confirmar recibido",
-  CONFIRMED: "En preparación",
-  PREPARING: "Listo 🔔",
-};
+const ACTIVE = KITCHEN_ACTIVE;
 
 const STATUS_STYLE: Record<string, { border: string; badge: string; label: string }> = {
   PENDING:   { border: "border-l-amber-400",   badge: "bg-amber-50 text-amber-700 border-amber-200",   label: "Pendiente"      },
@@ -74,7 +59,6 @@ export default function KitchenBoard() {
   const [loading, setLoading] = useState(true);
   const [connected, setConnected] = useState(false);
   const [flowConfirm, setFlowConfirm] = useState(false);
-  const [flowDelivered, setFlowDelivered] = useState(false);
   const [soundEnabled, setSoundEnabled] = useState(true);
   const soundRef = useRef(true);
   soundRef.current = soundEnabled;
@@ -89,7 +73,7 @@ export default function KitchenBoard() {
 
   useEffect(() => {
     fetch("/api/restaurant/flow").then((r) => r.ok ? r.json() : null).then((d) => {
-      if (d) { setFlowConfirm(d.flowConfirmEnabled); setFlowDelivered(d.flowDeliveredEnabled); }
+      if (d) { setFlowConfirm(d.flowConfirmEnabled); }
     }).catch(() => {});
     fetchOrders();
     const poll = setInterval(fetchOrders, 4000);
@@ -118,8 +102,7 @@ export default function KitchenBoard() {
   }, [fetchOrders]);
 
   async function advance(order: Order) {
-    const NEXT = buildNext(flowConfirm, flowDelivered);
-    const next = NEXT[order.status];
+    const next = nextKitchenStatus(order.status, flowConfirm);
     if (!next) return;
     const updated = await updateOrderStatus(order.id, next);
     setOrders((prev) => {
@@ -212,13 +195,7 @@ function TableCard({ group, onAdvance, flowConfirm }: { group: TableGroup; onAdv
 function OrderRow({ order, onAdvance, flowConfirm }: { order: Order; onAdvance: (o: Order) => Promise<void>; flowConfirm: boolean }) {
   const [updating, setUpdating] = useState(false);
   const elapsed = Math.floor((Date.now() - new Date(order.createdAt).getTime()) / 60000);
-  // Acción según el flujo configurado
-  const effectiveAction: Partial<Record<OrderStatus, string>> = {
-    PENDING: flowConfirm ? "Confirmar recibido" : "En preparación",
-    CONFIRMED: "En preparación",
-    PREPARING: "Listo 🔔",
-  };
-  const nextAction = effectiveAction[order.status];
+  const nextAction = kitchenActionLabel(order.status, flowConfirm);
   const style = STATUS_STYLE[order.status];
   const hasAllergyNote = order.notes || order.items.some((i) => i.notes);
 

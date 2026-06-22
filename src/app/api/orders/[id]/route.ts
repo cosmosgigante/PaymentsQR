@@ -5,6 +5,7 @@ import { canManageAny } from "@/lib/staff";
 import { logActivity } from "@/lib/activity";
 import { emitEvent } from "@/lib/events";
 import { OrderStatus, ORDER_STATUS_LABELS } from "@/lib/types";
+import { ALL_STATUSES, canTransition } from "@/lib/orderFlow";
 
 // GET — accesible con token de mesa (cliente) o sesión admin
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -49,8 +50,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 
   const { status } = body;
 
-  const validStatuses: OrderStatus[] = ["AWAITING_PAYMENT", "PENDING", "CONFIRMED", "PREPARING", "READY", "DELIVERED", "PAID", "CANCELLED"];
-  if (!status || !validStatuses.includes(status)) {
+  if (!status || !ALL_STATUSES.includes(status)) {
     return NextResponse.json({ error: "Estado inválido" }, { status: 400 });
   }
 
@@ -59,6 +59,10 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     where: { id, restaurantId: session.restaurantId },
   });
   if (!order) return NextResponse.json({ error: "Pedido no encontrado" }, { status: 404 });
+
+  if (!canTransition(order.status as OrderStatus, status)) {
+    return NextResponse.json({ error: `No se puede pasar de ${order.status} a ${status}` }, { status: 400 });
+  }
 
   let updated = await db.order.update({
     where: { id },

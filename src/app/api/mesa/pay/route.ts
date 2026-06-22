@@ -4,8 +4,7 @@ import { isRestaurantOperative } from "@/lib/restaurant";
 import { joinOrCreateSession, readDeviceId, setDeviceCookie } from "@/lib/tableSession";
 import { decryptSecret } from "@/lib/secrets";
 import { createCheckoutPreference } from "@/lib/mercadopago";
-
-const UNPAID = ["AWAITING_PAYMENT", "PENDING", "CONFIRMED", "PREPARING", "READY", "DELIVERED"];
+import { UNPAID } from "@/lib/orderFlow";
 
 // Inicia el cobro de TODA la cuenta de la mesa con Checkout Pro de MercadoPago.
 // El estado del pago vive en la sesión → es compartido entre los dispositivos.

@@ -6,6 +6,7 @@ import { emitEvent } from "@/lib/events";
 import { rateLimit } from "@/lib/rateLimit";
 import { isRestaurantOperative } from "@/lib/restaurant";
 import { joinOrCreateSession, readDeviceId, setDeviceCookie } from "@/lib/tableSession";
+import { initialOrderStatus, ALL_STATUSES } from "@/lib/orderFlow";
 
 export async function POST(req: NextRequest) {
 
@@ -85,9 +86,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Esta mesa alcanzó el máximo de dispositivos conectados" }, { status: 409 });
   }
 
-  const initialStatus = paymentMode === "ONLINE"
-    ? "AWAITING_PAYMENT"
-    : table.restaurant.flowConfirmEnabled ? "PENDING" : "PREPARING";
+  const initialStatus = initialOrderStatus(paymentMode, !!table.restaurant.flowConfirmEnabled);
 
   const order = await db.order.create({
     data: {
@@ -130,8 +129,7 @@ export async function GET(req: NextRequest) {
   const statuses = searchParams.getAll("status");
   const today = searchParams.get("today") === "1";
 
-  const VALID = ["AWAITING_PAYMENT","PENDING","CONFIRMED","PREPARING","READY","DELIVERED","PAID","CANCELLED"];
-  const validStatuses = statuses.filter((s) => VALID.includes(s));
+  const validStatuses = statuses.filter((s) => (ALL_STATUSES as string[]).includes(s));
 
   const todayStart = today ? new Date(new Date().setHours(0, 0, 0, 0)) : null;
 

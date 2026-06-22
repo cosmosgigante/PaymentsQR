@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { canAccess } from "@/lib/staff";
 import { db } from "@/lib/db";
 import WaiterBoard from "@/components/waiter/WaiterBoard";
+import { WAITER_ACTIVE } from "@/lib/orderFlow";
 
 export default async function MozosPage() {
   const session = await getSession();
@@ -12,7 +13,7 @@ export default async function MozosPage() {
   const orders = await db.order.findMany({
     where: {
       restaurantId: session.restaurantId,
-      status: { in: ["PENDING", "CONFIRMED", "PREPARING", "READY", "DELIVERED"] },
+      status: { in: WAITER_ACTIVE },
     },
     orderBy: { createdAt: "asc" },
     include: {
