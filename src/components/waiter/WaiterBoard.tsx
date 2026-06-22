@@ -235,7 +235,7 @@ function TableCard({ group, onPatch, flowDelivered }: { group: TableGroup; onPat
               {order.notes && <p className="text-xs text-amber-600 italic mb-2">{order.notes}</p>}
               <div className="flex items-center justify-between gap-2">
                 <span className={`text-[11px] font-semibold ${order.paymentMode === "ONLINE" ? "text-emerald-600" : "text-amber-600"}`}>
-                  {order.paymentMode === "ONLINE" ? "✓ Pagó online" : "💵 Paga en caja"}
+                  {order.paymentMode === "ONLINE" ? "✓ Pagó online" : "💵 Paga al final"}
                 </span>
                 {isReady && flowDelivered && (
                   <button onClick={() => onPatch(order.id, "DELIVERED")}

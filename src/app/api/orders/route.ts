@@ -30,9 +30,9 @@ export async function POST(req: NextRequest) {
   const safeName  = typeof customerName  === "string" ? customerName.trim().slice(0, 100)  : "";
   const safeEmail = typeof customerEmail === "string" ? customerEmail.trim().slice(0, 200) : "";
 
-  // Pagar en caja requiere identidad verificada con Google
+  // Pagar al final requiere identidad verificada con Google
   if (paymentMode === "CASHIER") {
-    if (!safeName || !safeEmail) return NextResponse.json({ error: "Identificación requerida para pagar en caja" }, { status: 400 });
+    if (!safeName || !safeEmail) return NextResponse.json({ error: "Identificación requerida para pagar al final" }, { status: 400 });
   }
 
   if (!await rateLimit(`order:${tableToken}`, 5, 2 * 60 * 1000)) {

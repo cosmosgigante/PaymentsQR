@@ -146,7 +146,7 @@ export default function OrderStatusView({ orderId, tableToken, onPedirMas, sessi
             {ORDER_STATUS_LABELS[order.status]}
           </h1>
           <p className="text-zinc-400 text-sm mt-1">
-            {order.table.label ?? `Mesa ${order.table.number}`} · #{order.id.slice(-4).toUpperCase()}
+            <span className="font-semibold text-zinc-700">{order.table.label ?? `Mesa ${order.table.number}`}</span> · #{order.id.slice(-4).toUpperCase()}
           </p>
         </motion.div>
 
@@ -240,7 +240,7 @@ export default function OrderStatusView({ orderId, tableToken, onPedirMas, sessi
             : "bg-zinc-900 border-zinc-900 text-white"
         }`}>
           {order.paymentMode === "CASHIER"
-            ? "🧾  Vas a pagar en la caja al terminar"
+            ? "🧾  Pagás al final (efectivo o MercadoPago)"
             : "💳  Pago online procesado"}
         </div>
 

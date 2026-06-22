@@ -55,7 +55,7 @@ export default function CartDrawer({ cart, tableToken, onClose, onUpdateQty, onO
 
   async function handleConfirm() {
     if (paymentMode === "CASHIER" && !googleUser) {
-      setError("Iniciá sesión con Google para pagar en caja");
+      setError("Iniciá sesión con Google para pagar al final");
       return;
     }
     setLoading(true);
@@ -141,12 +141,12 @@ export default function CartDrawer({ cart, tableToken, onClose, onUpdateQty, onO
             <div className="mb-4">
               <p className="text-[11px] font-semibold text-zinc-400 uppercase tracking-widest mb-3">¿Cómo pagás?</p>
               <div className="grid grid-cols-2 gap-2">
-                <PaymentOption selected={paymentMode === "CASHIER"} onClick={() => setPaymentMode("CASHIER")} icon="🧾" title="En caja" subtitle="Al terminar de comer" />
+                <PaymentOption selected={paymentMode === "CASHIER"} onClick={() => setPaymentMode("CASHIER")} icon="🧾" title="Al final" subtitle="Clásico · efectivo o MP" />
                 <PaymentOption selected={paymentMode === "ONLINE"}  onClick={() => setPaymentMode("ONLINE")}  icon={<CreditCard size={20} strokeWidth={1.5} />} title="Ahora" subtitle="Tarjeta o billetera" />
               </div>
             </div>
 
-            {/* Google login — solo para pagar en caja */}
+            {/* Google login — solo para pagar al final */}
             {paymentMode === "CASHIER" && (
               <div className="mb-4">
                 {googleUser ? (
@@ -162,7 +162,7 @@ export default function CartDrawer({ cart, tableToken, onClose, onUpdateQty, onO
                   </div>
                 ) : (
                   <div className="bg-zinc-50 border border-zinc-100 rounded-2xl p-4">
-                    <p className="text-zinc-800 text-sm font-semibold mb-1">Identificate para pagar en caja</p>
+                    <p className="text-zinc-800 text-sm font-semibold mb-1">Identificate para pagar al final</p>
                     <p className="text-zinc-400 text-xs mb-3 leading-snug">
                       Para evitar pedidos falsos necesitamos confirmar que sos una persona real.{" "}
                       <a href="/privacidad" target="_blank" rel="noopener noreferrer" className="underline">Ver política de privacidad</a>
@@ -203,7 +203,7 @@ export default function CartDrawer({ cart, tableToken, onClose, onUpdateQty, onO
               disabled={loading || (paymentMode === "CASHIER" && !googleUser)}
               className="w-full bg-zinc-900 active:bg-zinc-700 disabled:opacity-40 text-white font-semibold py-4 rounded-2xl transition-all text-[15px] min-h-[56px]"
             >
-              {loading ? "Enviando pedido..." : "Confirmar pedido"}
+              {loading ? "Enviando pedido..." : "Enviar pedido"}
             </button>
           </div>
         </motion.div>
