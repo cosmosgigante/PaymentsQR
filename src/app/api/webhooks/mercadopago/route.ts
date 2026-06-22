@@ -38,15 +38,36 @@ export async function POST(req: NextRequest) {
 
   // Solo confirmamos si MP dice approved y el pago corresponde a ESTE Payment.
   if (mp.status === "approved" && mp.externalReference === payment.id) {
+    // Validar que el monto pagado coincida con el esperado (anti-fraude)
+    if (Math.abs(mp.amount - payment.amount) > 1) {
+      await db.payment.update({ where: { id: payment.id }, data: { status: "AMOUNT_MISMATCH" } });
+      return NextResponse.json({ ok: true });
+    }
+
     let orderIds: string[] = [];
     try { const v = JSON.parse(payment.orderIds || "[]"); if (Array.isArray(v)) orderIds = v; } catch { /* ignore */ }
 
     await db.payment.update({ where: { id: payment.id }, data: { status: "APPROVED", paidAt: new Date() } });
     if (orderIds.length > 0) {
+      // Pedidos que estaban esperando pago → ahora van a cocina
       await db.order.updateMany({
-        where: { id: { in: orderIds }, tableSessionId: payment.sessionId },
+        where: { id: { in: orderIds }, tableSessionId: payment.sessionId, status: "AWAITING_PAYMENT" },
+        data: { status: "PREPARING" },
+      });
+      // Pedidos que ya estaban en proceso → marcar como pagados
+      await db.order.updateMany({
+        where: { id: { in: orderIds }, tableSessionId: payment.sessionId, status: { notIn: ["AWAITING_PAYMENT", "PAID", "CANCELLED"] } },
         data: { status: "PAID" },
       });
+
+      // Notificar a cocina de los pedidos nuevos que entraron
+      const newOrders = await db.order.findMany({
+        where: { id: { in: orderIds }, status: "PREPARING" },
+        include: { items: { include: { menuItem: true } }, table: true },
+      });
+      for (const order of newOrders) {
+        emitEvent(payment.restaurantId, { type: "NEW_ORDER", order });
+      }
     }
     emitEvent(payment.restaurantId, { type: "SESSION_PAID", sessionId: payment.sessionId });
   }

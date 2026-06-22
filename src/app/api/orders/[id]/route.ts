@@ -49,7 +49,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 
   const { status } = body;
 
-  const validStatuses: OrderStatus[] = ["PENDING", "CONFIRMED", "PREPARING", "READY", "DELIVERED", "PAID", "CANCELLED"];
+  const validStatuses: OrderStatus[] = ["AWAITING_PAYMENT", "PENDING", "CONFIRMED", "PREPARING", "READY", "DELIVERED", "PAID", "CANCELLED"];
   if (!status || !validStatuses.includes(status)) {
     return NextResponse.json({ error: "Estado inválido" }, { status: 400 });
   }
@@ -69,13 +69,20 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   emitEvent(session.restaurantId, { type: "ORDER_UPDATED", order: updated });
 
   // Auto-cerrar pedidos online cuando se marcan como READY (ya pagaron, no necesita más clicks)
-  if (status === "READY" && order.paymentMode === "ONLINE") {
-    updated = await db.order.update({
-      where: { id },
-      data: { status: "PAID" },
-      include: { items: { include: { menuItem: true } }, table: true },
+  // Respeta flowDeliveredEnabled: si el restaurante tiene paso de entrega, no auto-cierra
+  if (status === "READY" && updated.paymentMode === "ONLINE") {
+    const restaurant = await db.restaurant.findUnique({
+      where: { id: session.restaurantId },
+      select: { flowDeliveredEnabled: true },
     });
-    emitEvent(session.restaurantId, { type: "ORDER_UPDATED", order: updated });
+    if (!restaurant?.flowDeliveredEnabled) {
+      updated = await db.order.update({
+        where: { id },
+        data: { status: "PAID" },
+        include: { items: { include: { menuItem: true } }, table: true },
+      });
+      emitEvent(session.restaurantId, { type: "ORDER_UPDATED", order: updated });
+    }
   }
 
   await logActivity({

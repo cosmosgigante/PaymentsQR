@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { CheckCircle2, Clock, ChefHat, Bell, Utensils, XCircle } from "lucide-react";
+import { CheckCircle2, Clock, ChefHat, Bell, Utensils, XCircle, CreditCard } from "lucide-react";
 import { OrderStatus as Status, ORDER_STATUS_LABELS } from "@/lib/types";
 
 type OrderItem = {
@@ -22,6 +22,7 @@ type Order = {
 };
 
 const ALL_STEPS: { status: Status; icon: React.ReactNode; label: string }[] = [
+  { status: "AWAITING_PAYMENT", icon: <CreditCard size={14} />, label: "Pagando" },
   { status: "PENDING",   icon: <Clock size={14} />,        label: "Recibido"  },
   { status: "CONFIRMED", icon: <CheckCircle2 size={14} />, label: "Confirmado" },
   { status: "PREPARING", icon: <ChefHat size={14} />,      label: "En cocina" },
@@ -31,11 +32,17 @@ const ALL_STEPS: { status: Status; icon: React.ReactNode; label: string }[] = [
 
 function buildSteps(order: Order) {
   const dominated = new Set<Status>();
-  if (!["PENDING"].includes(order.status)) dominated.add("PENDING");
-  if (!["CONFIRMED"].includes(order.status)) dominated.add("CONFIRMED");
+  // Ocultar pasos que no aplican al flujo de este pedido
+  if (order.paymentMode === "ONLINE") {
+    dominated.add("PENDING");
+    dominated.add("CONFIRMED");
+  } else {
+    dominated.add("AWAITING_PAYMENT");
+    if (!["PENDING"].includes(order.status)) dominated.add("PENDING");
+    if (!["CONFIRMED"].includes(order.status)) dominated.add("CONFIRMED");
+  }
   if (!["DELIVERED"].includes(order.status) && order.status === "PAID") dominated.add("DELIVERED");
-  const history: Status[] = ["PREPARING", "READY", order.status];
-  return ALL_STEPS.filter((s) => !dominated.has(s.status) || history.includes(s.status));
+  return ALL_STEPS.filter((s) => !dominated.has(s.status));
 }
 
 type SessionOrderLite = { id: string; status: Status; total: number; mine?: boolean; dinerIndex?: number };

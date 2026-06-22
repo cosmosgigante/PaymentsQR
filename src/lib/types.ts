@@ -1,6 +1,7 @@
 // ─── Enums y constantes ───────────────────────────────────────────────────────
 
 export type OrderStatus =
+  | "AWAITING_PAYMENT"
   | "PENDING"
   | "CONFIRMED"
   | "PREPARING"
@@ -13,6 +14,7 @@ export type PaymentMode = "ONLINE" | "CASHIER";
 export type AdminRole  = "OWNER" | "MANAGER" | "STAFF";
 
 export const ORDER_STATUS_LABELS: Record<OrderStatus, string> = {
+  AWAITING_PAYMENT: "Esperando pago",
   PENDING:   "Pendiente",
   CONFIRMED: "Confirmado",
   PREPARING: "En preparación",
@@ -23,6 +25,7 @@ export const ORDER_STATUS_LABELS: Record<OrderStatus, string> = {
 };
 
 export const ORDER_STATUS_COLORS: Record<OrderStatus, string> = {
+  AWAITING_PAYMENT: "bg-indigo-50 text-indigo-700 border border-indigo-200",
   PENDING:   "bg-yellow-50 text-yellow-700 border border-yellow-200",
   CONFIRMED: "bg-blue-50 text-blue-700 border border-blue-200",
   PREPARING: "bg-orange-50 text-orange-700 border border-orange-200",
