@@ -41,7 +41,15 @@ export async function GET(req: NextRequest) {
     where: { lastSeenAt: { lt: cutoff30 } },
   });
 
-  // ── 4. Limpiar entradas de rate limit vencidas ───────────────────────────
+  // ── 4. Cancelar pedidos AWAITING_PAYMENT que llevan +30 min sin pagar ────
+  const cutoff30min = new Date(now.getTime() - 30 * 60 * 1000);
+
+  const cancelledAwaitingPayment = await db.order.updateMany({
+    where: { status: "AWAITING_PAYMENT", createdAt: { lt: cutoff30min } },
+    data: { status: "CANCELLED" },
+  });
+
+  // ── 5. Limpiar entradas de rate limit vencidas ───────────────────────────
   const deletedRateLimit = await db.rateLimit.deleteMany({
     where: { resetAt: { lt: now } },
   });
@@ -52,6 +60,7 @@ export async function GET(req: NextRequest) {
     anonymizedOrders:   anonymized.count,
     deletedActivityLogs: deletedLogs.count,
     deletedSessions:    deletedSessions.count,
+    cancelledUnpaid:    cancelledAwaitingPayment.count,
     deletedRateLimits:  deletedRateLimit.count,
   };
 
