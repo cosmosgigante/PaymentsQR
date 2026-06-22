@@ -2,7 +2,7 @@
 
 import { useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Plus, Minus } from "lucide-react";
+import { Plus, Minus, MapPin } from "lucide-react";
 import { CartItem, MenuCategory, MenuItem } from "@/lib/types";
 
 type Props = {
@@ -33,8 +33,12 @@ export default function MenuView({ categories, restaurantName, tableLabel, cart,
     <div className="bg-[#fafafa]">
       {/* Header */}
       <div className="bg-white border-b border-zinc-100 px-4 pt-[max(1.5rem,env(safe-area-inset-top))] pb-4">
-        <p className="text-[11px] font-semibold text-zinc-400 tracking-widest uppercase mb-0.5">{tableLabel}</p>
-        <h1 className="text-2xl font-bold tracking-tight text-zinc-900 leading-tight">{restaurantName}</h1>
+        <div className="flex items-start justify-between gap-3">
+          <h1 className="text-2xl font-bold tracking-tight text-zinc-900 leading-tight">{restaurantName}</h1>
+          <span className="shrink-0 inline-flex items-center gap-1 bg-zinc-900 text-white text-[13px] font-bold px-3 py-1.5 rounded-full">
+            <MapPin size={13} strokeWidth={2.5} />{tableLabel}
+          </span>
+        </div>
       </div>
 
       {/* Tabs sticky */}
