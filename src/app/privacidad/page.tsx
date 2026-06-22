@@ -53,7 +53,18 @@ export default function PrivacidadPage() {
             <section>
               <h2 className="text-base font-bold text-zinc-900 mb-2">Google y servicios de terceros</h2>
               <p>Usamos <strong>Google OAuth</strong> para autenticar comensales al confirmar pedidos y para el acceso del personal. Al iniciar sesión con Google, recibimos tu email y nombre. No recibimos ni almacenamos tu contraseña de Google.</p>
-              <p className="mt-2">La infraestructura corre sobre <strong>Supabase</strong> (base de datos y autenticación) y <strong>Vercel</strong> (hosting). Estos proveedores tienen sus propias políticas de privacidad y seguridad.</p>
+              <p className="mt-2">Utilizamos <strong>Vercel Analytics</strong> para estadísticas agregadas de uso del sitio (páginas visitadas, tiempos de carga). Este servicio no utiliza cookies propias y los datos son anónimos.</p>
+            </section>
+
+            <section>
+              <h2 className="text-base font-bold text-zinc-900 mb-2">Transferencia internacional de datos</h2>
+              <p>Tu información personal se almacena en servidores ubicados en <strong>Estados Unidos</strong>, a través de los siguientes proveedores:</p>
+              <ul className="mt-2 space-y-1 list-disc list-inside text-zinc-600">
+                <li><strong>Supabase</strong> (base de datos y autenticación) — AWS región US-East, Ohio, EE.UU.</li>
+                <li><strong>Vercel</strong> (hosting y ejecución del sistema) — servidores en EE.UU.</li>
+              </ul>
+              <p className="mt-2">De acuerdo con el Art. 12 de la Ley N° 25.326, la transferencia de datos personales a países que no poseen un nivel adecuado de protección requiere una base legal válida. En este caso, la base legal es tu <strong>consentimiento informado</strong>: al usar el sistema y aceptar esta política, autorizás expresamente la transferencia de tus datos a los servidores mencionados para la prestación del servicio.</p>
+              <p className="mt-2 text-zinc-500 text-sm">Ambos proveedores cumplen con estándares de seguridad de la industria (cifrado en tránsito y en reposo, controles de acceso, auditorías de seguridad periódicas).</p>
             </section>
 
             <section>
@@ -65,7 +76,7 @@ export default function PrivacidadPage() {
                 <li><strong>pqr_return</strong> — URL de retorno durante Google OAuth. Dura 5 minutos, se elimina automáticamente.</li>
                 <li><strong>Cookies de Supabase</strong> — sesión de Google OAuth. Se eliminan al cerrar sesión.</li>
               </ul>
-              <p className="mt-2 text-zinc-500 text-sm">No utilizamos cookies de publicidad, seguimiento ni analytics de terceros.</p>
+              <p className="mt-2 text-zinc-500 text-sm">No utilizamos cookies de publicidad ni seguimiento. Vercel Analytics recopila estadísticas anónimas sin cookies propias.</p>
             </section>
 
             <section>
