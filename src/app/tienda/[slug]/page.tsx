@@ -12,6 +12,7 @@ export default async function TiendaPage({ params }: { params: Promise<{ slug: s
     where: { slug },
     select: {
       id: true, name: true, primaryColor: true, vertical: true,
+      storeOpen: true, prepEstimateMin: true,
       isActive: true, status: true, subscriptionEndsAt: true,
       account: { select: { isActive: true, subscriptionEndsAt: true } },
       menuCategories: {
@@ -47,6 +48,8 @@ export default async function TiendaPage({ params }: { params: Promise<{ slug: s
       slug={slug}
       restaurantName={restaurant.name}
       primaryColor={restaurant.primaryColor}
+      storeOpen={restaurant.storeOpen}
+      prepEstimateMin={restaurant.prepEstimateMin}
       categories={JSON.parse(JSON.stringify(restaurant.menuCategories))}
     />
   );
