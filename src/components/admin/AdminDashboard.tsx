@@ -23,9 +23,11 @@ type Props = {
   stats: { ordersToday: number; tablesCount: number; menuItemsCount: number };
   recentOrders: Order[];
   generalAdmin?: boolean;
+  vertical?: string;
 };
 
-export default function AdminDashboard({ stats, recentOrders: initialOrders, generalAdmin }: Props) {
+export default function AdminDashboard({ stats, recentOrders: initialOrders, generalAdmin, vertical = "GASTRONOMICO" }: Props) {
+  const isGastro = vertical === "GASTRONOMICO";
   const router = useRouter();
   const [orders, setOrders] = useState<Order[]>(initialOrders);
   const [ordersToday, setOrdersToday] = useState(stats.ordersToday);
@@ -154,14 +156,14 @@ export default function AdminDashboard({ stats, recentOrders: initialOrders, gen
 
           {/* Saludo */}
           <div className="mb-6">
-            <h1 className="text-white font-bold text-2xl">¿Cómo va el servicio?</h1>
+            <h1 className="text-white font-bold text-2xl">{isGastro ? "¿Cómo va el servicio?" : "¿Cómo va la venta?"}</h1>
           </div>
 
           {/* Stats dentro del hero */}
-          <div className="grid grid-cols-3 gap-3">
+          <div className={`grid ${isGastro ? "grid-cols-3" : "grid-cols-2"} gap-3`}>
             {[
               { value: ordersToday,          label: "Pedidos hoy",  icon: <TrendingUp size={16} />, bg: "bg-white/20" },
-              { value: stats.tablesCount,    label: "Mesas",        icon: <Grid2X2 size={16} />,    bg: "bg-white/15" },
+              ...(isGastro ? [{ value: stats.tablesCount, label: "Mesas", icon: <Grid2X2 size={16} />, bg: "bg-white/15" }] : []),
               { value: stats.menuItemsCount, label: "Productos",    icon: <Package size={16} />,    bg: "bg-white/10" },
             ].map((stat, i) => (
               <motion.div
@@ -184,17 +186,24 @@ export default function AdminDashboard({ stats, recentOrders: initialOrders, gen
       <div className="max-w-5xl mx-auto px-4 sm:px-6 -mt-1 pb-8 space-y-4 pt-5">
 
         {/* Accesos rápidos */}
-        <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
-          <NavCard href="/cocina"          icon={<ChefHat size={22} strokeWidth={1.5} />}         title="Cocina"     subtitle="Pedidos en vivo"   iconBg="bg-orange-100"  iconColor="text-orange-500" />
-          <NavCard href="/mozos"           icon={<UtensilsCrossed size={22} strokeWidth={1.5} />} title="Mozos"      subtitle="Entregar y cobrar" iconBg="bg-emerald-100" iconColor="text-emerald-600" />
-          <NavCard href="/admin/menu"      icon={<BookOpen size={22} strokeWidth={1.5} />}        title="Menú"       subtitle="Gestionar platos"  iconBg="bg-blue-100"    iconColor="text-blue-500" />
-          <NavCard href="/admin/mesas"     icon={<QrCode size={22} strokeWidth={1.5} />}          title="Mesas"      subtitle="Códigos QR"        iconBg="bg-violet-100"  iconColor="text-violet-500" />
-          <NavCard href="/admin/reportes"  icon={<BarChart3 size={22} strokeWidth={1.5} />}       title="Reportes"   subtitle="Ventas y métricas" iconBg="bg-indigo-100"  iconColor="text-indigo-500" />
-        </div>
+        {isGastro ? (
+          <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+            <NavCard href="/cocina"          icon={<ChefHat size={22} strokeWidth={1.5} />}         title="Cocina"     subtitle="Pedidos en vivo"   iconBg="bg-orange-100"  iconColor="text-orange-500" />
+            <NavCard href="/mozos"           icon={<UtensilsCrossed size={22} strokeWidth={1.5} />} title="Mozos"      subtitle="Entregar y cobrar" iconBg="bg-emerald-100" iconColor="text-emerald-600" />
+            <NavCard href="/admin/menu"      icon={<BookOpen size={22} strokeWidth={1.5} />}        title="Menú"       subtitle="Gestionar platos"  iconBg="bg-blue-100"    iconColor="text-blue-500" />
+            <NavCard href="/admin/mesas"     icon={<QrCode size={22} strokeWidth={1.5} />}          title="Mesas"      subtitle="Códigos QR"        iconBg="bg-violet-100"  iconColor="text-violet-500" />
+            <NavCard href="/admin/reportes"  icon={<BarChart3 size={22} strokeWidth={1.5} />}       title="Reportes"   subtitle="Ventas y métricas" iconBg="bg-indigo-100"  iconColor="text-indigo-500" />
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+            <NavCard href="/admin/menu"      icon={<BookOpen size={22} strokeWidth={1.5} />}        title="Catálogo"   subtitle="Tu vidriera"       iconBg="bg-blue-100"    iconColor="text-blue-500" />
+            <NavCard href="/admin/reportes"  icon={<BarChart3 size={22} strokeWidth={1.5} />}       title="Reportes"   subtitle="Ventas y métricas" iconBg="bg-indigo-100"  iconColor="text-indigo-500" />
+          </div>
+        )}
 
         {/* Lista de espera — aparece solo si hay grupos esperando (se gestiona en Mozos) */}
         <AnimatePresence>
-          {waitingCount > 0 && (
+          {isGastro && waitingCount > 0 && (
             <motion.div initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, height: 0 }}>
               <Link href="/mozos"
                 className="flex items-center gap-3 bg-violet-50 border border-violet-100 rounded-2xl p-4 active:bg-violet-100 transition-colors">

@@ -14,7 +14,7 @@ export default async function AdminPage() {
   const [restaurant, ordersToday, tablesCount, menuItemsCount, recentOrders, adminSelf] = await Promise.all([
     db.restaurant.findUnique({
       where: { id: session.restaurantId },
-      select: { isActive: true, status: true, subscriptionEndsAt: true, account: { select: { isActive: true, subscriptionEndsAt: true } } },
+      select: { isActive: true, status: true, subscriptionEndsAt: true, vertical: true, account: { select: { isActive: true, subscriptionEndsAt: true } } },
     }),
     db.order.count({
       where: { restaurantId: session.restaurantId, createdAt: { gte: new Date(new Date().setHours(0, 0, 0, 0)) } },
@@ -55,6 +55,7 @@ export default async function AdminPage() {
       stats={{ ordersToday, tablesCount, menuItemsCount }}
       recentOrders={JSON.parse(JSON.stringify(recentOrders))}
       generalAdmin={!!adminSelf?.accountId}
+      vertical={restaurant.vertical}
     />
   );
 }
