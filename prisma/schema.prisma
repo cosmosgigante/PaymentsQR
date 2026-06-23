@@ -122,6 +122,7 @@ model Restaurant {
   businessSubtype      String         @default("BAR_RESTO")    // BAR_RESTO | KIOSCO | DESPENSA
   tables         Table[]
   waitlistEntries WaitlistEntry[]
+  accessQRs      AccessQR[]
   menuCategories MenuCategory[]
   menuItems      MenuItem[]
   orders         Order[]
@@ -263,6 +264,20 @@ model WaitlistEntry {
 
   @@index([restaurantId, status])
   @@index([clientToken])
+}
+
+// QR/points gestionables de un negocio (sobre todo kiosco): divididos en
+// CLIENT (van a la tienda) y STAFF (atajo al login del personal). Varios por tipo.
+model AccessQR {
+  id           String     @id @default(cuid())
+  restaurantId String
+  restaurant   Restaurant @relation(fields: [restaurantId], references: [id])
+  kind         String     @default("CLIENT") // CLIENT | STAFF
+  label        String
+  token        String     @unique @default(cuid())
+  createdAt    DateTime   @default(now())
+
+  @@index([restaurantId, kind])
 }
 
 model RateLimit {
