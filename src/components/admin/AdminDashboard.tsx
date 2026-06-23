@@ -4,10 +4,10 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { createClient } from "@/lib/supabase/client";
-import { ChefHat, BookOpen, QrCode, LogOut, TrendingUp, Package, Grid2X2, UtensilsCrossed, X, ArrowLeft, History, BarChart3 } from "lucide-react";
+import { ChefHat, BookOpen, QrCode, LogOut, TrendingUp, Package, Grid2X2, UtensilsCrossed, X, ArrowLeft, History, BarChart3, Users } from "lucide-react";
 import { ORDER_STATUS_LABELS, ORDER_STATUS_COLORS, OrderStatus } from "@/lib/types";
 import { useSSE } from "@/hooks/useSSE";
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 
 type Order = {
   id: string;
@@ -34,6 +34,20 @@ export default function AdminDashboard({ stats, recentOrders: initialOrders, gen
   const [history, setHistory] = useState<Order[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
   const [historyTotal, setHistoryTotal] = useState(0);
+  const [waitingCount, setWaitingCount] = useState(0);
+
+  // Cuántos grupos hay esperando (lista de espera, gestionada en Mozos).
+  const fetchWaitlist = useCallback(async () => {
+    try {
+      const r = await fetch("/api/waitlist/staff");
+      if (r.ok) {
+        const d = await r.json();
+        setWaitingCount((d.entries ?? []).filter((e: { status: string }) => e.status === "WAITING").length);
+      }
+    } catch { /* ignore */ }
+  }, []);
+
+  useEffect(() => { fetchWaitlist(); }, [fetchWaitlist]);
 
   const handleSSE = useCallback((data: { type: string; [k: string]: unknown }) => {
     if (data.type === "NEW_ORDER") {
@@ -51,7 +65,9 @@ export default function AdminDashboard({ stats, recentOrders: initialOrders, gen
         setOrders((prev) => prev.map((o) => o.id === updated.id ? updated : o));
       }
     }
-  }, []);
+    // La lista de espera cambió en otro dispositivo → refrescamos el contador.
+    if (data.type === "WAITLIST_UPDATED" || data.type === "WAITLIST_TOGGLE") fetchWaitlist();
+  }, [fetchWaitlist]);
 
   useSSE("/api/events", handleSSE);
 
@@ -175,6 +191,27 @@ export default function AdminDashboard({ stats, recentOrders: initialOrders, gen
           <NavCard href="/admin/mesas"     icon={<QrCode size={22} strokeWidth={1.5} />}          title="Mesas"      subtitle="Códigos QR"        iconBg="bg-violet-100"  iconColor="text-violet-500" />
           <NavCard href="/admin/reportes"  icon={<BarChart3 size={22} strokeWidth={1.5} />}       title="Reportes"   subtitle="Ventas y métricas" iconBg="bg-indigo-100"  iconColor="text-indigo-500" />
         </div>
+
+        {/* Lista de espera — aparece solo si hay grupos esperando (se gestiona en Mozos) */}
+        <AnimatePresence>
+          {waitingCount > 0 && (
+            <motion.div initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, height: 0 }}>
+              <Link href="/mozos"
+                className="flex items-center gap-3 bg-violet-50 border border-violet-100 rounded-2xl p-4 active:bg-violet-100 transition-colors">
+                <div className="w-10 h-10 rounded-xl bg-violet-600 flex items-center justify-center text-white shrink-0">
+                  <Users size={18} strokeWidth={2} />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-bold text-gray-900 text-sm">
+                    {waitingCount} {waitingCount === 1 ? "grupo" : "grupos"} en lista de espera
+                  </p>
+                  <p className="text-xs text-gray-500">Tocá para llamar y sentar desde Mozos</p>
+                </div>
+                <span className="text-violet-400 text-lg">›</span>
+              </Link>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* Pedidos — tabs Activos / Historial */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
