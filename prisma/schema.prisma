@@ -118,6 +118,8 @@ model Restaurant {
   waitlistEnabled      Boolean        @default(false)
   waitlistEstimatedWait Int           @default(15)   // minutos estimados de espera por defecto
   waitlistExpiryMinutes Int           @default(5)    // minutos para ocupar la mesa tras el llamado
+  vertical             String         @default("GASTRONOMICO") // GASTRONOMICO | KIOSCO_DESPENSA
+  businessSubtype      String         @default("BAR_RESTO")    // BAR_RESTO | KIOSCO | DESPENSA
   tables         Table[]
   waitlistEntries WaitlistEntry[]
   menuCategories MenuCategory[]

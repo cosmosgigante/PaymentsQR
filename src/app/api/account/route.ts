@@ -17,6 +17,7 @@ export async function GET(req: NextRequest) {
       status: true,
       isActive: true,
       createdAt: true,
+      vertical: true,
       _count: { select: { tables: true, orders: true } },
     },
   });
