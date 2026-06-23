@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Trash2, MonitorSmartphone } from "lucide-react";
+import { Trash2, MonitorSmartphone, Pause, Play, Pencil, X, Check } from "lucide-react";
 import {
   MODULES, PERM_LEVELS, DURATION_OPTIONS,
   type PermLevel, type PermissionMatrix, type ModuleKey,
@@ -41,6 +41,9 @@ export default function UsersManager({ restaurants }: { restaurants: Restaurant[
   const [showForm, setShowForm] = useState(false);
   const [creating, setCreating] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [togglingId, setTogglingId] = useState<string | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editForm, setEditForm] = useState<{ maxDevices: number; permissions: PermissionMatrix; restaurantIds: string[] } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [form, setForm] = useState(emptyForm);
   const [createdCred, setCreatedCred] = useState<{ username: string; password: string } | null>(null);
@@ -105,7 +108,38 @@ export default function UsersManager({ restaurants }: { restaurants: Restaurant[
     fetchTokens();
   }
 
+  async function handleToggle(token: Token) {
+    setTogglingId(token.id);
+    const res = await fetch(`/api/account/tokens/${token.id}`, {
+      method: "PATCH", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ isActive: !token.isActive }),
+    });
+    if (res.ok) setTokens((prev) => prev.map((t) => t.id === token.id ? { ...t, isActive: !token.isActive } : t));
+    setTogglingId(null);
+  }
+
+  function startEdit(token: Token) {
+    setEditingId(token.id);
+    setEditForm({ maxDevices: token.maxDevices, permissions: { ...token.permissions }, restaurantIds: [...token.restaurantIds] });
+  }
+
+  async function saveEdit(id: string) {
+    if (!editForm) return;
+    const res = await fetch(`/api/account/tokens/${id}`, {
+      method: "PATCH", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(editForm),
+    });
+    if (res.ok) {
+      const d = await res.json();
+      setTokens((prev) => prev.map((t) => t.id === id ? { ...t, maxDevices: editForm.maxDevices, permissions: editForm.permissions, restaurantIds: editForm.restaurantIds } : t));
+      setEditingId(null); setEditForm(null);
+    }
+  }
+
   async function handleDelete(id: string) {
+    const token = tokens.find((t) => t.id === id);
+    if (token?.isActive) { alert("Pausá el acceso antes de eliminarlo"); return; }
+    if (!confirm(`¿Eliminar el acceso "${token?.name}"? Esta acción no se puede deshacer.`)) return;
     setDeletingId(id);
     const res = await fetch(`/api/account/tokens/${id}`, { method: "DELETE" });
     if (res.ok) setTokens((prev) => prev.filter((t) => t.id !== id));
@@ -292,14 +326,15 @@ export default function UsersManager({ restaurants }: { restaurants: Restaurant[
           {tokens.map((t) => {
             const expired = t.expiresAt && new Date(t.expiresAt) < new Date();
             return (
-              <div key={t.id} className="bg-white rounded-2xl border border-gray-100 p-4 shadow-sm">
+              <div key={t.id} className={`bg-white rounded-2xl border p-4 shadow-sm transition-all ${!t.isActive ? "border-gray-200 opacity-70" : "border-gray-100"}`}>
                 <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
+                  <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className="font-semibold text-gray-900">{t.name}</span>
                       <span className="text-xs font-mono text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded">
                         {t.authType === "GOOGLE" ? `G · ${t.email}` : t.username}
                       </span>
+                      {!t.isActive && <span className="text-[10px] font-semibold bg-amber-50 text-amber-600 border border-amber-200 px-2 py-0.5 rounded-full">Pausado</span>}
                       {expired && <span className="text-[10px] font-semibold bg-red-50 text-red-600 border border-red-200 px-2 py-0.5 rounded-full">Vencido</span>}
                     </div>
                     <div className="flex flex-wrap gap-1 mt-2">
@@ -318,11 +353,69 @@ export default function UsersManager({ restaurants }: { restaurants: Restaurant[
                       {t.expiresAt && ` · vence ${new Date(t.expiresAt).toLocaleDateString("es-AR")}`}
                     </p>
                   </div>
-                  <button onClick={() => handleDelete(t.id)} disabled={deletingId === t.id}
-                    className="shrink-0 text-red-500/70 hover:text-red-600 hover:bg-red-50 p-2 rounded-lg transition-all disabled:opacity-50" title="Eliminar acceso">
-                    <Trash2 size={16} />
-                  </button>
+                  <div className="flex items-center gap-1 shrink-0">
+                    <button onClick={() => handleToggle(t)} disabled={togglingId === t.id} title={t.isActive ? "Pausar" : "Reactivar"}
+                      className={`p-2 rounded-lg transition-all disabled:opacity-50 ${t.isActive ? "text-amber-500 hover:bg-amber-50" : "text-emerald-500 hover:bg-emerald-50"}`}>
+                      {t.isActive ? <Pause size={15} /> : <Play size={15} />}
+                    </button>
+                    <button onClick={() => editingId === t.id ? (setEditingId(null), setEditForm(null)) : startEdit(t)}
+                      title="Editar" className="p-2 rounded-lg text-gray-400 hover:text-blue-600 hover:bg-blue-50 transition-all">
+                      {editingId === t.id ? <X size={15} /> : <Pencil size={15} />}
+                    </button>
+                    <button onClick={() => handleDelete(t.id)} disabled={deletingId === t.id || t.isActive}
+                      title={t.isActive ? "Pausá el acceso antes de eliminar" : "Eliminar"}
+                      className="p-2 rounded-lg text-red-400/60 hover:text-red-600 hover:bg-red-50 transition-all disabled:opacity-30 disabled:cursor-not-allowed">
+                      <Trash2 size={15} />
+                    </button>
+                  </div>
                 </div>
+
+                {/* Panel de edición inline */}
+                {editingId === t.id && editForm && (
+                  <div className="mt-4 border-t border-gray-100 pt-4 space-y-3">
+                    <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-widest">Editar acceso (nombre y usuario no se pueden cambiar)</p>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="text-xs text-gray-500 block mb-1">Dispositivos</label>
+                        <input type="number" min={1} max={10} value={editForm.maxDevices}
+                          onChange={(e) => setEditForm((f) => f ? { ...f, maxDevices: Math.min(10, Math.max(1, parseInt(e.target.value) || 1)) } : f)}
+                          className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30" />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="text-xs text-gray-500 block mb-1">Permisos</label>
+                      <div className="space-y-1">
+                        {MODULES.map((m) => (
+                          <div key={m.key} className="flex items-center justify-between gap-2">
+                            <span className="text-xs text-gray-700">{m.label}</span>
+                            <select value={editForm.permissions[m.key] ?? "NONE"}
+                              onChange={(e) => setEditForm((f) => f ? { ...f, permissions: { ...f.permissions, [m.key]: e.target.value as PermLevel } } : f)}
+                              className="bg-gray-50 border border-gray-200 rounded-lg px-2 py-1 text-xs focus:outline-none">
+                              {PERM_LEVELS.map((l) => <option key={l.key} value={l.key}>{l.label}</option>)}
+                            </select>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                    {restaurants.length > 1 && (
+                      <div>
+                        <label className="text-xs text-gray-500 block mb-1">Restoranes asignados</label>
+                        <div className="space-y-1">
+                          {restaurants.map((r) => (
+                            <label key={r.id} className="flex items-center gap-2 text-xs text-gray-700 cursor-pointer">
+                              <input type="checkbox" checked={editForm.restaurantIds.includes(r.id)}
+                                onChange={(e) => setEditForm((f) => f ? { ...f, restaurantIds: e.target.checked ? [...f.restaurantIds, r.id] : f.restaurantIds.filter((id) => id !== r.id) } : f)} />
+                              {r.name}
+                            </label>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    <button onClick={() => saveEdit(t.id)} className="flex items-center gap-1.5 bg-gray-900 text-white text-sm font-semibold px-4 py-2 rounded-xl hover:bg-gray-700">
+                      <Check size={14} /> Guardar cambios
+                    </button>
+                  </div>
+                )}
               </div>
             );
           })}
