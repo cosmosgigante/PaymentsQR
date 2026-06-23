@@ -15,6 +15,7 @@ type Order = {
   paymentMode: string;
   total: number;
   createdAt: string;
+  customerName?: string | null;
   table: { number: number; label: string | null };
   items: { quantity: number; menuItem: { name: string } }[];
 };
@@ -197,6 +198,7 @@ export default function AdminDashboard({ stats, recentOrders: initialOrders, gen
         ) : (
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
             <NavCard href="/admin/menu"      icon={<BookOpen size={22} strokeWidth={1.5} />}        title="Catálogo"   subtitle="Tu vidriera"       iconBg="bg-blue-100"    iconColor="text-blue-500" />
+            <NavCard href="/admin/qr"        icon={<QrCode size={22} strokeWidth={1.5} />}          title="QR"         subtitle="Clientes y personal" iconBg="bg-violet-100" iconColor="text-violet-500" />
             <NavCard href="/admin/reportes"  icon={<BarChart3 size={22} strokeWidth={1.5} />}       title="Reportes"   subtitle="Ventas y métricas" iconBg="bg-indigo-100"  iconColor="text-indigo-500" />
           </div>
         )}
@@ -262,10 +264,10 @@ export default function AdminDashboard({ stats, recentOrders: initialOrders, gen
                     {history.map((order) => (
                       <div key={order.id} className="px-4 sm:px-5 py-3 flex items-center gap-3">
                         <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${order.status === "PAID" ? "bg-emerald-50" : "bg-red-50"}`}>
-                          <span className={`font-black text-sm ${order.status === "PAID" ? "text-emerald-600" : "text-red-400"}`}>{order.table.number}</span>
+                          <span className={`font-black text-sm ${order.status === "PAID" ? "text-emerald-600" : "text-red-400"}`}>{isGastro ? order.table.number : "🏪"}</span>
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-semibold text-gray-800">Mesa {order.table.number}{order.table.label ? ` — ${order.table.label}` : ""}</p>
+                          <p className="text-sm font-semibold text-gray-800">{isGastro ? `Mesa ${order.table.number}${order.table.label ? ` — ${order.table.label}` : ""}` : `${order.customerName ?? "Cliente"} · #${order.id.slice(-4).toUpperCase()}`}</p>
                           <p className="text-xs text-gray-400 truncate">{order.items.map((i) => `${i.quantity}× ${i.menuItem.name}`).join(", ")}</p>
                         </div>
                         <div className="text-right shrink-0">
@@ -301,15 +303,15 @@ export default function AdminDashboard({ stats, recentOrders: initialOrders, gen
                   transition={{ duration: 2 }}
                   className="px-4 sm:px-5 py-4 flex items-start sm:items-center gap-3"
                 >
-                  {/* Número de mesa */}
+                  {/* Mesa (gastro) / Retiro (kiosco) */}
                   <div className="w-10 h-10 rounded-xl bg-orange-50 border border-orange-100 flex items-center justify-center flex-shrink-0">
-                    <span className="font-black text-orange-500 text-sm">{order.table.number}</span>
+                    <span className="font-black text-orange-500 text-sm">{isGastro ? order.table.number : "🏪"}</span>
                   </div>
 
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-1.5 flex-wrap">
                       <span className="font-semibold text-gray-900 text-sm">
-                        Mesa {order.table.number}{order.table.label ? ` — ${order.table.label}` : ""}
+                        {isGastro ? `Mesa ${order.table.number}${order.table.label ? ` — ${order.table.label}` : ""}` : (order.customerName ?? "Cliente")}
                       </span>
                       <span className="text-gray-300 text-[11px] font-mono">#{order.id.slice(-4).toUpperCase()}</span>
                     </div>
