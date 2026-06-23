@@ -2,8 +2,9 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { ShoppingBag, X, Minus, Plus, Clock, CheckCircle2 } from "lucide-react";
+import { ShoppingBag, X, Minus, Plus, Clock, CheckCircle2, CreditCard } from "lucide-react";
 import { useCart } from "@/hooks/useCart";
+import { createClient } from "@/lib/supabase/client";
 import MenuView from "@/components/customer/MenuView";
 import { MenuCategory } from "@/lib/types";
 
@@ -20,7 +21,8 @@ const STATUS_LABEL: Record<string, string> = {
 export default function TiendaClient({ slug, restaurantName, primaryColor, categories }: Props) {
   const { cart, add, updateQty, clear, total, itemCount } = useCart();
   const [sheetOpen, setSheetOpen] = useState(false);
-  const [name, setName] = useState("");
+  const [payMode, setPayMode] = useState<"PICKUP" | "ONLINE">("PICKUP");
+  const [googleUser, setGoogleUser] = useState<{ name: string; email: string } | null>(null);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [orderId, setOrderId] = useState<string | null>(null);
@@ -33,6 +35,26 @@ export default function TiendaClient({ slug, restaurantName, primaryColor, categ
       if (saved) setOrderId(saved);
     } catch { /* ignore */ }
   }, [slug]);
+
+  // Identidad Google (para "pagar al retirar") + reabrir carrito al volver del login
+  useEffect(() => {
+    createClient().auth.getUser().then(({ data }) => {
+      if (data.user?.email) setGoogleUser({ name: data.user.user_metadata?.full_name ?? data.user.email, email: data.user.email });
+    });
+    try {
+      if (localStorage.getItem("pqr_reopen_cart")) { localStorage.removeItem("pqr_reopen_cart"); setSheetOpen(true); }
+    } catch { /* ignore */ }
+  }, []);
+
+  function loginGoogle() {
+    const path = window.location.pathname + window.location.search;
+    document.cookie = `pqr_return=${encodeURIComponent(path)}; path=/; max-age=300; samesite=lax`;
+    try { localStorage.setItem("pqr_reopen_cart", "1"); } catch { /* ignore */ }
+    createClient().auth.signInWithOAuth({
+      provider: "google",
+      options: { redirectTo: `${window.location.origin}/auth/callback`, queryParams: { prompt: "select_account" } },
+    });
+  }
 
   const poll = useCallback(async (id: string) => {
     try {
@@ -49,18 +71,19 @@ export default function TiendaClient({ slug, restaurantName, primaryColor, categ
   }, [orderId, poll]);
 
   async function sendOrder() {
+    if (!googleUser) { setError("Iniciá sesión con Google para pagar al retirar"); return; }
     setSending(true); setError(null);
     try {
       const r = await fetch("/api/tienda/order", {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ slug, items: cart, name: name.trim() || undefined }),
+        body: JSON.stringify({ slug, items: cart, name: googleUser.name, email: googleUser.email }),
       });
       const d = await r.json();
       if (!r.ok) { setError(d.error ?? "No se pudo enviar el pedido"); setSending(false); return; }
       localStorage.setItem(STORAGE_KEY(slug), d.id);
       setOrderId(d.id);
-      setTracked({ status: "PENDING", code: d.code, total: d.total, name: name.trim() || null, position: d.position });
-      clear(); setSheetOpen(false); setName("");
+      setTracked({ status: "PENDING", code: d.code, total: d.total, name: googleUser.name, position: d.position });
+      clear(); setSheetOpen(false);
     } catch { setError("Error de red"); }
     setSending(false);
   }
@@ -193,9 +216,40 @@ export default function TiendaClient({ slug, restaurantName, primaryColor, categ
                 </div>
               ))}
               <div className="pt-2">
-                <label className="text-[11px] font-semibold text-zinc-400 uppercase tracking-widest block mb-1.5">Tu nombre (opcional)</label>
-                <input value={name} onChange={(e) => setName(e.target.value)} maxLength={60} placeholder="Para llamarte cuando esté listo"
-                  className="w-full bg-zinc-50 border border-zinc-200 rounded-xl px-4 py-3 text-[16px] focus:outline-none focus:ring-2 focus:ring-zinc-900" />
+                <p className="text-[11px] font-semibold text-zinc-400 uppercase tracking-widest mb-2">¿Cómo pagás?</p>
+                <div className="grid grid-cols-2 gap-2 mb-3">
+                  <button type="button" onClick={() => setPayMode("PICKUP")}
+                    className={`p-3 rounded-2xl border-2 text-left transition-all ${payMode === "PICKUP" ? "border-zinc-900 bg-zinc-900 text-white" : "border-zinc-200 bg-zinc-50 text-zinc-800"}`}>
+                    <span className="text-lg">🧾</span>
+                    <p className="font-semibold text-sm mt-1">Al retirar</p>
+                    <p className={`text-[11px] ${payMode === "PICKUP" ? "text-zinc-300" : "text-zinc-400"}`}>Con tu cuenta</p>
+                  </button>
+                  <button type="button" onClick={() => setError("El pago online estará disponible pronto 🙌")}
+                    className="p-3 rounded-2xl border-2 border-dashed border-zinc-200 bg-zinc-50 text-zinc-400 text-left">
+                    <CreditCard size={20} strokeWidth={1.5} />
+                    <p className="font-semibold text-sm mt-1">Ahora</p>
+                    <p className="text-[11px]">Próximamente</p>
+                  </button>
+                </div>
+
+                {googleUser ? (
+                  <div className="bg-emerald-50 border border-emerald-100 rounded-2xl p-3 flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-full bg-emerald-500 flex items-center justify-center text-white font-bold text-sm shrink-0">{googleUser.name.charAt(0).toUpperCase()}</div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-semibold text-emerald-800 text-sm truncate">{googleUser.name}</p>
+                      <p className="text-emerald-600 text-xs truncate">{googleUser.email}</p>
+                    </div>
+                    <span className="text-emerald-500 text-lg">✓</span>
+                  </div>
+                ) : (
+                  <div className="bg-zinc-50 border border-zinc-100 rounded-2xl p-4">
+                    <p className="text-zinc-800 text-sm font-semibold mb-1">Identificate para pagar al retirar</p>
+                    <p className="text-zinc-400 text-xs mb-3 leading-snug">Así te llamamos por tu nombre y evitamos pedidos falsos.</p>
+                    <button onClick={loginGoogle} className="w-full flex items-center justify-center gap-2.5 bg-white border border-zinc-200 text-zinc-800 font-semibold py-3 rounded-xl text-sm shadow-sm active:bg-zinc-50 min-h-[48px]">
+                      <GoogleIcon /> Continuar con Google
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
             <div className="px-5 pt-4 border-t border-zinc-100" style={{ paddingBottom: "max(1.25rem, env(safe-area-inset-bottom))" }}>
@@ -204,15 +258,26 @@ export default function TiendaClient({ slug, restaurantName, primaryColor, categ
                 <span className="text-sm text-zinc-500">Total (pagás al retirar)</span>
                 <span className="text-2xl font-bold text-zinc-900 tabular-nums">${total.toLocaleString("es-AR")}</span>
               </div>
-              <button onClick={sendOrder} disabled={sending || itemCount === 0}
+              <button onClick={sendOrder} disabled={sending || itemCount === 0 || !googleUser}
                 className="w-full text-white font-bold py-4 rounded-2xl text-[15px] disabled:opacity-50 min-h-[56px]"
                 style={{ backgroundColor: primaryColor }}>
-                {sending ? "Enviando..." : "Enviar pedido"}
+                {sending ? "Enviando..." : googleUser ? "Enviar pedido" : "Iniciá sesión para pedir"}
               </button>
             </div>
           </motion.div>
         </div>
       )}
     </div>
+  );
+}
+
+function GoogleIcon() {
+  return (
+    <svg className="w-4 h-4 flex-shrink-0" viewBox="0 0 24 24">
+      <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+      <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+      <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/>
+      <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+    </svg>
   );
 }
