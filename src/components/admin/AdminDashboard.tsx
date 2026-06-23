@@ -25,11 +25,23 @@ type Props = {
   recentOrders: Order[];
   generalAdmin?: boolean;
   vertical?: string;
+  storeOpen?: boolean;
 };
 
-export default function AdminDashboard({ stats, recentOrders: initialOrders, generalAdmin, vertical = "GASTRONOMICO" }: Props) {
+export default function AdminDashboard({ stats, recentOrders: initialOrders, generalAdmin, vertical = "GASTRONOMICO", storeOpen = true }: Props) {
   const isGastro = vertical === "GASTRONOMICO";
   const router = useRouter();
+  const [open, setOpen] = useState(storeOpen);
+
+  async function toggleOpen() {
+    const next = !open;
+    setOpen(next); // optimista
+    const r = await fetch("/api/tienda/settings", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ storeOpen: next }),
+    });
+    if (!r.ok) setOpen(!next);
+  }
   const [orders, setOrders] = useState<Order[]>(initialOrders);
   const [ordersToday, setOrdersToday] = useState(stats.ordersToday);
   const [newOrderId, setNewOrderId] = useState<string | null>(null);
@@ -156,8 +168,15 @@ export default function AdminDashboard({ stats, recentOrders: initialOrders, gen
           </div>
 
           {/* Saludo */}
-          <div className="mb-6">
+          <div className="mb-6 flex items-center justify-between gap-3">
             <h1 className="text-white font-bold text-2xl">{isGastro ? "¿Cómo va el servicio?" : "¿Cómo va la venta?"}</h1>
+            {!isGastro && (
+              <button onClick={toggleOpen}
+                className={`shrink-0 flex items-center gap-1.5 text-xs font-bold px-3 py-2 rounded-full border transition-all ${open ? "bg-emerald-500/90 border-emerald-300/40 text-white" : "bg-red-500/90 border-red-300/40 text-white"}`}>
+                <span className={`w-2 h-2 rounded-full ${open ? "bg-white" : "bg-white/80"}`} />
+                {open ? "Abierto" : "Cerrado"}
+              </button>
+            )}
           </div>
 
           {/* Stats dentro del hero */}

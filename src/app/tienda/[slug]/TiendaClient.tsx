@@ -8,7 +8,7 @@ import { createClient } from "@/lib/supabase/client";
 import MenuView from "@/components/customer/MenuView";
 import { MenuCategory } from "@/lib/types";
 
-type Props = { slug: string; restaurantName: string; primaryColor: string; categories: MenuCategory[] };
+type Props = { slug: string; restaurantName: string; primaryColor: string; storeOpen: boolean; prepEstimateMin: number; categories: MenuCategory[] };
 type Tracked = { status: string; code: string; total: number; name: string | null; position: number };
 
 const STORAGE_KEY = (slug: string) => `pqr_tienda_${slug}`;
@@ -18,7 +18,7 @@ const STATUS_LABEL: Record<string, string> = {
   READY: "¡Listo para retirar!", DELIVERED: "Entregado", PAID: "Entregado", CANCELLED: "Cancelado",
 };
 
-export default function TiendaClient({ slug, restaurantName, primaryColor, categories }: Props) {
+export default function TiendaClient({ slug, restaurantName, primaryColor, storeOpen, prepEstimateMin, categories }: Props) {
   const { cart, add, updateQty, clear, total, itemCount } = useCart();
   const [sheetOpen, setSheetOpen] = useState(false);
   const [payMode, setPayMode] = useState<"PICKUP" | "ONLINE">("PICKUP");
@@ -71,6 +71,7 @@ export default function TiendaClient({ slug, restaurantName, primaryColor, categ
   }, [orderId, poll]);
 
   async function sendOrder() {
+    if (!storeOpen) { setError("La tienda está cerrada en este momento"); return; }
     if (!googleUser) { setError("Iniciá sesión con Google para pagar al retirar"); return; }
     setSending(true); setError(null);
     try {
@@ -136,7 +137,7 @@ export default function TiendaClient({ slug, restaurantName, primaryColor, categ
                 <p className="font-semibold text-zinc-800">Sos el próximo 🙌</p>
               )}
               <div className="flex items-center justify-center gap-1.5 text-zinc-400 text-xs mt-2">
-                <Clock size={13} /><span>{STATUS_LABEL[tracked.status] ?? tracked.status}</span>
+                <Clock size={13} /><span>{STATUS_LABEL[tracked.status] ?? tracked.status} · ~{prepEstimateMin} min</span>
               </div>
               <div className="w-5 h-5 border-2 border-zinc-200 border-t-zinc-500 rounded-full animate-spin mx-auto mt-4" />
               <p className="text-zinc-300 text-[11px] mt-2">Se actualiza solo</p>
@@ -160,6 +161,12 @@ export default function TiendaClient({ slug, restaurantName, primaryColor, categ
   // ---- Catálogo + carrito ----
   return (
     <div className="relative">
+      {!storeOpen && (
+        <div className="sticky top-0 z-40 bg-red-500 text-white text-center text-sm font-semibold py-2.5 px-4"
+          style={{ paddingTop: "max(0.625rem, env(safe-area-inset-top))" }}>
+          🔴 La tienda está cerrada ahora — podés ver el catálogo, pero no pedir.
+        </div>
+      )}
       <MenuView
         categories={categories}
         restaurantName={restaurantName}
@@ -170,7 +177,7 @@ export default function TiendaClient({ slug, restaurantName, primaryColor, categ
       />
 
       <AnimatePresence>
-        {itemCount > 0 && (
+        {itemCount > 0 && storeOpen && (
           <motion.div
             initial={{ y: 80, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 80, opacity: 0 }}
             transition={{ type: "spring", damping: 26, stiffness: 320 }}

@@ -56,6 +56,9 @@ export async function POST(req: NextRequest) {
   if (!isRestaurantOperative(restaurant, restaurant.account)) {
     return NextResponse.json({ error: "La tienda no está disponible en este momento" }, { status: 403 });
   }
+  if (!restaurant.storeOpen) {
+    return NextResponse.json({ error: "La tienda está cerrada en este momento" }, { status: 403 });
+  }
 
   // Precios reales desde la base (nunca confiar en el cliente)
   const menuItemIds = items.map((i) => i.menuItemId!);

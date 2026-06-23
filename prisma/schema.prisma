@@ -120,6 +120,8 @@ model Restaurant {
   waitlistExpiryMinutes Int           @default(5)    // minutos para ocupar la mesa tras el llamado
   vertical             String         @default("GASTRONOMICO") // GASTRONOMICO | KIOSCO_DESPENSA
   businessSubtype      String         @default("BAR_RESTO")    // BAR_RESTO | KIOSCO | DESPENSA
+  storeOpen            Boolean        @default(true)  // tienda kiosco abierta/cerrada (recibe pedidos)
+  prepEstimateMin      Int            @default(15)    // tiempo estimado de preparación (min)
   tables         Table[]
   waitlistEntries WaitlistEntry[]
   accessQRs      AccessQR[]
