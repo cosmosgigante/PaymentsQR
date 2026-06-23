@@ -328,13 +328,32 @@ export default function AdminDashboard({ stats, recentOrders: initialOrders, gen
                           ${order.total.toLocaleString("es-AR")}
                         </span>
                       </div>
-                      {order.status === "READY" && (
+                      {/* Kiosco: avance directo PENDING→Preparando→Listo→Entregado/cobrado */}
+                      {!isGastro && order.status === "PENDING" && (
+                        <button onClick={() => updateStatus(order.id, "PREPARING")}
+                          className="text-[11px] font-bold bg-orange-500 hover:bg-orange-600 text-white px-3 py-1.5 rounded-lg transition-all">
+                          Preparar
+                        </button>
+                      )}
+                      {!isGastro && order.status === "PREPARING" && (
+                        <button onClick={() => updateStatus(order.id, "READY")}
+                          className="text-[11px] font-bold bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg transition-all">
+                          Listo p/ retirar
+                        </button>
+                      )}
+                      {!isGastro && order.status === "READY" && (
+                        <button onClick={() => updateStatus(order.id, "PAID")}
+                          className="text-[11px] font-bold bg-emerald-500 hover:bg-emerald-600 text-white px-3 py-1.5 rounded-lg transition-all">
+                          Entregado y cobrado ✓
+                        </button>
+                      )}
+                      {isGastro && order.status === "READY" && (
                         <button onClick={() => updateStatus(order.id, "DELIVERED")}
                           className="text-[11px] font-bold bg-emerald-500 hover:bg-emerald-600 text-white px-3 py-1.5 rounded-lg transition-all">
                           Entregar ✓
                         </button>
                       )}
-                      {order.status === "DELIVERED" && (
+                      {isGastro && order.status === "DELIVERED" && (
                         <button onClick={() => updateStatus(order.id, "PAID")}
                           className="text-[11px] font-bold bg-gray-900 hover:bg-gray-700 text-white px-3 py-1.5 rounded-lg transition-all">
                           Cobrado ✓
