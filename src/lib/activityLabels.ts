@@ -15,6 +15,11 @@ export const ACTION_LABELS: Record<string, string> = {
   RESTAURANT_CREATE: "Creó un restorán",
   ACCESS_CREATE: "Creó un acceso de personal",
   ACCESS_DELETE: "Eliminó un acceso de personal",
+  OPERATIONS_CONFIG: "Cambió el flujo operativo",
+  WAITLIST_CALL: "Llamó a un grupo en espera",
+  WAITLIST_SEAT: "Sentó a un grupo de la espera",
+  WAITLIST_CANCEL: "Quitó a un grupo de la espera",
+  WAITLIST_TOGGLE: "Activó/desactivó la lista de espera",
 };
 
 export const CATEGORY_LABELS: Record<string, string> = {
