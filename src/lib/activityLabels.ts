@@ -20,6 +20,8 @@ export const ACTION_LABELS: Record<string, string> = {
   WAITLIST_SEAT: "Sentó a un grupo de la espera",
   WAITLIST_CANCEL: "Quitó a un grupo de la espera",
   WAITLIST_TOGGLE: "Activó/desactivó la lista de espera",
+  RESTAURANT_APPROVE: "Aprobó la apertura de un negocio",
+  MEMBERSHIP_APPROVE: "Aprobó una membresía",
 };
 
 export const CATEGORY_LABELS: Record<string, string> = {
