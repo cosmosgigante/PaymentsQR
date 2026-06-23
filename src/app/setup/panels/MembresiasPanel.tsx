@@ -2,7 +2,8 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { PLANS, formatArs, type PlanType } from "@/lib/plans";
-import { Clock, CheckCircle, Building2 } from "lucide-react";
+import { Clock, CheckCircle, Building2, DoorOpen, History as HistoryIcon } from "lucide-react";
+import { verticalMeta } from "@/lib/verticals";
 
 type PendingOrg = {
   id: string; name: string | null; ownerEmail: string;
@@ -11,10 +12,19 @@ type PendingOrg = {
   _count: { restaurants: number };
 };
 
+type Apertura = {
+  id: string; name: string; slug: string; vertical: string; createdAt: string;
+  account: { id: string; name: string | null; ownerEmail: string } | null;
+};
+type HistItem = { id: string; detail: string | null; actorName: string | null; createdAt: string };
+
 type PlanSummary = { planType: string; count: number; activeCount: number };
 
 export default function MembresiasPanel({ onPendingCount }: { onPendingCount?: (n: number) => void }) {
   const [pending, setPending] = useState<PendingOrg[]>([]);
+  const [aperturas, setAperturas] = useState<Apertura[]>([]);
+  const [historial, setHistorial] = useState<HistItem[]>([]);
+  const [showHist, setShowHist] = useState(false);
   const [summary, setSummary] = useState<PlanSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [approving, setApproving] = useState<string | null>(null);
@@ -22,10 +32,17 @@ export default function MembresiasPanel({ onPendingCount }: { onPendingCount?: (
 
   const load = useCallback(async () => {
     setLoading(true);
-    const [pendRes, clientsRes] = await Promise.all([
+    const [pendRes, clientsRes, apRes] = await Promise.all([
       fetch("/api/setup/memberships", { cache: "no-store" }),
       fetch("/api/setup/clients", { cache: "no-store" }),
+      fetch("/api/setup/aperturas", { cache: "no-store" }),
     ]);
+
+    if (apRes.ok) {
+      const d = await apRes.json();
+      setAperturas(d.pending ?? []);
+      setHistorial(d.history ?? []);
+    }
 
     if (pendRes.ok) {
       const d = await pendRes.json();
@@ -64,14 +81,28 @@ export default function MembresiasPanel({ onPendingCount }: { onPendingCount?: (
     }
   }
 
+  async function approveBusiness(ap: Apertura) {
+    setApproving(ap.id);
+    const r = await fetch("/api/setup/aperturas", {
+      method: "PATCH", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ restaurantId: ap.id }),
+    });
+    setApproving(null);
+    if (r.ok) {
+      setMsg(`Apertura de "${ap.name}" aprobada ✓`);
+      setTimeout(() => setMsg(null), 5000);
+      load();
+    }
+  }
+
   const plans = Object.entries(PLANS) as [PlanType, { label: string; months: number; priceArs: number }][];
 
   return (
     <div>
       <div className="flex items-center justify-between mb-5">
         <div>
-          <h1 className="text-xl font-bold text-gray-900">Membresías</h1>
-          <p className="text-gray-400 text-sm">Membresía por organización — no por perfil de usuario</p>
+          <h1 className="text-xl font-bold text-gray-900">Membresías y Aperturas</h1>
+          <p className="text-gray-400 text-sm">Membresías por organización y aprobación de negocios nuevos</p>
         </div>
         <button onClick={load} className="text-xs text-gray-500 hover:text-gray-900 bg-white border border-gray-200 px-3 py-1.5 rounded-xl">Actualizar</button>
       </div>
@@ -146,6 +177,57 @@ export default function MembresiasPanel({ onPendingCount }: { onPendingCount?: (
             })}
           </div>
         </>
+      )}
+
+      {/* Aperturas de negocios */}
+      {!loading && (
+        <div className="mt-8">
+          <div className="flex items-center gap-2 mb-3">
+            <DoorOpen size={16} className="text-violet-600" />
+            <h2 className="font-semibold text-gray-800">Solicitudes de apertura</h2>
+            {aperturas.length > 0 && <span className="text-xs font-bold bg-violet-100 text-violet-700 px-2 py-0.5 rounded-full">{aperturas.length}</span>}
+          </div>
+          {aperturas.length === 0 ? (
+            <p className="text-gray-400 text-sm bg-white border border-gray-100 rounded-2xl p-4">No hay negocios esperando aprobación.</p>
+          ) : (
+            <div className="space-y-2">
+              {aperturas.map((ap) => {
+                const meta = verticalMeta(ap.vertical);
+                return (
+                  <div key={ap.id} className="bg-violet-50 border border-violet-200 rounded-2xl p-4 flex items-center justify-between gap-3 flex-wrap">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="w-9 h-9 rounded-xl bg-violet-100 flex items-center justify-center shrink-0 text-lg">{meta.emoji}</div>
+                      <div className="min-w-0">
+                        <p className="font-bold text-gray-900 text-sm truncate">{ap.name} <span className="text-[11px] font-semibold text-violet-700">· {meta.label}</span></p>
+                        <p className="text-gray-500 text-xs truncate">/{ap.slug} · {ap.account?.ownerEmail ?? "—"}</p>
+                      </div>
+                    </div>
+                    <button onClick={() => approveBusiness(ap)} disabled={approving === ap.id}
+                      className="flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white text-sm font-bold px-4 py-2 rounded-xl shrink-0">
+                      <CheckCircle size={14} />{approving === ap.id ? "Aprobando..." : "Aprobar apertura"}
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          <button onClick={() => setShowHist((v) => !v)} className="mt-3 flex items-center gap-1.5 text-xs text-gray-500 hover:text-gray-800">
+            <HistoryIcon size={13} /> Historial de aperturas ({historial.length})
+          </button>
+          {showHist && (
+            <div className="mt-2 bg-white border border-gray-100 rounded-2xl divide-y divide-gray-50">
+              {historial.length === 0 ? (
+                <p className="text-gray-400 text-xs p-4">Todavía no hay aperturas aprobadas registradas (el historial empieza desde ahora).</p>
+              ) : historial.map((h) => (
+                <div key={h.id} className="px-4 py-2.5 flex items-center justify-between gap-2">
+                  <p className="text-xs text-gray-600 truncate">{h.detail ?? "Apertura aprobada"}</p>
+                  <span className="text-[11px] text-gray-400 shrink-0 font-mono">{new Date(h.createdAt).toLocaleDateString("es-AR", { day: "2-digit", month: "2-digit" })} {new Date(h.createdAt).toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" })}</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       )}
     </div>
   );

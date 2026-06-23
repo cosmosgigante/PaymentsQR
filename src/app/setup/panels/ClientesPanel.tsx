@@ -63,6 +63,19 @@ function ClientDetail({ client, onBack, onReload, accounts }: { client: Client; 
     if (r.ok) { onReload(); setShowRestForm(false); setShowMembershipForm(false); setShowUpgradeForm(false); }
   }
 
+  // Aprobar la apertura de un negocio pendiente (también disponible en Membresías y Aperturas)
+  async function approveApertura(restaurantId: string) {
+    setBusy(true); setMsg(null);
+    const r = await fetch("/api/setup/aperturas", {
+      method: "PATCH", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ restaurantId }),
+    });
+    const d = await r.json();
+    setMsg({ text: r.ok ? "Apertura aprobada ✓" : (d.error ?? "Error"), ok: r.ok });
+    setBusy(false);
+    if (r.ok) onReload();
+  }
+
   const c = client;
   const dl = c.daysLeft;
 
@@ -228,7 +241,15 @@ function ClientDetail({ client, onBack, onReload, accounts }: { client: Client; 
                   {r.status === "PENDING" && <span className="ml-1.5 text-[10px] bg-amber-100 text-amber-600 px-1.5 py-0.5 rounded-full">Pendiente</span>}
                   <span className="text-gray-400 text-[11px] ml-1.5">{r._count.tables}m · {r._count.orders}p</span>
                 </div>
-                <a href={`/api/setup/impersonate?restaurantId=${r.id}`} className="text-[11px] text-gray-600 bg-gray-200 hover:bg-gray-300 px-2 py-1 rounded-lg">Ver panel</a>
+                <div className="flex items-center gap-1.5 shrink-0">
+                  {r.status === "PENDING" && (
+                    <button onClick={() => approveApertura(r.id)} disabled={busy}
+                      className="text-[11px] font-bold text-white bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 px-2 py-1 rounded-lg">
+                      Aprobar
+                    </button>
+                  )}
+                  <a href={`/api/setup/impersonate?restaurantId=${r.id}`} className="text-[11px] text-gray-600 bg-gray-200 hover:bg-gray-300 px-2 py-1 rounded-lg">Ver panel</a>
+                </div>
               </div>
             ))}
           </div>

@@ -14,7 +14,7 @@ import PlaceholderPanel from "./panels/PlaceholderPanel";
 const SECTIONS = [
   { key: "clientes",        label: "Clientes",        icon: Users },
   { key: "organizaciones",  label: "Organizaciones",  icon: Building2 },
-  { key: "membresias",      label: "Membresías",      icon: CreditCard },
+  { key: "membresias",      label: "Membresías y Aperturas", icon: CreditCard },
   { key: "trazabilidad",    label: "Trazabilidad",    icon: Activity },
   { key: "notificaciones",  label: "Notificaciones",  icon: Bell },
   { key: "analytics",       label: "Analytics",       icon: BarChart2 },
