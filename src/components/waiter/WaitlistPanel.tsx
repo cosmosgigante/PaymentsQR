@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Users, Clock, BellRing, Check, X, ChevronDown, ChevronUp } from "lucide-react";
+import { useSSE } from "@/hooks/useSSE";
 
 type Entry = {
   id: string;
@@ -43,10 +44,19 @@ export default function WaitlistPanel() {
   useEffect(() => {
     loadConfig();
     loadEntries().finally(() => { loadedOnce.current = true; });
+    // Polling de respaldo (el SSE da el tiempo real; esto cubre reconexiones)
     const poll = setInterval(loadEntries, 5000);
     const tick = setInterval(() => setNow(Date.now()), 1000);
     return () => { clearInterval(poll); clearInterval(tick); };
   }, [loadConfig, loadEntries]);
+
+  // Tiempo real: refresca al instante cuando otro dispositivo del personal
+  // llama/sienta/cancela un grupo, o cuando caja prende/apaga la lista.
+  const onSSE = useCallback((data: { type: string; [k: string]: unknown }) => {
+    if (data.type === "WAITLIST_UPDATED") loadEntries();
+    if (data.type === "WAITLIST_TOGGLE") setEnabled(!!data.enabled);
+  }, [loadEntries]);
+  useSSE("/api/events", onSSE);
 
   async function toggle() {
     const next = !enabled;
