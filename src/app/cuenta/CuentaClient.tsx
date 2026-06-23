@@ -9,6 +9,7 @@ import UsersManager from "./UsersManager";
 import ActivityFeed from "./ActivityFeed";
 import { Store, Users, Activity, Settings, ChevronLeft, Building2, CreditCard, BarChart3 } from "lucide-react";
 import { PLANS, formatArs, type PlanType } from "@/lib/plans";
+import { VERTICALS, verticalMeta, type VerticalKey } from "@/lib/verticals";
 
 export type Restaurant = {
   id: string;
@@ -17,6 +18,7 @@ export type Restaurant = {
   status: string;
   isActive: boolean;
   createdAt: string;
+  vertical?: string;
   _count: { tables: number; orders: number };
 };
 
@@ -42,6 +44,7 @@ export default function CuentaClient({ account, restaurants: initial, isFull = t
   const [showForm, setShowForm] = useState(false);
   const [creating, setCreating] = useState(false);
   const [form, setForm] = useState({ name: "", slug: "" });
+  const [vertical, setVertical] = useState<VerticalKey>("GASTRONOMICO");
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [tab, setTab] = useState<Tab>("restoranes");
@@ -60,17 +63,18 @@ export default function CuentaClient({ account, restaurants: initial, isFull = t
     const res = await fetch("/api/account/restaurants", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(form),
+      body: JSON.stringify({ ...form, vertical }),
     });
     const data = await res.json();
     if (!res.ok) {
-      setError(data.error ?? "Error al crear el restaurante");
+      setError(data.error ?? "Error al crear el negocio");
       setCreating(false);
       return;
     }
     setRestaurants((prev) => [...prev, { ...data.restaurant, isActive: true, createdAt: new Date().toISOString(), _count: { tables: 0, orders: 0 } }]);
     setShowForm(false);
     setForm({ name: "", slug: "" });
+    setVertical("GASTRONOMICO");
     setSuccess(`"${data.restaurant.name}" se creó y quedó pendiente de habilitación. Te avisamos cuando esté listo.`);
     setTimeout(() => setSuccess(null), 8000);
     setCreating(false);
@@ -214,7 +218,7 @@ export default function CuentaClient({ account, restaurants: initial, isFull = t
           {isFull && (
             <button onClick={() => { setShowForm((v) => !v); setError(null); }}
               className="bg-blue-900 text-white hover:bg-blue-800 text-sm font-semibold px-4 py-2 rounded-xl transition-all">
-              + Nuevo restorán
+              + Nuevo negocio
             </button>
           )}
         </div>
@@ -223,12 +227,26 @@ export default function CuentaClient({ account, restaurants: initial, isFull = t
           {showForm && (
             <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }}
               className="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm">
-              <h3 className="font-semibold text-sm text-gray-700 mb-1">Nuevo restorán / sucursal</h3>
-              <p className="text-xs text-gray-400 mb-4">Se crea pendiente de habilitación. Se cobra como sucursal extra según tu plan.</p>
+              <h3 className="font-semibold text-sm text-gray-700 mb-1">Nuevo negocio</h3>
+              <p className="text-xs text-gray-400 mb-4">Se crea pendiente de habilitación. Se cobra como negocio extra según tu plan.</p>
               <form onSubmit={handleCreate} className="space-y-3">
                 <div>
+                  <label className="text-xs text-gray-500 uppercase tracking-widest block mb-1.5">Categoría</label>
+                  <div className="grid grid-cols-2 gap-2">
+                    {VERTICALS.map((v) => (
+                      <button key={v.key} type="button" onClick={() => setVertical(v.key)}
+                        className={`text-left p-3 rounded-xl border-2 transition-all ${vertical === v.key ? "border-blue-600 bg-blue-50" : "border-gray-200 bg-white hover:border-gray-300"}`}>
+                        <span className="text-lg">{v.emoji}</span>
+                        <p className="font-semibold text-sm text-gray-800 leading-tight mt-1">{v.label}</p>
+                        <p className="text-[11px] text-gray-400 leading-snug mt-0.5">{v.description}</p>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div>
                   <label className="text-xs text-gray-500 uppercase tracking-widest block mb-1">Nombre</label>
-                  <input type="text" value={form.name} onChange={(e) => handleName(e.target.value)} required placeholder="Mi otra sucursal"
+                  <input type="text" value={form.name} onChange={(e) => handleName(e.target.value)} required
+                    placeholder={vertical === "KIOSCO_DESPENSA" ? "Kiosco La Esquina" : "Mi otra sucursal"}
                     className="w-full bg-gray-50 border border-gray-200 text-gray-900 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30 placeholder:text-gray-300" />
                 </div>
                 <div>
@@ -242,7 +260,7 @@ export default function CuentaClient({ account, restaurants: initial, isFull = t
                 {error && <p className="text-red-500 text-xs bg-red-50 border border-red-200 rounded-lg px-3 py-2">{error}</p>}
                 <button type="submit" disabled={creating}
                   className="bg-gray-900 text-white hover:bg-gray-700 disabled:opacity-50 font-semibold text-sm px-4 py-2.5 rounded-xl transition-all">
-                  {creating ? "Creando..." : "Crear restorán"}
+                  {creating ? "Creando..." : "Crear negocio"}
                 </button>
               </form>
             </motion.div>
@@ -252,16 +270,19 @@ export default function CuentaClient({ account, restaurants: initial, isFull = t
         <div className="space-y-3">
           {restaurants.map((r) => {
             const active = r.status === "ACTIVE" && r.isActive;
+            const meta = verticalMeta(r.vertical ?? "GASTRONOMICO");
+            const isGastro = (r.vertical ?? "GASTRONOMICO") === "GASTRONOMICO";
             return (
               <div key={r.id} className="bg-white rounded-2xl border border-gray-100 p-4 flex items-center justify-between gap-3 shadow-sm">
                 <div className="min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className="font-semibold text-gray-900 truncate">{r.name}</span>
+                    <span className="text-[11px] font-semibold bg-gray-100 text-gray-600 border border-gray-200 px-2 py-0.5 rounded-full">{meta.emoji} {meta.label}</span>
                     {r.status === "ACTIVE"
                       ? <span className="text-[11px] font-semibold bg-emerald-50 text-emerald-600 border border-emerald-200 px-2 py-0.5 rounded-full">Activo</span>
                       : <span className="text-[11px] font-semibold bg-amber-50 text-amber-600 border border-amber-200 px-2 py-0.5 rounded-full">Pendiente</span>}
                   </div>
-                  <p className="text-xs text-gray-400 mt-0.5 font-mono truncate">/{r.slug} · {r._count.tables} mesas · {r._count.orders} pedidos</p>
+                  <p className="text-xs text-gray-400 mt-0.5 font-mono truncate">/{r.slug}{isGastro ? ` · ${r._count.tables} mesas` : ""} · {r._count.orders} pedidos</p>
                 </div>
                 {active ? (
                   <div className="flex items-center gap-2 shrink-0">

@@ -16,7 +16,7 @@ export default async function CuentaPage() {
       ? { accountId: account.id }
       : { accountId: account.id, id: { in: access.allowedRestaurantIds ?? [] } },
     orderBy: { createdAt: "asc" },
-    select: { id: true, name: true, slug: true, status: true, isActive: true, createdAt: true, _count: { select: { tables: true, orders: true } } },
+    select: { id: true, name: true, slug: true, status: true, isActive: true, createdAt: true, vertical: true, _count: { select: { tables: true, orders: true } } },
   });
 
   const now = new Date();
