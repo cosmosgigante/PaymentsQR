@@ -55,6 +55,7 @@ export default async function AdminPage() {
       stats={{ ordersToday, tablesCount, menuItemsCount }}
       recentOrders={JSON.parse(JSON.stringify(recentOrders))}
       generalAdmin={!!adminSelf?.accountId}
+      impersonating={!!session.impersonating}
       vertical={restaurant.vertical}
       storeOpen={restaurant.storeOpen}
     />
