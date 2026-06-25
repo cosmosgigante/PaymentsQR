@@ -35,6 +35,17 @@ export function accountAccess(
  * Devuelve { admin, account } o null si no es admin general de ninguna cuenta.
  */
 export async function getAccountAdmin(req: NextRequest) {
+  // 0) Impersonación: si un superadmin entró a una cuenta ajena, su admin_token tiene
+  // impersonating=true y DEBE tener prioridad sobre la sesión Supabase (que sigue siendo
+  // la del superadmin, SIN cuenta). Sin esto, las APIs de /cuenta dan 403 al impersonar
+  // (ej.: crear restorán a nombre del cliente). Espeja a resolveServerAdmin.
+  const token = req.cookies.get("admin_token")?.value;
+  const payload = token ? await verifyToken(token) : null;
+  if (payload?.impersonating && payload.adminId) {
+    const imp = await loadAdminWithAccount({ id: payload.adminId });
+    if (imp?.accountId && imp.account) return { admin: imp, account: imp.account };
+  }
+
   // 1) Sesión Supabase (Google)
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -46,11 +57,9 @@ export async function getAccountAdmin(req: NextRequest) {
   let admin: AdminWithAccount | null = null;
   if (user?.email) {
     admin = await loadAdminWithAccount({ email: user.email.toLowerCase() });
-  } else {
+  } else if (payload?.adminId) {
     // 2) Fallback: admin_token JWT (login con email/contraseña)
-    const token = req.cookies.get("admin_token")?.value;
-    const payload = token ? await verifyToken(token) : null;
-    if (payload?.adminId) admin = await loadAdminWithAccount({ id: payload.adminId });
+    admin = await loadAdminWithAccount({ id: payload.adminId });
   }
 
   if (!admin?.accountId || !admin.account) return null;
