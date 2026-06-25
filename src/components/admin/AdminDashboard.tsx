@@ -24,11 +24,12 @@ type Props = {
   stats: { ordersToday: number; tablesCount: number; menuItemsCount: number };
   recentOrders: Order[];
   generalAdmin?: boolean;
+  impersonating?: boolean;
   vertical?: string;
   storeOpen?: boolean;
 };
 
-export default function AdminDashboard({ stats, recentOrders: initialOrders, generalAdmin, vertical = "GASTRONOMICO", storeOpen = true }: Props) {
+export default function AdminDashboard({ stats, recentOrders: initialOrders, generalAdmin, impersonating, vertical = "GASTRONOMICO", storeOpen = true }: Props) {
   const isGastro = vertical === "GASTRONOMICO";
   const router = useRouter();
   const [open, setOpen] = useState(storeOpen);
@@ -123,6 +124,15 @@ export default function AdminDashboard({ stats, recentOrders: initialOrders, gen
 
   return (
     <div className="min-h-screen bg-slate-100">
+
+      {/* Banner de impersonación: volver al panel de superadmin */}
+      {impersonating && (
+        <a href="/api/setup/exit-impersonate"
+          className="sticky top-0 z-[60] flex items-center justify-center gap-2 bg-amber-500 text-white text-sm font-semibold py-2 px-4 hover:bg-amber-600 transition-colors"
+          style={{ paddingTop: "max(0.5rem, env(safe-area-inset-top))" }}>
+          ← Volver a mi panel de superadmin <span className="text-amber-100 font-normal hidden sm:inline">· estás viendo como soporte</span>
+        </a>
+      )}
 
       {/* Hero header con gradiente */}
       <div
