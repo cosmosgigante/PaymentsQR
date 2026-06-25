@@ -3,6 +3,32 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { ArrowLeft, Search, Plus, X } from "lucide-react";
 import { PLANS, formatArs, type PlanType } from "@/lib/plans";
+import { VERTICALS } from "@/lib/verticals";
+
+// Categorías de negocio disponibles (aplanadas: vertical + subtipo) para elegir al crear.
+const CATEGORIES = VERTICALS.flatMap((v) =>
+  v.subtypes.map((s) => ({ vertical: v.key as string, subtype: s.key, label: s.label, emoji: v.emoji }))
+);
+const DEFAULT_CAT = { vertical: CATEGORIES[0].vertical, subtype: CATEGORIES[0].subtype };
+
+function CategoryPicker({ value, onChange }: { value: { vertical: string; subtype: string }; onChange: (c: { vertical: string; subtype: string }) => void }) {
+  return (
+    <div>
+      <label className="text-[11px] text-gray-500 font-semibold uppercase tracking-widest block mb-1">Categoría del negocio</label>
+      <div className="grid grid-cols-3 gap-1.5">
+        {CATEGORIES.map((cat) => {
+          const on = value.vertical === cat.vertical && value.subtype === cat.subtype;
+          return (
+            <button key={cat.subtype} type="button" onClick={() => onChange({ vertical: cat.vertical, subtype: cat.subtype })}
+              className={`rounded-xl py-2 text-xs font-semibold border transition-all ${on ? "bg-blue-900 text-white border-blue-900" : "bg-gray-50 text-gray-600 border-gray-200"}`}>
+              {cat.emoji} {cat.label}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
 
 type RestaurantLite = { id: string; name: string; slug: string; isActive: boolean; status: string; _count: { tables: number; orders: number } };
 type Member = { email: string; role: string; accessScope: string | null };
@@ -45,9 +71,9 @@ function ClientDetail({ client, onBack, onReload, accounts }: { client: Client; 
   const [showRestForm, setShowRestForm] = useState(false);
   const [showMembershipForm, setShowMembershipForm] = useState(false);
   const [showUpgradeForm, setShowUpgradeForm] = useState(false);
-  const [restForm, setRestForm] = useState({ name: "", slug: "" });
+  const [restForm, setRestForm] = useState({ name: "", slug: "", ...DEFAULT_CAT });
   const [memberForm, setMemberForm] = useState({ planType: "MENSUAL" as PlanType, months: 0 });
-  const [upgradeForm, setUpgradeForm] = useState({ restaurantName: "", slug: "", planType: "MENSUAL" as PlanType });
+  const [upgradeForm, setUpgradeForm] = useState({ restaurantName: "", slug: "", planType: "MENSUAL" as PlanType, ...DEFAULT_CAT });
 
   const handleRest = (n: string) => setRestForm((p) => ({ ...p, name: n, slug: n.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "") }));
 
@@ -167,8 +193,8 @@ function ClientDetail({ client, onBack, onReload, accounts }: { client: Client; 
 
         {showUpgradeForm && (
           <div className="mt-4 space-y-2 border-t border-gray-100 pt-4">
-            <p className="text-xs text-gray-500 font-semibold uppercase tracking-widest">Crear cuenta + primer restorán</p>
-            <input placeholder="Nombre del restorán" value={upgradeForm.restaurantName}
+            <p className="text-xs text-gray-500 font-semibold uppercase tracking-widest">Crear organización + primer negocio</p>
+            <input placeholder="Nombre del negocio" value={upgradeForm.restaurantName}
               onChange={(e) => { const n = e.target.value; setUpgradeForm((p) => ({ ...p, restaurantName: n, slug: n.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "") })); }}
               className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none" />
             <input placeholder="slug-url" value={upgradeForm.slug}
@@ -182,8 +208,9 @@ function ClientDetail({ client, onBack, onReload, accounts }: { client: Client; 
                 </button>
               ))}
             </div>
+            <CategoryPicker value={{ vertical: upgradeForm.vertical, subtype: upgradeForm.subtype }} onChange={(cat) => setUpgradeForm((p) => ({ ...p, ...cat }))} />
             <button disabled={busy || !upgradeForm.restaurantName || !upgradeForm.slug}
-              onClick={() => call("upgrade_to_A", { restaurantName: upgradeForm.restaurantName, slug: upgradeForm.slug, planType: upgradeForm.planType })}
+              onClick={() => call("upgrade_to_A", { restaurantName: upgradeForm.restaurantName, slug: upgradeForm.slug, planType: upgradeForm.planType, vertical: upgradeForm.vertical, subtype: upgradeForm.subtype })}
               className="bg-blue-900 text-white text-sm font-semibold px-4 py-2 rounded-xl disabled:opacity-50">
               {busy ? "..." : "Promover a A"}
             </button>
@@ -222,7 +249,7 @@ function ClientDetail({ client, onBack, onReload, accounts }: { client: Client; 
       {(c.clientClass === "A" || c.clientClass === "A2") && (
         <div className="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm mb-4">
           <div className="flex items-center justify-between mb-3">
-            <h3 className="font-semibold text-gray-800">Restoranes ({c.restaurants.length})</h3>
+            <h3 className="font-semibold text-gray-800">Negocios ({c.restaurants.length})</h3>
             {c.accountId && (
               <button onClick={() => setShowRestForm((v) => !v)} className="text-xs text-blue-700 font-semibold flex items-center gap-1">
                 <Plus size={12} />Agregar
@@ -230,7 +257,7 @@ function ClientDetail({ client, onBack, onReload, accounts }: { client: Client; 
             )}
           </div>
           {c.restaurants.length === 0 && (
-            <p className="text-gray-400 text-sm">Sin restoranes. La membresía está activa pero no se creó ninguno. Usá "Agregar" para solucionarlo.</p>
+            <p className="text-gray-400 text-sm">Sin negocios. La membresía está activa pero no se creó ninguno. Usá &quot;Agregar&quot; para solucionarlo.</p>
           )}
           <div className="space-y-1.5">
             {c.restaurants.map((r) => (
@@ -255,14 +282,15 @@ function ClientDetail({ client, onBack, onReload, accounts }: { client: Client; 
           </div>
           {showRestForm && (
             <div className="mt-3 space-y-2 border-t border-gray-100 pt-3">
-              <input placeholder="Nombre del restorán" value={restForm.name} onChange={(e) => handleRest(e.target.value)}
+              <input placeholder="Nombre del negocio" value={restForm.name} onChange={(e) => handleRest(e.target.value)}
                 className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none" />
               <input placeholder="slug-url" value={restForm.slug} onChange={(e) => setRestForm((p) => ({ ...p, slug: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, "") }))}
                 className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-sm font-mono focus:outline-none" />
+              <CategoryPicker value={{ vertical: restForm.vertical, subtype: restForm.subtype }} onChange={(cat) => setRestForm((p) => ({ ...p, ...cat }))} />
               <div className="flex gap-2">
                 <button disabled={busy || !restForm.name || !restForm.slug}
-                  onClick={() => call("create_restaurant", { restaurantName: restForm.name, slug: restForm.slug })}
-                  className="bg-gray-900 text-white text-sm font-semibold px-4 py-2 rounded-xl disabled:opacity-50">{busy ? "..." : "Crear restorán"}</button>
+                  onClick={() => call("create_restaurant", { restaurantName: restForm.name, slug: restForm.slug, vertical: restForm.vertical, subtype: restForm.subtype })}
+                  className="bg-gray-900 text-white text-sm font-semibold px-4 py-2 rounded-xl disabled:opacity-50">{busy ? "..." : "Crear negocio"}</button>
                 <button onClick={() => setShowRestForm(false)} className="text-gray-500 text-sm px-4 py-2 rounded-xl"><X size={14} /></button>
               </div>
             </div>
@@ -297,7 +325,7 @@ export default function ClientesPanel() {
   const [showForm, setShowForm] = useState(false);
   const [creating, setCreating] = useState(false);
   const [newType, setNewType] = useState<"A" | "A2" | "A3">("A3");
-  const [form, setForm] = useState({ email: "", restaurantName: "", slug: "", planType: "MENSUAL" as PlanType, accountId: "" });
+  const [form, setForm] = useState({ email: "", restaurantName: "", slug: "", planType: "MENSUAL" as PlanType, accountId: "", ...DEFAULT_CAT });
   const [error, setError] = useState<string | null>(null);
   const [msg, setMsg] = useState<string | null>(null);
 
@@ -310,7 +338,7 @@ export default function ClientesPanel() {
   async function create(e: React.FormEvent) {
     e.preventDefault(); setCreating(true); setError(null);
     const body: Record<string, unknown> = { type: newType, email: form.email };
-    if (newType === "A")  { body.restaurantName = form.restaurantName; body.slug = form.slug; body.planType = form.planType; }
+    if (newType === "A")  { body.restaurantName = form.restaurantName; body.slug = form.slug; body.planType = form.planType; body.vertical = form.vertical; body.subtype = form.subtype; }
     if (newType === "A2") body.accountId = form.accountId;
     const r = await fetch("/api/setup/clients", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
     const d = await r.json();
@@ -318,7 +346,7 @@ export default function ClientesPanel() {
     if (!r.ok) { setError(d.error ?? "Error"); return; }
     setShowForm(false);
     setMsg(`Cliente ${newType} ${form.email} creado ✓`);
-    setForm({ email: "", restaurantName: "", slug: "", planType: "MENSUAL", accountId: "" });
+    setForm({ email: "", restaurantName: "", slug: "", planType: "MENSUAL", accountId: "", ...DEFAULT_CAT });
     setTimeout(() => setMsg(null), 5000);
     reload();
   }
@@ -357,10 +385,13 @@ export default function ClientesPanel() {
             className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none" />
           {newType === "A" && (
             <>
-              <input required placeholder="Nombre del negocio / restorán" value={form.restaurantName} onChange={(e) => { const n = e.target.value; setForm((p) => ({ ...p, restaurantName: n, slug: n.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "") })); }}
+              <p className="text-[11px] text-gray-400 -mt-1">Se crea la <strong>organización</strong> del cliente y su <strong>primer negocio</strong>.</p>
+              <input required placeholder="Nombre del primer negocio" value={form.restaurantName} onChange={(e) => { const n = e.target.value; setForm((p) => ({ ...p, restaurantName: n, slug: n.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "") })); }}
                 className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none" />
               <input required placeholder="slug-url" value={form.slug} onChange={(e) => setForm((p) => ({ ...p, slug: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, "") }))}
                 className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2.5 text-sm font-mono focus:outline-none" />
+              <CategoryPicker value={{ vertical: form.vertical, subtype: form.subtype }} onChange={(cat) => setForm((p) => ({ ...p, ...cat }))} />
+              <label className="text-[11px] text-gray-500 font-semibold uppercase tracking-widest block">Plan (membresía)</label>
               <div className="grid grid-cols-3 gap-2">
                 {(Object.keys(PLANS) as PlanType[]).map((pt) => (
                   <button key={pt} type="button" onClick={() => setForm((p) => ({ ...p, planType: pt }))}
