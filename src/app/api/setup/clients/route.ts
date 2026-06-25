@@ -3,6 +3,7 @@ import { createServerClient } from "@supabase/ssr";
 import { db } from "@/lib/db";
 import { logActivity } from "@/lib/activity";
 import { computeAccountPlan, isPlanType } from "@/lib/plans";
+import { isValidVertical, resolveSubtype } from "@/lib/verticals";
 
 export const dynamic = "force-dynamic";
 
@@ -120,9 +121,11 @@ export async function POST(req: NextRequest) {
     type?: "A" | "A2" | "A3";
     email?: string;
     accountId?: string;       // solo para A2
-    restaurantName?: string;  // para A (primer restorán)
+    restaurantName?: string;  // para A (primer negocio)
     slug?: string;
     planType?: string;
+    vertical?: string;        // categoría del primer negocio
+    subtype?: string;
   };
 
   const email = body.email?.toLowerCase().trim();
@@ -167,6 +170,8 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Ese email ya tiene una cuenta" }, { status: 409 });
   }
   const { totalArs, startedAt, endsAt } = computeAccountPlan(body.planType, 0);
+  const vertical = isValidVertical(body.vertical) ? body.vertical : "GASTRONOMICO";
+  const businessSubtype = resolveSubtype(vertical, body.subtype);
   const acc = await db.account.create({
     data: {
       ownerEmail: email, name: body.restaurantName.slice(0, 100),
@@ -174,7 +179,7 @@ export async function POST(req: NextRequest) {
       subscriptionStartedAt: startedAt, subscriptionEndsAt: endsAt,
       paymentSource: "MANUAL", isActive: true,
       admins: { create: { email, role: "OWNER" } },
-      restaurants: { create: { name: body.restaurantName.slice(0, 100), slug: cleanSlug, status: "ACTIVE" } },
+      restaurants: { create: { name: body.restaurantName.slice(0, 100), slug: cleanSlug, status: "ACTIVE", vertical, businessSubtype } },
     },
     include: { restaurants: { select: { id: true } } },
   });

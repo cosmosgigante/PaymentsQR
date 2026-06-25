@@ -3,6 +3,7 @@ import { createServerClient } from "@supabase/ssr";
 import { db } from "@/lib/db";
 import { logActivity } from "@/lib/activity";
 import { computeAccountPlan, isPlanType } from "@/lib/plans";
+import { isValidVertical, resolveSubtype } from "@/lib/verticals";
 
 async function requireSuperAdmin(req: NextRequest) {
   const supabase = createServerClient(
@@ -32,7 +33,13 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ em
     restaurantName?: string;
     slug?: string;
     isActive?: boolean;
+    vertical?: string;
+    subtype?: string;
   };
+
+  // Categoría del negocio (default gastronómico). Se usa en upgrade_to_A y create_restaurant.
+  const vertical = isValidVertical(body.vertical) ? body.vertical : "GASTRONOMICO";
+  const businessSubtype = resolveSubtype(vertical, body.subtype);
 
   const admin = await db.admin.findUnique({ where: { email: target }, include: { account: true } });
   if (!admin) return NextResponse.json({ error: "Cliente no encontrado" }, { status: 404 });
@@ -57,7 +64,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ em
         planType: body.planType, priceArs: totalArs,
         subscriptionStartedAt: startedAt, subscriptionEndsAt: endsAt,
         paymentSource: "MANUAL", isActive: true,
-        restaurants: { create: { name: body.restaurantName.slice(0, 100), slug: cleanSlug, status: "ACTIVE" } },
+        restaurants: { create: { name: body.restaurantName.slice(0, 100), slug: cleanSlug, status: "ACTIVE", vertical, businessSubtype } },
       },
       include: { restaurants: { select: { id: true } } },
     });
@@ -117,7 +124,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ em
       return NextResponse.json({ error: "Slug ya en uso" }, { status: 409 });
     }
     const r = await db.restaurant.create({
-      data: { accountId: admin.accountId, name: body.restaurantName.slice(0, 100), slug: cleanSlug, status: "ACTIVE" },
+      data: { accountId: admin.accountId, name: body.restaurantName.slice(0, 100), slug: cleanSlug, status: "ACTIVE", vertical, businessSubtype },
     });
     await logActivity({ accountId: admin.accountId, restaurantId: r.id, actorType: "SUPERADMIN", actorName: saEmail, category: "CUENTA", action: "RESTAURANT_CREATE", detail: `Restorán "${r.name}" creado para ${target}` });
     return NextResponse.json({ ok: true, restaurantId: r.id });
