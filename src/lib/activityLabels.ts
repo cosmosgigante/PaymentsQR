@@ -25,6 +25,28 @@ export const ACTION_LABELS: Record<string, string> = {
   ACCESS_PAUSE: "Pausó un acceso de personal",
   ACCESS_RESUME: "Reactivó un acceso de personal",
   ACCESS_EDIT: "Editó un acceso de personal",
+  // Acceso de soporte (superadmin entra a la cuenta/panel del cliente)
+  ADMIN_ACCESS: "Acceso de soporte",
+  IMPERSONATE: "Acceso de soporte",
+  // Cuenta / organización / membresía
+  CLIENT_CREATE: "Creó un cliente",
+  CLIENT_UPGRADE: "Promovió el cliente a A",
+  CLIENT_TOGGLE: "Activó/suspendió la cuenta",
+  ORG_CREATE: "Creó una organización",
+  MEMBERSHIP_CHANGE: "Cambió el plan/membresía",
+  MEMBERSHIP_EXTEND: "Extendió la membresía",
+  MEMBERSHIP_CANCEL: "Canceló la membresía",
+  MEMBERSHIP_REQUEST: "Solicitó una membresía",
+  PLAN_CANCEL: "Canceló el plan",
+  PAYMENT_CONFIG: "Configuró el cobro online (MercadoPago)",
+  // Socios / invitaciones
+  PARTNER_ADD: "Agregó un socio",
+  PARTNER_REMOVE: "Quitó un socio",
+  INVITE_SENT: "Envió una invitación de socio",
+  INVITE_ACCEPTED: "Aceptó una invitación de socio",
+  // Mesa
+  TABLE_CONFIRM: "Confirmó la mesa",
+  TABLE_CLOSE: "Cerró la mesa",
 };
 
 export const CATEGORY_LABELS: Record<string, string> = {

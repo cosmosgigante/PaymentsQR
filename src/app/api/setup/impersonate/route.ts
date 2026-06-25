@@ -35,16 +35,12 @@ export async function GET(req: NextRequest) {
     if (!ownerAdmin) return NextResponse.redirect(new URL("/setup?error=no-admin", req.url));
 
     const token = await signToken({ adminId: ownerAdmin.id, restaurantId: "", role: "OWNER", accountId, impersonating: true });
-    await logActivity({
-      accountId, restaurantId: null, actorType: "SUPERADMIN", actorName: sa.email,
-      category: "CUENTA", action: "IMPERSONATE",
-      detail: `${sa.email} ingresó a la cuenta de ${ownerAdmin.email}`,
-    });
-    // También en el ActivityLog de la cuenta (visible para el cliente)
+    // Un único log de "acceso de soporte": visible para el cliente (su accountId, en su
+    // feed de Actividad) y para el superadmin (Trazabilidad filtra por actorType=SUPERADMIN).
     await logActivity({
       accountId, restaurantId: null, actorType: "SUPERADMIN", actorName: sa.email,
       category: "CUENTA", action: "ADMIN_ACCESS",
-      detail: `Acceso de soporte por ${sa.email}`,
+      detail: "Ingresó a la cuenta (soporte)",
     });
     const res = NextResponse.redirect(new URL("/cuenta", req.url));
     res.cookies.set("admin_token", token, { httpOnly: true, secure: process.env.NODE_ENV === "production", sameSite: "lax", maxAge: 60 * 60 * 2, path: "/" });
@@ -71,8 +67,8 @@ export async function GET(req: NextRequest) {
   await logActivity({
     accountId: restaurant.accountId, restaurantId: restaurant.id,
     actorType: "SUPERADMIN", actorName: sa.email,
-    category: "CUENTA", action: "IMPERSONATE",
-    detail: `${sa.email} ingresó al panel de ${restaurant.name} (cuenta: ${adminEmail})`,
+    category: "CUENTA", action: "ADMIN_ACCESS",
+    detail: `Ingresó al panel de ${restaurant.name} (soporte) — cuenta ${adminEmail}`,
   });
 
   const res = NextResponse.redirect(new URL("/admin", req.url));
