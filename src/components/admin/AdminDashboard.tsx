@@ -64,6 +64,26 @@ export default function AdminDashboard({ stats, recentOrders: initialOrders, gen
 
   useEffect(() => { fetchWaitlist(); }, [fetchWaitlist]);
 
+  // Conteos exactos por sección (globos de Cocina/Mozos). Poll porque el SSE no es
+  // fiable entre instancias serverless, y el estado `orders` está acotado a los recientes.
+  const [activeCounts, setActiveCounts] = useState({ kitchen: 0, mozos: 0 });
+  const fetchCounts = useCallback(async () => {
+    try {
+      const r = await fetch("/api/orders");
+      if (!r.ok) return;
+      const data: { status: string }[] = await r.json();
+      setActiveCounts({
+        kitchen: data.filter((o) => ["PENDING", "CONFIRMED", "PREPARING"].includes(o.status)).length,
+        mozos: data.filter((o) => ["READY", "DELIVERED"].includes(o.status)).length,
+      });
+    } catch { /* ignore */ }
+  }, []);
+  useEffect(() => {
+    fetchCounts();
+    const id = setInterval(fetchCounts, 6000);
+    return () => clearInterval(id);
+  }, [fetchCounts]);
+
   const handleSSE = useCallback((data: { type: string; [k: string]: unknown }) => {
     if (data.type === "NEW_ORDER") {
       const order = data.order as Order;
@@ -208,8 +228,10 @@ export default function AdminDashboard({ stats, recentOrders: initialOrders, gen
         {/* Accesos rápidos */}
         {isGastro ? (
           <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
-            <NavCard href="/cocina"          icon={<ChefHat size={22} strokeWidth={1.5} />}         title="Cocina"     subtitle="Pedidos en vivo"   iconBg="bg-orange-100"  iconColor="text-orange-500" />
-            <NavCard href="/mozos"           icon={<UtensilsCrossed size={22} strokeWidth={1.5} />} title="Mozos"      subtitle="Entregar y cobrar" iconBg="bg-emerald-100" iconColor="text-emerald-600" />
+            <NavCard href="/cocina"          icon={<ChefHat size={22} strokeWidth={1.5} />}         title="Cocina"     subtitle="Pedidos en vivo"   iconBg="bg-orange-100"  iconColor="text-orange-500"
+              badge={activeCounts.kitchen} />
+            <NavCard href="/mozos"           icon={<UtensilsCrossed size={22} strokeWidth={1.5} />} title="Mozos"      subtitle="Entregar y cobrar" iconBg="bg-emerald-100" iconColor="text-emerald-600"
+              badge={activeCounts.mozos} />
             <NavCard href="/admin/menu"      icon={<BookOpen size={22} strokeWidth={1.5} />}        title="Menú"       subtitle="Gestionar platos"  iconBg="bg-blue-100"    iconColor="text-blue-500" />
             <NavCard href="/admin/mesas"     icon={<QrCode size={22} strokeWidth={1.5} />}          title="Mesas"      subtitle="Códigos QR"        iconBg="bg-violet-100"  iconColor="text-violet-500" />
             <NavCard href="/admin/reportes"  icon={<BarChart3 size={22} strokeWidth={1.5} />}       title="Reportes"   subtitle="Ventas y métricas" iconBg="bg-indigo-100"  iconColor="text-indigo-500" />
@@ -400,14 +422,19 @@ export default function AdminDashboard({ stats, recentOrders: initialOrders, gen
   );
 }
 
-function NavCard({ href, icon, title, subtitle, iconBg, iconColor }: {
-  href: string; icon: React.ReactNode; title: string; subtitle: string; iconBg: string; iconColor: string;
+function NavCard({ href, icon, title, subtitle, iconBg, iconColor, badge = 0 }: {
+  href: string; icon: React.ReactNode; title: string; subtitle: string; iconBg: string; iconColor: string; badge?: number;
 }) {
   return (
     <Link
       href={href}
-      className="rounded-2xl p-4 flex flex-col gap-3 bg-white border border-gray-100 shadow-sm active:scale-[0.97] transition-transform"
+      className="relative rounded-2xl p-4 flex flex-col gap-3 bg-white border border-gray-100 shadow-sm active:scale-[0.97] transition-transform"
     >
+      {badge > 0 && (
+        <span className="absolute -top-1.5 -right-1.5 min-w-[22px] h-[22px] px-1.5 bg-red-500 text-white text-[12px] font-bold rounded-full flex items-center justify-center shadow ring-2 ring-white">
+          {badge > 99 ? "99+" : badge}
+        </span>
+      )}
       <div className={`${iconBg} w-10 h-10 rounded-xl flex items-center justify-center ${iconColor}`}>
         {icon}
       </div>
