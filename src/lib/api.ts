@@ -40,6 +40,10 @@ export const getOrder = (orderId: string, tableToken: string) =>
 export const getOrders = (status?: OrderStatus) =>
   request<Order[]>(`/api/orders${status ? `?status=${status}` : ""}`);
 
+// Trae solo los pedidos en estos estados (acota la query: evita traer todo el historial).
+export const getOrdersByStatuses = (statuses: OrderStatus[]) =>
+  request<Order[]>(`/api/orders?${statuses.map((s) => `status=${s}`).join("&")}`);
+
 export const updateOrderStatus = (orderId: string, status: OrderStatus) =>
   request<Order>(`/api/orders/${orderId}`, { method: "PATCH", body: JSON.stringify({ status }) });
 
