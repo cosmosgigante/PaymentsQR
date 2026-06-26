@@ -2,6 +2,7 @@ import { getSession } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import AdminDashboard from "@/components/admin/AdminDashboard";
+import ImpersonationBanner from "@/components/ImpersonationBanner";
 import { isRestaurantOperative, isAccountActive } from "@/lib/restaurant";
 
 export const dynamic = "force-dynamic";
@@ -51,13 +52,15 @@ export default async function AdminPage() {
   }
 
   return (
-    <AdminDashboard
-      stats={{ ordersToday, tablesCount, menuItemsCount }}
-      recentOrders={JSON.parse(JSON.stringify(recentOrders))}
-      generalAdmin={!!adminSelf?.accountId}
-      impersonating={!!session.impersonating}
-      vertical={restaurant.vertical}
-      storeOpen={restaurant.storeOpen}
-    />
+    <>
+      <ImpersonationBanner />
+      <AdminDashboard
+        stats={{ ordersToday, tablesCount, menuItemsCount }}
+        recentOrders={JSON.parse(JSON.stringify(recentOrders))}
+        generalAdmin={!!adminSelf?.accountId}
+        vertical={restaurant.vertical}
+        storeOpen={restaurant.storeOpen}
+      />
+    </>
   );
 }
