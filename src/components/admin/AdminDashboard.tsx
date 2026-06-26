@@ -69,13 +69,8 @@ export default function AdminDashboard({ stats, recentOrders: initialOrders, gen
   const [activeCounts, setActiveCounts] = useState({ kitchen: 0, mozos: 0 });
   const fetchCounts = useCallback(async () => {
     try {
-      const r = await fetch("/api/orders");
-      if (!r.ok) return;
-      const data: { status: string }[] = await r.json();
-      setActiveCounts({
-        kitchen: data.filter((o) => ["PENDING", "CONFIRMED", "PREPARING"].includes(o.status)).length,
-        mozos: data.filter((o) => ["READY", "DELIVERED"].includes(o.status)).length,
-      });
+      const r = await fetch("/api/orders/counts");
+      if (r.ok) setActiveCounts(await r.json());
     } catch { /* ignore */ }
   }, []);
   useEffect(() => {
