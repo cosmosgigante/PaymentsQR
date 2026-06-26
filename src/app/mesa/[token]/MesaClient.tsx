@@ -38,6 +38,7 @@ export default function MesaClient({ token, table, restaurant, categories }: Pro
   const [multiDiner, setMultiDiner] = useState(false);
   const [paymentPending, setPaymentPending] = useState(false);
   const [forceMenu, setForceMenu] = useState(false);
+  const [showWelcome, setShowWelcome] = useState(false);
   const { cart, add, updateQty, clear, total, itemCount } = useCart();
 
   // Resuelve la sesión de mesa en el backend: une este dispositivo (aplicando el
@@ -72,6 +73,8 @@ export default function MesaClient({ token, table, restaurant, categories }: Pro
         localStorage.removeItem("pqr_reopen_cart");
         setCartOpen(true);
       }
+      // Saludo de bienvenida solo la primera vez que se escanea esta mesa.
+      if (!localStorage.getItem(`pqr_welcome_${token}`)) setShowWelcome(true);
     } catch { /* ignore */ }
     // Refresco liviano: estado de confirmación de la mesa e historial en vivo.
     const poll = setInterval(loadSession, 15000);
@@ -86,6 +89,11 @@ export default function MesaClient({ token, table, restaurant, categories }: Pro
   }
 
   function pedirMas() { setForceMenu(true); }
+
+  function dismissWelcome() {
+    try { localStorage.setItem(`pqr_welcome_${token}`, "1"); } catch { /* ignore */ }
+    setShowWelcome(false);
+  }
 
   const tableLabel = table.label ?? `Mesa ${table.number}`;
   const currentOrder = orders.length ? orders[orders.length - 1] : null;
@@ -127,6 +135,30 @@ export default function MesaClient({ token, table, restaurant, categories }: Pro
         multiDiner={multiDiner}
         paymentPending={paymentPending}
       />
+    );
+  }
+
+  if (showWelcome && !currentOrder) {
+    return (
+      <div className="min-h-screen-dvh flex flex-col items-center justify-center px-6 text-center"
+        style={{ background: `linear-gradient(160deg, ${restaurant.primaryColor}1f, #ffffff 65%)`, paddingTop: "env(safe-area-inset-top)", paddingBottom: "max(1.5rem, env(safe-area-inset-bottom))" }}>
+        <div className="max-w-xs w-full">
+          <div className="text-5xl mb-3">👋</div>
+          <h1 className="text-2xl font-bold text-zinc-900">¡Hola!</h1>
+          <p className="text-zinc-600 mt-2 leading-relaxed">
+            Estás en <span className="font-semibold">{tableLabel}</span> de{" "}
+            <span className="font-bold" style={{ color: restaurant.primaryColor }}>{restaurant.name}</span>.
+          </p>
+          <p className="text-zinc-400 text-sm mt-3 leading-relaxed">
+            Mirá el menú y pedí desde tu celular. Podés pagar en la caja o desde acá, cuando termines.
+          </p>
+          <button onClick={dismissWelcome}
+            className="mt-7 w-full text-white font-bold py-4 rounded-2xl text-[15px] min-h-[56px] transition-all active:opacity-90 shadow-lg"
+            style={{ backgroundColor: restaurant.primaryColor }}>
+            Ver el menú y pedir
+          </button>
+        </div>
+      </div>
     );
   }
 
