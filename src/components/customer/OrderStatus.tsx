@@ -50,6 +50,23 @@ type SessionOrderLite = { id: string; status: Status; total: number; mine?: bool
 export default function OrderStatusView({ orderId, tableToken, onPedirMas, sessionOrders, pendingConfirm, payEnabled, multiDiner, paymentPending }: { orderId: string; tableToken: string; onPedirMas: () => void; sessionOrders?: SessionOrderLite[]; pendingConfirm?: boolean; payEnabled?: boolean; multiDiner?: boolean; paymentPending?: boolean }) {
   const [order, setOrder] = useState<Order | null>(null);
   const [paying, setPaying] = useState(false);
+  const [confirmCancel, setConfirmCancel] = useState(false);
+  const [canceling, setCanceling] = useState(false);
+
+  async function cancelOrder() {
+    setCanceling(true);
+    try {
+      const r = await fetch("/api/mesa/cancel-order", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ tableToken, orderId }),
+      });
+      const d = await r.json();
+      if (r.ok) { onPedirMas(); return; } // cancelado → vuelve al menú
+      alert(d?.error ?? "No se pudo cancelar");
+    } catch { alert("No se pudo cancelar"); }
+    setCanceling(false);
+    setConfirmCancel(false);
+  }
 
   const bill = (sessionOrders ?? []).filter((o) => o.status !== "CANCELLED");
   const billTotal = bill.reduce((s, o) => s + o.total, 0);
@@ -285,6 +302,30 @@ export default function OrderStatusView({ orderId, tableToken, onPedirMas, sessi
           >
             + Pedir más
           </button>
+        )}
+
+        {/* Cancelar pedido — solo mientras está PENDING (la cocina no lo tomó) */}
+        {order.status === "PENDING" && (
+          confirmCancel ? (
+            <div className="bg-white rounded-2xl border border-red-100 p-3 space-y-2">
+              <p className="text-sm text-zinc-600 text-center">¿Cancelar este pedido?</p>
+              <div className="flex gap-2">
+                <button onClick={cancelOrder} disabled={canceling}
+                  className="flex-1 bg-red-500 active:bg-red-600 disabled:opacity-50 text-white font-semibold py-2.5 rounded-xl text-sm">
+                  {canceling ? "Cancelando…" : "Sí, cancelar"}
+                </button>
+                <button onClick={() => setConfirmCancel(false)} disabled={canceling}
+                  className="flex-1 bg-zinc-100 active:bg-zinc-200 text-zinc-700 font-semibold py-2.5 rounded-xl text-sm">
+                  No
+                </button>
+              </div>
+            </div>
+          ) : (
+            <button onClick={() => setConfirmCancel(true)}
+              className="w-full text-red-500 active:text-red-600 font-medium py-2 text-sm transition-all">
+              Cancelar pedido
+            </button>
+          )
         )}
       </div>
     </div>
