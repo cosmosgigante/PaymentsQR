@@ -82,9 +82,10 @@ export default function WaiterBoard({ initialOrders }: { initialOrders: Order[] 
   useSSE("/api/events", handleSSE);
 
   useEffect(() => {
+    const qs = WAITER_ACTIVE.map((s) => `status=${s}`).join("&");
     const poll = setInterval(async () => {
       try {
-        const res = await fetch("/api/orders");
+        const res = await fetch(`/api/orders?${qs}`);
         if (!res.ok) return;
         const data = await res.json();
         setOrders(data.filter((o: Order) => ACTIVE.includes(o.status)));

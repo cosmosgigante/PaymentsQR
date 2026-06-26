@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Wifi, WifiOff, ChefHat, Clock, AlertTriangle, Volume2, VolumeX } from "lucide-react";
 import { Order, OrderStatus } from "@/lib/types";
-import { getOrders, updateOrderStatus } from "@/lib/api";
+import { getOrdersByStatuses, updateOrderStatus } from "@/lib/api";
 import { KITCHEN_ACTIVE, nextKitchenStatus, kitchenActionLabel } from "@/lib/orderFlow";
 
 function playOrderSound() {
@@ -65,7 +65,7 @@ export default function KitchenBoard() {
 
   const fetchOrders = useCallback(async () => {
     try {
-      const data = await getOrders();
+      const data = await getOrdersByStatuses(KITCHEN_ACTIVE);
       setOrders(data.filter((o) => ACTIVE.includes(o.status)));
       setLoading(false);
     } catch { setLoading(false); }
