@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { canAccess } from "@/lib/staff";
 import { db } from "@/lib/db";
 import TablesManager from "@/components/admin/TablesManager";
+import ImpersonationBanner from "@/components/ImpersonationBanner";
 
 export default async function AdminMesasPage() {
   const session = await getSession();
@@ -34,10 +35,13 @@ export default async function AdminMesasPage() {
   });
 
   return (
-    <TablesManager
-      initialTables={JSON.parse(JSON.stringify(tables))}
-      restaurantSlug={restaurant?.slug ?? ""}
-      activeOrders={ordersByTable}
-    />
+    <>
+      <ImpersonationBanner />
+      <TablesManager
+        initialTables={JSON.parse(JSON.stringify(tables))}
+        restaurantSlug={restaurant?.slug ?? ""}
+        activeOrders={ordersByTable}
+      />
+    </>
   );
 }

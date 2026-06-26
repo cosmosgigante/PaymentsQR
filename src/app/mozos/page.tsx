@@ -4,6 +4,7 @@ import { canAccess } from "@/lib/staff";
 import { db } from "@/lib/db";
 import WaiterBoard from "@/components/waiter/WaiterBoard";
 import { WAITER_ACTIVE } from "@/lib/orderFlow";
+import ImpersonationBanner from "@/components/ImpersonationBanner";
 
 export default async function MozosPage() {
   const session = await getSession();
@@ -22,5 +23,5 @@ export default async function MozosPage() {
     },
   });
 
-  return <WaiterBoard initialOrders={JSON.parse(JSON.stringify(orders))} />;
+  return <><ImpersonationBanner /><WaiterBoard initialOrders={JSON.parse(JSON.stringify(orders))} /></>;
 }
