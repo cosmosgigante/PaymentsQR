@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { ArrowLeft, TrendingUp, Receipt, ShoppingBag, CreditCard, BarChart3, Store } from "lucide-react";
+import { ArrowLeft, TrendingUp, Receipt, ShoppingBag, CreditCard, BarChart3, Store, Download } from "lucide-react";
 
 type DaySales = { date: string; revenue: number; count: number };
 type TopItem = { name: string; qty: number; revenue: number };
@@ -82,8 +82,8 @@ export default function OwnerReports({ restaurants }: { restaurants: Restaurant[
             </div>
           )}
 
-          {/* Selector de rango */}
-          <div className="flex gap-2">
+          {/* Selector de rango + exportar */}
+          <div className="flex items-center gap-2 flex-wrap">
             {[7, 14, 30].map((d) => (
               <button
                 key={d}
@@ -95,6 +95,17 @@ export default function OwnerReports({ restaurants }: { restaurants: Restaurant[
                 {d} días
               </button>
             ))}
+            <div className="flex-1" />
+            <a href={`/api/reports/csv?days=${range}&restaurantId=${selected}`}
+              className="flex items-center gap-1 text-[11px] font-bold text-white/60 hover:text-white bg-white/10 hover:bg-white/20 px-2.5 py-1.5 rounded-lg transition-all">
+              <Download size={11} /> CSV
+            </a>
+            {restaurants.length > 1 && (
+              <a href={`/api/reports/csv?days=${range}&all=1`}
+                className="flex items-center gap-1 text-[11px] font-bold text-white/60 hover:text-white bg-white/10 hover:bg-white/20 px-2.5 py-1.5 rounded-lg transition-all">
+                <Download size={11} /> Todos
+              </a>
+            )}
           </div>
         </div>
       </div>
