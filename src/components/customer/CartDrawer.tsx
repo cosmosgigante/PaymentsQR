@@ -51,7 +51,7 @@ export default function CartDrawer({ cart, tableToken, onClose, onUpdateQty, onO
       provider: "google",
       options: {
         redirectTo: `${window.location.origin}/auth/callback`,
-        // Sin forzar "elegí tu cuenta": si ya está logueado en Google, entra directo.
+        queryParams: { prompt: "select_account" }, // dejar elegir cuenta (hay usuarios con varias)
       },
     });
   }

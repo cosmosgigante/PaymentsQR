@@ -55,7 +55,7 @@ export default function TiendaClient({ slug, restaurantName, primaryColor, store
     try { localStorage.setItem("pqr_reopen_cart", "1"); } catch { /* ignore */ }
     createClient().auth.signInWithOAuth({
       provider: "google",
-      options: { redirectTo: `${window.location.origin}/auth/callback` }, // sin forzar "elegí cuenta": entra directo si ya está logueado
+      options: { redirectTo: `${window.location.origin}/auth/callback`, queryParams: { prompt: "select_account" } }, // dejar elegir cuenta (hay usuarios con varias)
     });
   }
 
