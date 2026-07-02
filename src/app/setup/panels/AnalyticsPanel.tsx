@@ -3,10 +3,12 @@
 import { useEffect, useState, useCallback } from "react";
 import { Users, Store, CreditCard, Clock } from "lucide-react";
 
+type Pago = { id: string; nombre: string; plan: string; montoMensual: number; venceEl: string | null };
 type Analytics = {
   clientes: { total: number; activos: number; inactivos: number; nuevos30: number };
   negocios: { total: number; activos: number; pendientes: number; gastronomicos: number; kioscos: number };
   ingresoSuscripciones: { mensualAprox: number };
+  pagos: Pago[];
 };
 
 const ars = (n: number) => `$${n.toLocaleString("es-AR")}`;
@@ -52,6 +54,32 @@ export default function AnalyticsPanel() {
             </div>
             <p className="text-3xl font-black tabular-nums">{ars(data.ingresoSuscripciones.mensualAprox)}</p>
             <p className="text-white/50 text-xs mt-1">Suma de los planes de clientes activos (aprox.)</p>
+          </div>
+
+          {/* Quién paga y cuánto — el desglose del ingreso propio */}
+          <div>
+            <div className="flex items-center gap-1.5 text-gray-500 text-xs font-bold uppercase tracking-wide mb-2">
+              <CreditCard size={15} /> Quién nos paga
+            </div>
+            {data.pagos.length === 0 ? (
+              <div className="bg-white border border-gray-100 rounded-2xl p-8 text-center">
+                <p className="text-gray-400 text-sm">Todavía no hay clientes con plan cargado.</p>
+              </div>
+            ) : (
+              <div className="bg-white border border-gray-100 rounded-2xl shadow-sm divide-y divide-gray-100">
+                {data.pagos.map((p) => (
+                  <div key={p.id} className="px-4 py-3 flex items-center gap-3">
+                    <div className="min-w-0 flex-1">
+                      <p className="font-semibold text-gray-900 text-sm truncate">{p.nombre}</p>
+                      <p className="text-[11px] text-gray-400">
+                        Plan {p.plan}{p.venceEl ? ` · vence ${new Date(p.venceEl).toLocaleDateString("es-AR")}` : ""}
+                      </p>
+                    </div>
+                    <p className="text-base font-black text-emerald-600 tabular-nums shrink-0">{ars(p.montoMensual)}<span className="text-[10px] text-gray-400 font-medium">/mes</span></p>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Clientes */}

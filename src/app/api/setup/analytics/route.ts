@@ -42,6 +42,20 @@ export async function GET(req: NextRequest) {
     db.account.aggregate({ _sum: { priceArs: true }, where: { isActive: true } }),
   ]);
 
+  // Desglose: qué empresa paga y cuánto (solo clientes activos con precio cargado).
+  const cuentas = await db.account.findMany({
+    where: { isActive: true },
+    select: { id: true, name: true, ownerEmail: true, planType: true, priceArs: true, subscriptionEndsAt: true },
+    orderBy: { priceArs: "desc" },
+  });
+  const pagos = cuentas.map((c) => ({
+    id: c.id,
+    nombre: c.name ?? c.ownerEmail,
+    plan: c.planType ?? "—",
+    montoMensual: c.priceArs ?? 0,
+    venceEl: c.subscriptionEndsAt,
+  }));
+
   return NextResponse.json({
     clientes: {
       total: totalAccounts,
@@ -59,5 +73,6 @@ export async function GET(req: NextRequest) {
     ingresoSuscripciones: {
       mensualAprox: mrr._sum.priceArs ?? 0,
     },
+    pagos,
   });
 }
