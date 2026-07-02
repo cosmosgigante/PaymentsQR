@@ -1,14 +1,16 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { Users, Store, CreditCard, Clock, AlertTriangle } from "lucide-react";
+import { Users, Store, CreditCard, Clock, AlertTriangle, TrendingUp } from "lucide-react";
 
 type Pago = { id: string; nombre: string; plan: string; montoMensual: number; venceEl: string | null };
+type MesCrecimiento = { mes: string; clientes: number };
 type Analytics = {
   clientes: { total: number; activos: number; inactivos: number; nuevos30: number };
   negocios: { total: number; activos: number; pendientes: number; gastronomicos: number; kioscos: number };
   ingresoSuscripciones: { mensualAprox: number };
   pagos: Pago[];
+  crecimiento: MesCrecimiento[];
 };
 
 const ars = (n: number) => `$${n.toLocaleString("es-AR")}`;
@@ -64,7 +66,38 @@ export default function AnalyticsPanel() {
             </div>
             <p className="text-3xl font-black tabular-nums">{ars(data.ingresoSuscripciones.mensualAprox)}</p>
             <p className="text-white/50 text-xs mt-1">Suma de los planes de clientes activos (aprox.)</p>
+            <div className="mt-3 pt-3 border-t border-white/15 flex items-center gap-2">
+              <TrendingUp size={14} className="text-emerald-300" />
+              <span className="text-white/70 text-xs">Proyección anual:</span>
+              <span className="text-emerald-300 font-bold text-sm tabular-nums">{ars(data.ingresoSuscripciones.mensualAprox * 12)}</span>
+            </div>
           </div>
+
+          {/* Crecimiento de clientes — últimos 6 meses */}
+          {data.crecimiento.length > 0 && (() => {
+            const max = Math.max(...data.crecimiento.map((m) => m.clientes), 1);
+            return (
+              <div>
+                <div className="flex items-center gap-1.5 text-gray-500 text-xs font-bold uppercase tracking-wide mb-2">
+                  <TrendingUp size={15} /> Crecimiento de clientes (6 meses)
+                </div>
+                <div className="bg-white border border-gray-100 rounded-2xl shadow-sm p-4">
+                  <div className="flex items-end justify-between gap-2 h-32">
+                    {data.crecimiento.map((m) => (
+                      <div key={m.mes} className="flex-1 flex flex-col items-center gap-1.5 h-full justify-end">
+                        <span className="text-[11px] font-bold text-gray-700 tabular-nums">{m.clientes}</span>
+                        <div
+                          className="w-full bg-gradient-to-t from-blue-600 to-blue-400 rounded-t-lg transition-all"
+                          style={{ height: `${Math.max((m.clientes / max) * 100, 4)}%` }}
+                        />
+                        <span className="text-[10px] text-gray-400">{m.mes}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
 
           {/* Alerta de cobro: suscripciones vencidas o por vencer */}
           {(() => {

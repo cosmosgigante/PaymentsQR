@@ -48,6 +48,20 @@ export async function GET(req: NextRequest) {
     select: { id: true, name: true, ownerEmail: true, planType: true, priceArs: true, subscriptionEndsAt: true },
     orderBy: { priceArs: "desc" },
   });
+
+  // Crecimiento: clientes acumulados al cierre de cada uno de los últimos 6 meses.
+  const todas = await db.account.findMany({ select: { createdAt: true } });
+  const MES_CORTO = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
+  const ahora = new Date();
+  const crecimiento = [];
+  for (let i = 5; i >= 0; i--) {
+    const d = new Date(ahora.getFullYear(), ahora.getMonth() - i, 1);
+    const finMes = new Date(d.getFullYear(), d.getMonth() + 1, 0, 23, 59, 59);
+    crecimiento.push({
+      mes: MES_CORTO[d.getMonth()],
+      clientes: todas.filter((a) => a.createdAt <= finMes).length,
+    });
+  }
   const pagos = cuentas.map((c) => ({
     id: c.id,
     nombre: c.name ?? c.ownerEmail,
@@ -74,5 +88,6 @@ export async function GET(req: NextRequest) {
       mensualAprox: mrr._sum.priceArs ?? 0,
     },
     pagos,
+    crecimiento,
   });
 }
