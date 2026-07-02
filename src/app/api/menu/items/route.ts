@@ -34,7 +34,7 @@ export async function POST(req: NextRequest) {
 
   // Validar precio
   const parsedPrice = parseFloat(String(price));
-  if (isNaN(parsedPrice) || parsedPrice < 0 || parsedPrice > 1_000_000) {
+  if (isNaN(parsedPrice) || parsedPrice <= 0 || parsedPrice > 1_000_000) {
     return NextResponse.json({ error: "Precio inválido" }, { status: 400 });
   }
 

@@ -59,13 +59,22 @@ export async function GET(req: NextRequest) {
     orderBy: { createdAt: "desc" },
   });
 
+  // Escapa un campo CSV: neutraliza fórmulas de Excel (=, +, -, @) y comillas/comas
+  // internas — evita CSV injection con nombres de cliente o platos maliciosos.
+  const csvField = (v: string | number): string => {
+    let s = String(v);
+    if (/^[=+\-@\t\r]/.test(s)) s = "'" + s;
+    if (/[",\n\r]/.test(s)) s = `"${s.replace(/"/g, '""')}"`;
+    return s;
+  };
+
   const header = "Fecha,Restaurante,Mesa,Cliente,Modo de pago,Items,Total";
   const rows = orders.map((o) => {
     const fecha = o.createdAt.toISOString().slice(0, 16).replace("T", " ");
     const items = o.items.map((i) => `${i.quantity}x ${i.menuItem.name}`).join(" + ");
-    const cliente = (o.customerName ?? "Anónimo").replace(/,/g, " ");
+    const cliente = o.customerName ?? "Anónimo";
     const pago = o.paymentMode === "ONLINE" ? "Online" : "Caja";
-    return `${fecha},${o.restaurant.name},${o.table.number},${cliente},${pago},"${items}",${o.total}`;
+    return [fecha, o.restaurant.name, o.table.number, cliente, pago, items, o.total].map(csvField).join(",");
   });
 
   const csv = [header, ...rows].join("\n");

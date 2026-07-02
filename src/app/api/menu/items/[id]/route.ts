@@ -37,7 +37,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   // Validar precio si viene
   if (body.price !== undefined) {
     const price = parseFloat(String(body.price));
-    if (isNaN(price) || price < 0 || price > 1_000_000) {
+    if (isNaN(price) || price <= 0 || price > 1_000_000) {
       return NextResponse.json({ error: "Precio inválido" }, { status: 400 });
     }
   }

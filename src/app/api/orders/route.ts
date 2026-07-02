@@ -7,6 +7,7 @@ import { rateLimit } from "@/lib/rateLimit";
 import { isRestaurantOperative } from "@/lib/restaurant";
 import { joinOrCreateSession, readDeviceId, setDeviceCookie } from "@/lib/tableSession";
 import { initialOrderStatus, ALL_STATUSES } from "@/lib/orderFlow";
+import { createClient } from "@/lib/supabase/server";
 
 export async function POST(req: NextRequest) {
 
@@ -27,12 +28,22 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Modo de pago inválido" }, { status: 400 });
   }
 
-  const safeName  = typeof customerName  === "string" ? customerName.trim().slice(0, 100)  : "";
-  const safeEmail = typeof customerEmail === "string" ? customerEmail.trim().slice(0, 200) : "";
+  let safeName  = typeof customerName  === "string" ? customerName.trim().slice(0, 100)  : "";
+  let safeEmail = typeof customerEmail === "string" ? customerEmail.trim().slice(0, 200) : "";
 
-  // Pagar al final requiere identidad verificada con Google
+  // Pagar al final requiere identidad verificada con Google — se valida contra la
+  // sesión Supabase del dispositivo, no contra lo que diga el body (spoofeable).
   if (paymentMode === "CASHIER") {
-    if (!safeName || !safeEmail) return NextResponse.json({ error: "Identificación requerida para pagar al final" }, { status: 400 });
+    const supabase = await createClient();
+    const { data } = await supabase.auth.getUser();
+    const verifiedEmail = data.user?.email?.toLowerCase();
+    if (!verifiedEmail) {
+      return NextResponse.json({ error: "Iniciá sesión con Google para pagar al final" }, { status: 401 });
+    }
+    safeEmail = verifiedEmail;
+    const metaName = typeof data.user?.user_metadata?.full_name === "string" ? data.user.user_metadata.full_name : "";
+    safeName = (safeName || metaName).trim().slice(0, 100);
+    if (!safeName) return NextResponse.json({ error: "Identificación requerida para pagar al final" }, { status: 400 });
   }
 
   if (!await rateLimit(`order:${tableToken}`, 5, 2 * 60 * 1000)) {

@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { rateLimit } from "@/lib/rateLimit";
 import { emitEvent } from "@/lib/events";
 import { isRestaurantOperative } from "@/lib/restaurant";
+import { createClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
 
@@ -39,9 +40,13 @@ export async function POST(req: NextRequest) {
   if (!validItems) return NextResponse.json({ error: "Items inválidos" }, { status: 400 });
 
   // "Pagar al retirar" exige identidad verificada (login con Google) — anti pedido falso.
+  // El email sale de la sesión Supabase del dispositivo, no del body (spoofeable).
   // El pago anónimo va por /api/tienda/pay (online, cuando MercadoPago esté instalado).
-  const email = typeof body.email === "string" ? body.email.trim().slice(0, 200) : "";
-  const name = typeof body.name === "string" ? body.name.trim().slice(0, 60) : "";
+  const supabase = await createClient();
+  const { data: authData } = await supabase.auth.getUser();
+  const email = authData.user?.email?.toLowerCase() ?? "";
+  const metaName = typeof authData.user?.user_metadata?.full_name === "string" ? authData.user.user_metadata.full_name : "";
+  const name = (typeof body.name === "string" && body.name.trim() ? body.name : metaName).trim().slice(0, 60);
   if (!email || !name) {
     return NextResponse.json({ error: "Iniciá sesión con Google para pagar al retirar" }, { status: 401 });
   }
