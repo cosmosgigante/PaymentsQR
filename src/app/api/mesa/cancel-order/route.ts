@@ -26,8 +26,9 @@ export async function POST(req: NextRequest) {
   if (!order) return NextResponse.json({ error: "Pedido no encontrado" }, { status: 404 });
   if (order.table.qrToken !== tableToken) return NextResponse.json({ error: "No autorizado" }, { status: 403 });
 
-  // Solo quien hizo el pedido (mismo dispositivo) puede cancelarlo.
-  if (order.deviceId && order.deviceId !== deviceId) {
+  // Solo quien hizo el pedido (mismo dispositivo) puede cancelarlo. Si el pedido no
+  // tiene dispositivo asociado, se deniega: nadie con solo el token de mesa puede cancelar.
+  if (!order.deviceId || order.deviceId !== deviceId) {
     return NextResponse.json({ error: "Solo quien hizo el pedido puede cancelarlo" }, { status: 403 });
   }
   // Solo PENDING: una vez que la cocina lo tomó (CONFIRMED/PREPARING...) hay que avisar al mozo.
