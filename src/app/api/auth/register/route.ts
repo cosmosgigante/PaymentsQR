@@ -15,8 +15,8 @@ export async function POST(req: NextRequest) {
   const email = body.email?.toLowerCase().trim();
   const password = body.password;
 
-  if (!email || !password || password.length < 6) {
-    return NextResponse.json({ error: "Datos inválidos" }, { status: 400 });
+  if (!email || !password || password.length < 8) {
+    return NextResponse.json({ error: "La contraseña debe tener al menos 8 caracteres" }, { status: 400 });
   }
 
   const admin = await db.admin.findUnique({ where: { email }, select: { id: true, passwordHash: true } });

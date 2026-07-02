@@ -23,7 +23,7 @@ export default function ResetPasswordPage() {
   async function handleReset(e: React.FormEvent) {
     e.preventDefault();
     if (password !== confirm) { setError("Las contraseñas no coinciden"); return; }
-    if (password.length < 6) { setError("Mínimo 6 caracteres"); return; }
+    if (password.length < 8) { setError("Mínimo 8 caracteres"); return; }
     setLoading(true); setError(null);
     const supabase = createClient();
     const { error: err } = await supabase.auth.updateUser({ password });

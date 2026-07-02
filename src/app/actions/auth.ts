@@ -43,7 +43,7 @@ export async function registerAction(formData: FormData) {
   const password = formData.get("password")?.toString() ?? "";
   const confirm = formData.get("confirm")?.toString() ?? "";
 
-  if (!email || !password || password !== confirm || password.length < 6) {
+  if (!email || !password || password !== confirm || password.length < 8) {
     redirect("/?error=register");
   }
 

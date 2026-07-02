@@ -15,7 +15,7 @@ export async function POST(req: NextRequest) {
   const password = form.get("password")?.toString() ?? "";
   const confirm = form.get("confirm")?.toString() ?? "";
 
-  if (!email || !password || password.length < 6 || password !== confirm) {
+  if (!email || !password || password.length < 8 || password !== confirm) {
     return NextResponse.redirect(new URL("/?error=register", req.url), 303);
   }
 
