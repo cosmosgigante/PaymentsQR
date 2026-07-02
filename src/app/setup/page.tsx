@@ -9,6 +9,7 @@ import ClientesPanel from "./panels/ClientesPanel";
 import TrazabilidadPanel from "./panels/TrazabilidadPanel";
 import MembresiasPanel from "./panels/MembresiasPanel";
 import OrganizacionesPanel from "./panels/OrganizacionesPanel";
+import AnalyticsPanel from "./panels/AnalyticsPanel";
 import PlaceholderPanel from "./panels/PlaceholderPanel";
 
 const SECTIONS = [
@@ -112,7 +113,7 @@ export default function SuperAdminPage() {
             {active === "membresias"     && <MembresiasPanel onPendingCount={setPendingMemberships} />}
             {active === "trazabilidad"   && <TrazabilidadPanel />}
             {active === "notificaciones" && <PlaceholderPanel name="Notificaciones" description="Invitaciones a sociedades y cambios de permisos a tokens. Próximamente." />}
-            {active === "analytics"      && <PlaceholderPanel name="Analytics" description="Actividad por negocio, usuario y grupo societario. Próximamente." />}
+            {active === "analytics"      && <AnalyticsPanel />}
             {active === "soporte"        && <PlaceholderPanel name="Soporte" description="Chat privado con cada Cliente A. Próximamente." />}
           </PanelBoundary>
         </main>
