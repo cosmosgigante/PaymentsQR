@@ -1,13 +1,11 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { Users, Store, Receipt, TrendingUp, CreditCard, Clock } from "lucide-react";
+import { Users, Store, CreditCard, Clock } from "lucide-react";
 
 type Analytics = {
   clientes: { total: number; activos: number; inactivos: number; nuevos30: number };
   negocios: { total: number; activos: number; pendientes: number; gastronomicos: number; kioscos: number };
-  pedidos: { total: number; ultimos30: number };
-  facturacionLocales: { total: number; ultimos30: number };
   ingresoSuscripciones: { mensualAprox: number };
 };
 
@@ -73,17 +71,6 @@ export default function AnalyticsPanel() {
             <Stat label="Kioscos / Despensas" value={data.negocios.kioscos} />
           </Section>
 
-          {/* Actividad de los locales */}
-          <Section title="Actividad de los locales" icon={<Receipt size={15} />}>
-            <Stat label="Pedidos pagados (total)" value={data.pedidos.total} />
-            <Stat label="Pedidos (30 días)" value={data.pedidos.ultimos30} tone="blue" />
-            <Stat label="Facturado total" value={ars(data.facturacionLocales.total)} icon={<TrendingUp size={12} />} tone="green" />
-            <Stat label="Facturado (30 días)" value={ars(data.facturacionLocales.ultimos30)} tone="green" />
-          </Section>
-
-          <p className="text-[11px] text-gray-400 text-center">
-            &quot;Facturado&quot; es lo que vendieron los locales (no tu ingreso). Tu ingreso es la suscripción de arriba.
-          </p>
         </div>
       )}
     </div>

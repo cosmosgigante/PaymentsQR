@@ -29,8 +29,6 @@ export async function GET(req: NextRequest) {
     totalAccounts, activeAccounts, newAccounts30,
     totalRestaurants, activeRestaurants, pendingRestaurants,
     gastronomicos, kioscos,
-    totalOrders, orders30,
-    gmvAll, gmv30,
     mrr,
   ] = await Promise.all([
     db.account.count(),
@@ -41,10 +39,6 @@ export async function GET(req: NextRequest) {
     db.restaurant.count({ where: { status: "PENDING" } }),
     db.restaurant.count({ where: { vertical: "GASTRONOMICO" } }),
     db.restaurant.count({ where: { vertical: "KIOSCO_DESPENSA" } }),
-    db.order.count({ where: { status: "PAID" } }),
-    db.order.count({ where: { status: "PAID", createdAt: { gte: since30 } } }),
-    db.order.aggregate({ _sum: { total: true }, where: { status: "PAID" } }),
-    db.order.aggregate({ _sum: { total: true }, where: { status: "PAID", createdAt: { gte: since30 } } }),
     db.account.aggregate({ _sum: { priceArs: true }, where: { isActive: true } }),
   ]);
 
@@ -61,14 +55,6 @@ export async function GET(req: NextRequest) {
       pendientes: pendingRestaurants,
       gastronomicos,
       kioscos,
-    },
-    pedidos: {
-      total: totalOrders,
-      ultimos30: orders30,
-    },
-    facturacionLocales: {
-      total: Math.round(gmvAll._sum.total ?? 0),
-      ultimos30: Math.round(gmv30._sum.total ?? 0),
     },
     ingresoSuscripciones: {
       mensualAprox: mrr._sum.priceArs ?? 0,
