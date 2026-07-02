@@ -21,28 +21,62 @@ export async function GET(req: NextRequest) {
   const sa = await requireSuperAdmin(req);
   if (!sa) return NextResponse.json({ error: "No autorizado" }, { status: 403 });
 
-  const since = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+  const since = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
 
-  try {
-    const logs = await db.errorLog.findMany({
-      where: { createdAt: { gte: since } },
-      orderBy: { createdAt: "desc" },
-      take: 500,
-    });
+  type Grupo = { message: string; source: string; path: string | null; count: number; lastSeen: string; digest: string | null; resueltoEl: string | null; resueltoPor: string | null };
 
-    // Agrupar por mensaje+source: cuántas veces y cuándo se vio por última vez.
-    const map = new Map<string, { message: string; source: string; path: string | null; count: number; lastSeen: string; digest: string | null }>();
+  // Agrupa filas por mensaje+source en un mapa de grupos.
+  function agrupar(logs: Awaited<ReturnType<typeof db.errorLog.findMany>>): Grupo[] {
+    const map = new Map<string, Grupo>();
     for (const l of logs) {
       const key = `${l.source}|${l.message}`;
       const prev = map.get(key);
       if (prev) { prev.count++; }
-      else map.set(key, { message: l.message, source: l.source, path: l.path, count: 1, lastSeen: l.createdAt.toISOString(), digest: l.digest });
+      else map.set(key, {
+        message: l.message, source: l.source, path: l.path, count: 1,
+        lastSeen: l.createdAt.toISOString(), digest: l.digest,
+        resueltoEl: l.resolvedAt ? l.resolvedAt.toISOString() : null,
+        resueltoPor: l.resolvedBy,
+      });
     }
-    const grupos = Array.from(map.values()).sort((a, b) => new Date(b.lastSeen).getTime() - new Date(a.lastSeen).getTime());
+    return Array.from(map.values()).sort((a, b) => new Date(b.lastSeen).getTime() - new Date(a.lastSeen).getTime());
+  }
 
-    return NextResponse.json({ total: logs.length, grupos });
+  try {
+    const [activos, resueltos] = await Promise.all([
+      db.errorLog.findMany({ where: { createdAt: { gte: since }, resolvedAt: null }, orderBy: { createdAt: "desc" }, take: 500 }),
+      db.errorLog.findMany({ where: { createdAt: { gte: since }, resolvedAt: { not: null } }, orderBy: { resolvedAt: "desc" }, take: 500 }),
+    ]);
+
+    return NextResponse.json({
+      activos: agrupar(activos),
+      resueltos: agrupar(resueltos),
+      totalActivos: activos.length,
+    });
   } catch {
     // Si la tabla todavía no existe (falta correr el SQL), no romper el panel.
-    return NextResponse.json({ total: 0, grupos: [], pendienteTabla: true });
+    return NextResponse.json({ activos: [], resueltos: [], totalActivos: 0, pendienteTabla: true });
   }
+}
+
+// Marca un grupo de errores (mismo mensaje+source) como resuelto, o lo reabre.
+export async function POST(req: NextRequest) {
+  const sa = await requireSuperAdmin(req);
+  if (!sa) return NextResponse.json({ error: "No autorizado" }, { status: 403 });
+
+  let body: { message?: string; source?: string; action?: string };
+  try { body = await req.json(); } catch { return NextResponse.json({ error: "Request inválido" }, { status: 400 }); }
+
+  const { message, source } = body;
+  const action = body.action === "reopen" ? "reopen" : "resolve";
+  if (!message || !source) return NextResponse.json({ error: "Faltan datos" }, { status: 400 });
+
+  const r = await db.errorLog.updateMany({
+    where: { message, source, ...(action === "resolve" ? { resolvedAt: null } : { resolvedAt: { not: null } }) },
+    data: action === "resolve"
+      ? { resolvedAt: new Date(), resolvedBy: sa.email }
+      : { resolvedAt: null, resolvedBy: null },
+  });
+
+  return NextResponse.json({ ok: true, afectados: r.count });
 }
