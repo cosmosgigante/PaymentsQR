@@ -158,7 +158,7 @@ export default function AjustesClient({
               <div className="flex items-center gap-4">
                 {rLogo ? (
                   <div className="relative w-20 h-20 rounded-xl overflow-hidden border border-gray-200 shrink-0">
-                    <img src={rLogo} alt="Logo" className="w-full h-full object-cover" />
+                    <img src={rLogo} alt="Logo" loading="lazy" decoding="async" className="w-full h-full object-cover" />
                     <button onClick={() => setRLogo(null)} className="absolute top-1 right-1 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600">
                       <X size={12} />
                     </button>

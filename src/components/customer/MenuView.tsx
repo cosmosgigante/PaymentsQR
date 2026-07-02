@@ -90,6 +90,7 @@ export default function MenuView({ categories, restaurantName, tableLabel, cart,
                             src={item.image}
                             alt={item.name}
                             loading="lazy"
+                            decoding="async"
                             className="w-full h-full object-cover"
                           />
                           {/* Gradiente inferior para legibilidad */}

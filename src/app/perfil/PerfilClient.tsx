@@ -96,7 +96,7 @@ export default function PerfilClient({ email, avatarUrl, displayName }: { email:
             {/* Mi Perfil widget */}
             <div className="flex items-center gap-3">
               {avatarUrl ? (
-                <img src={avatarUrl} alt="foto" className="w-10 h-10 rounded-xl object-cover border-2 border-white/20" />
+                <img src={avatarUrl} alt="foto" loading="lazy" decoding="async" className="w-10 h-10 rounded-xl object-cover border-2 border-white/20" />
               ) : (
                 <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center text-white font-bold text-lg">
                   {email[0].toUpperCase()}

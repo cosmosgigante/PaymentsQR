@@ -192,6 +192,8 @@ model Order {
   updatedAt     DateTime    @updatedAt
 
   @@index([tableSessionId])
+  @@index([restaurantId, status])    // cocina/mozos: pedidos activos por restorán (poll cada 4s)
+  @@index([restaurantId, createdAt]) // reportes/analytics por fecha
 }
 
 // Un intento de cobro (Checkout Pro). Cubre un conjunto FIJO de pedidos
@@ -246,6 +248,8 @@ model OrderItem {
   quantity   Int
   unitPrice  Float
   notes      String?
+
+  @@index([orderId]) // se traen los items de cada pedido en cada refresco de los paneles
 }
 
 model WaitlistEntry {
