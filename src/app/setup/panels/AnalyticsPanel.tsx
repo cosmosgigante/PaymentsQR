@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { Users, Store, CreditCard, Clock } from "lucide-react";
+import { Users, Store, CreditCard, Clock, AlertTriangle } from "lucide-react";
 
 type Pago = { id: string; nombre: string; plan: string; montoMensual: number; venceEl: string | null };
 type Analytics = {
@@ -12,6 +12,16 @@ type Analytics = {
 };
 
 const ars = (n: number) => `$${n.toLocaleString("es-AR")}`;
+
+// Clasifica el estado de cobro según la fecha de vencimiento de la suscripción.
+type CobroKey = "vencida" | "pronto" | "ok" | "sinfecha";
+function cobroStatus(venceEl: string | null): { key: CobroKey; dias: number | null } {
+  if (!venceEl) return { key: "sinfecha", dias: null };
+  const dias = Math.ceil((new Date(venceEl).getTime() - Date.now()) / 86400000);
+  if (dias < 0) return { key: "vencida", dias };
+  if (dias <= 7) return { key: "pronto", dias };
+  return { key: "ok", dias };
+}
 
 export default function AnalyticsPanel() {
   const [data, setData] = useState<Analytics | null>(null);
@@ -56,6 +66,27 @@ export default function AnalyticsPanel() {
             <p className="text-white/50 text-xs mt-1">Suma de los planes de clientes activos (aprox.)</p>
           </div>
 
+          {/* Alerta de cobro: suscripciones vencidas o por vencer */}
+          {(() => {
+            const vencidas = data.pagos.filter((p) => cobroStatus(p.venceEl).key === "vencida");
+            const prontas = data.pagos.filter((p) => cobroStatus(p.venceEl).key === "pronto");
+            if (vencidas.length === 0 && prontas.length === 0) return null;
+            const montoEnRiesgo = [...vencidas, ...prontas].reduce((s, p) => s + p.montoMensual, 0);
+            return (
+              <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4">
+                <div className="flex items-center gap-2 text-amber-800 font-bold text-sm mb-1">
+                  <AlertTriangle size={16} /> Cobros por gestionar
+                </div>
+                <p className="text-amber-700 text-xs">
+                  {vencidas.length > 0 && <><b>{vencidas.length}</b> vencida{vencidas.length > 1 ? "s" : ""}</>}
+                  {vencidas.length > 0 && prontas.length > 0 && " · "}
+                  {prontas.length > 0 && <><b>{prontas.length}</b> por vencer (7 días)</>}
+                  {" · "}<b>{ars(montoEnRiesgo)}/mes</b> en juego
+                </p>
+              </div>
+            );
+          })()}
+
           {/* Quién paga y cuánto — el desglose del ingreso propio */}
           <div>
             <div className="flex items-center gap-1.5 text-gray-500 text-xs font-bold uppercase tracking-wide mb-2">
@@ -67,17 +98,24 @@ export default function AnalyticsPanel() {
               </div>
             ) : (
               <div className="bg-white border border-gray-100 rounded-2xl shadow-sm divide-y divide-gray-100">
-                {data.pagos.map((p) => (
-                  <div key={p.id} className="px-4 py-3 flex items-center gap-3">
-                    <div className="min-w-0 flex-1">
-                      <p className="font-semibold text-gray-900 text-sm truncate">{p.nombre}</p>
-                      <p className="text-[11px] text-gray-400">
-                        Plan {p.plan}{p.venceEl ? ` · vence ${new Date(p.venceEl).toLocaleDateString("es-AR")}` : ""}
-                      </p>
+                {data.pagos.map((p) => {
+                  const st = cobroStatus(p.venceEl);
+                  return (
+                    <div key={p.id} className="px-4 py-3 flex items-center gap-3">
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2">
+                          <p className="font-semibold text-gray-900 text-sm truncate">{p.nombre}</p>
+                          {st.key === "vencida" && <span className="shrink-0 text-[10px] font-bold bg-red-100 text-red-700 px-1.5 py-0.5 rounded-full">Vencida</span>}
+                          {st.key === "pronto" && <span className="shrink-0 text-[10px] font-bold bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded-full">Vence en {st.dias}d</span>}
+                        </div>
+                        <p className="text-[11px] text-gray-400">
+                          Plan {p.plan}{p.venceEl ? ` · vence ${new Date(p.venceEl).toLocaleDateString("es-AR")}` : ""}
+                        </p>
+                      </div>
+                      <p className="text-base font-black text-emerald-600 tabular-nums shrink-0">{ars(p.montoMensual)}<span className="text-[10px] text-gray-400 font-medium">/mes</span></p>
                     </div>
-                    <p className="text-base font-black text-emerald-600 tabular-nums shrink-0">{ars(p.montoMensual)}<span className="text-[10px] text-gray-400 font-medium">/mes</span></p>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>
