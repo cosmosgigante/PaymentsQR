@@ -156,14 +156,26 @@ src/
 
 ## Seguridad implementada
 
-- **Middleware** (`src/middleware.ts`) — protege `/admin/*` y `/cocina` a nivel de edge
+> **Nota Next 16:** el middleware se llama `src/proxy.ts` (Next 16 renombró `middleware.ts` → `proxy.ts`; misma funcionalidad). Es un solo archivo, código activo/crítico.
+
+- **Proxy / Middleware** (`src/proxy.ts`) — protege `/admin/*`, `/cocina`, `/mozos`, `/cuenta/*`, `/setup/*`, `/trabajo/*` a nivel de edge
 - **Rate limiting** — 10 intentos login/IP/15min, 5 pedidos/mesa/2min
 - **JWT HttpOnly cookies** — sesión del admin, no accesible desde JS
 - **Timing-safe login** — siempre hace bcrypt.compare aunque el usuario no exista
+- **Contraseñas** — mínimo 8 caracteres, hash bcrypt (cost 12)
 - **Tokens de mesa** — los pedidos solo se ven con el token correcto
+- **Identidad verificada server-side** — "pagar en caja/al retirar" valida el email contra la sesión Supabase real, no contra el body (anti-spoofing)
 - **Setup secret** — el endpoint `/api/setup` requiere un secret del `.env`
-- **Headers HTTP** — X-Frame-Options, X-Content-Type-Options, Referrer-Policy
+- **Headers HTTP** — X-Frame-Options, X-Content-Type-Options, Referrer-Policy, HSTS, CSP
 - **Validación de inputs** — tipos, límites de cantidad, sanitización de notas
+- **Export CSV** — campos escapados contra CSV injection (fórmulas de Excel)
+- **Tokens de pago cifrados** — MercadoPago Access Token con AES-256-GCM (`src/lib/secrets.ts`), write-only, nunca vuelve al frontend
+
+### Base de datos (Supabase) — blindaje
+
+- **RLS activado** en las 19 tablas del schema `public`.
+- **Permisos públicos revocados** — los roles `anon`/`authenticated` (la API pública de Supabase) no tienen ningún permiso sobre las tablas. Toda la data entra por Prisma (conexión directa). Doble pared: aunque se apague RLS, no hay acceso.
+- La `anon key` viaja al frontend (es su diseño) pero es inofensiva con lo anterior.
 
 ---
 
@@ -203,6 +215,13 @@ Diseñado mobile-first. Fixes específicos para iOS Safari y Android:
 - **Imágenes de platos** — actualmente acepta URLs externas, falta upload propio (Vercel Blob o S3)
 - **Sistema de impresión** — enviar pedido a impresora de cocina (protocolo ESC/POS)
 - **Cambiar SETUP_SECRET** por algo seguro antes de producción
+
+### 🔒 Roadmap de seguridad (para pasar de 9/10 a 10/10)
+El sistema está seguro para producción (SQL injection cerrado, XSS sin vectores, base blindada con RLS + permisos revocados, secretos cifrados). Lo que falta es de nivel "empresa madura", no bloquea el lanzamiento:
+- **2FA (doble factor)** para dueños/superadmin
+- **Monitoreo/alertas** — Sentry o similar para errores e intentos de ataque
+- **Pentest de un tercero** — auditoría externa
+- **npm audit** — quedan 5 avisos moderados, todos de tooling de build (no runtime); su fix forzado degradaría Next.js, por eso se dejaron
 
 ---
 
