@@ -38,8 +38,11 @@ export default function TiendaClient({ slug, restaurantName, primaryColor, store
 
   // Identidad Google (para "pagar al retirar") + reabrir carrito al volver del login
   useEffect(() => {
-    createClient().auth.getUser().then(({ data }) => {
-      if (data.user?.email) setGoogleUser({ name: data.user.user_metadata?.full_name ?? data.user.email, email: data.user.email });
+    // getSession() lee la sesión local (instantáneo) — alcanza para mostrar el
+    // usuario. El servidor re-valida al pedir. Evita un viaje de red al abrir.
+    createClient().auth.getSession().then(({ data }) => {
+      const u = data.session?.user;
+      if (u?.email) setGoogleUser({ name: u.user_metadata?.full_name ?? u.email, email: u.email });
     });
     try {
       if (localStorage.getItem("pqr_reopen_cart")) { localStorage.removeItem("pqr_reopen_cart"); setSheetOpen(true); }
@@ -52,7 +55,7 @@ export default function TiendaClient({ slug, restaurantName, primaryColor, store
     try { localStorage.setItem("pqr_reopen_cart", "1"); } catch { /* ignore */ }
     createClient().auth.signInWithOAuth({
       provider: "google",
-      options: { redirectTo: `${window.location.origin}/auth/callback`, queryParams: { prompt: "select_account" } },
+      options: { redirectTo: `${window.location.origin}/auth/callback` }, // sin forzar "elegí cuenta": entra directo si ya está logueado
     });
   }
 

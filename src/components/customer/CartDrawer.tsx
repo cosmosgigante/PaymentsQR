@@ -28,11 +28,14 @@ export default function CartDrawer({ cart, tableToken, onClose, onUpdateQty, onO
   const itemCount = cart.reduce((s, c) => s + c.quantity, 0);
 
   useEffect(() => {
-    createClient().auth.getUser().then(({ data }) => {
-      if (data.user?.email) {
+    // getSession() lee la sesión local (instantáneo, sin viaje al servidor) —
+    // alcanza para mostrar "conectado como X". El servidor re-valida al pedir.
+    createClient().auth.getSession().then(({ data }) => {
+      const u = data.session?.user;
+      if (u?.email) {
         setGoogleUser({
-          name:  data.user.user_metadata?.full_name ?? data.user.email,
-          email: data.user.email,
+          name:  u.user_metadata?.full_name ?? u.email,
+          email: u.email,
         });
       }
     });
@@ -48,7 +51,7 @@ export default function CartDrawer({ cart, tableToken, onClose, onUpdateQty, onO
       provider: "google",
       options: {
         redirectTo: `${window.location.origin}/auth/callback`,
-        queryParams: { prompt: "select_account" },
+        // Sin forzar "elegí tu cuenta": si ya está logueado en Google, entra directo.
       },
     });
   }
