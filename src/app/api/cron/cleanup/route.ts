@@ -54,6 +54,13 @@ export async function GET(req: NextRequest) {
     where: { resetAt: { lt: now } },
   });
 
+  // ── 6. Limpiar errores de más de 30 días (monitoreo self-hosted) ──────────
+  let deletedErrors = 0;
+  try {
+    const r = await db.errorLog.deleteMany({ where: { createdAt: { lt: cutoff30 } } });
+    deletedErrors = r.count;
+  } catch { /* la tabla puede no existir todavía */ }
+
   const result = {
     ok: true,
     ran: now.toISOString(),
@@ -62,6 +69,7 @@ export async function GET(req: NextRequest) {
     deletedSessions:    deletedSessions.count,
     cancelledUnpaid:    cancelledAwaitingPayment.count,
     deletedRateLimits:  deletedRateLimit.count,
+    deletedErrors,
   };
 
   console.log("[cron/cleanup]", result);

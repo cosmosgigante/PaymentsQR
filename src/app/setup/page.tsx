@@ -3,13 +3,14 @@
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
-import { Users, Bell, BarChart2, MessageCircle, Menu, X, LogOut, Activity, CreditCard, Building2 } from "lucide-react";
+import { Users, Bell, BarChart2, MessageCircle, Menu, X, LogOut, Activity, CreditCard, Building2, HeartPulse } from "lucide-react";
 import PanelBoundary from "@/components/setup/PanelBoundary";
 import ClientesPanel from "./panels/ClientesPanel";
 import TrazabilidadPanel from "./panels/TrazabilidadPanel";
 import MembresiasPanel from "./panels/MembresiasPanel";
 import OrganizacionesPanel from "./panels/OrganizacionesPanel";
 import AnalyticsPanel from "./panels/AnalyticsPanel";
+import SaludPanel from "./panels/SaludPanel";
 import PlaceholderPanel from "./panels/PlaceholderPanel";
 
 const SECTIONS = [
@@ -17,6 +18,7 @@ const SECTIONS = [
   { key: "organizaciones",  label: "Organizaciones",  icon: Building2 },
   { key: "membresias",      label: "Membresías y Aperturas", icon: CreditCard },
   { key: "trazabilidad",    label: "Trazabilidad",    icon: Activity },
+  { key: "salud",           label: "Salud del sistema", icon: HeartPulse },
   { key: "notificaciones",  label: "Notificaciones",  icon: Bell },
   { key: "analytics",       label: "Analytics",       icon: BarChart2 },
   { key: "soporte",         label: "Soporte",         icon: MessageCircle },
@@ -112,6 +114,7 @@ export default function SuperAdminPage() {
             {active === "organizaciones" && <OrganizacionesPanel />}
             {active === "membresias"     && <MembresiasPanel onPendingCount={setPendingMemberships} />}
             {active === "trazabilidad"   && <TrazabilidadPanel />}
+            {active === "salud"          && <SaludPanel />}
             {active === "notificaciones" && <PlaceholderPanel name="Notificaciones" description="Invitaciones a sociedades y cambios de permisos a tokens. Próximamente." />}
             {active === "analytics"      && <AnalyticsPanel />}
             {active === "soporte"        && <PlaceholderPanel name="Soporte" description="Chat privado con cada Cliente A. Próximamente." />}

@@ -340,3 +340,18 @@ model ActivityLog {
   @@index([accountId, createdAt])
   @@index([restaurantId, createdAt])
 }
+
+// Registro de errores del sistema (monitoreo self-hosted). Sin relaciones para
+// que sobreviva a cualquier borrado. Se limpia periódicamente por el cron.
+model ErrorLog {
+  id        String   @id @default(cuid())
+  message   String
+  digest    String?
+  source    String   // "SERVER" | "CLIENT"
+  path      String?
+  method    String?
+  routeType String?
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+}
