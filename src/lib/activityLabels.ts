@@ -21,6 +21,7 @@ export const ACTION_LABELS: Record<string, string> = {
   WAITLIST_CANCEL: "Quitó a un grupo de la espera",
   WAITLIST_TOGGLE: "Activó/desactivó la lista de espera",
   RESTAURANT_APPROVE: "Aprobó la apertura de un negocio",
+  RESTAURANT_DELETE: "Eliminó un negocio",
   MEMBERSHIP_APPROVE: "Aprobó una membresía",
   ACCESS_PAUSE: "Pausó un acceso de personal",
   ACCESS_RESUME: "Reactivó un acceso de personal",

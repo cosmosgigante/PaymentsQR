@@ -91,14 +91,19 @@ export async function createStaffSession(
   token: { id: string; accountId: string; name: string; maxDevices: number; permissions: string },
   restaurantId: string
 ): Promise<string> {
-  const count = await db.accessSession.count({ where: { tokenId: token.id } });
-  if (count >= token.maxDevices) {
-    const oldest = await db.accessSession.findFirst({
-      where: { tokenId: token.id }, orderBy: { lastSeenAt: "asc" }, select: { id: true },
-    });
-    if (oldest) await db.accessSession.delete({ where: { id: oldest.id } });
-  }
+  // Crear primero la sesión de este dispositivo y luego recortar las más viejas
+  // hasta respetar maxDevices. Es auto-sanador ante logins concurrentes: evita el
+  // TOCTOU de "contar → borrar → crear" que podía dejar más sesiones que el límite.
   const ses = await db.accessSession.create({ data: { tokenId: token.id } });
+  const sessions = await db.accessSession.findMany({
+    where: { tokenId: token.id },
+    orderBy: { lastSeenAt: "desc" }, // la recién creada queda primera (se conserva)
+    select: { id: true },
+  });
+  if (sessions.length > token.maxDevices) {
+    const stale = sessions.slice(token.maxDevices).map((s) => s.id);
+    await db.accessSession.deleteMany({ where: { id: { in: stale } } });
+  }
 
   await logActivity({
     accountId: token.accountId, restaurantId, actorType: "STAFF", actorName: token.name,

@@ -3,6 +3,7 @@ import { createServerClient } from "@supabase/ssr";
 import { db } from "@/lib/db";
 import { rateLimit } from "@/lib/rateLimit";
 import { computeAccountPlan, isPlanType } from "@/lib/plans";
+import { logActivity } from "@/lib/activity";
 
 async function requireSuperAdmin(req: NextRequest) {
   const supabase = createServerClient(
@@ -168,6 +169,36 @@ export async function DELETE(req: NextRequest) {
   const { restaurantId } = await req.json().catch(() => ({})) as { restaurantId?: string };
   if (!restaurantId) return NextResponse.json({ error: "Falta restaurantId" }, { status: 400 });
 
-  await db.restaurant.delete({ where: { id: restaurantId } });
+  const restaurant = await db.restaurant.findUnique({
+    where: { id: restaurantId },
+    select: { id: true, name: true, accountId: true },
+  });
+  if (!restaurant) return NextResponse.json({ error: "Restorán no encontrado" }, { status: 404 });
+
+  // Borrado en cascada FK-safe: `Restaurant` no tiene onDelete cascade en sus
+  // relaciones, así que `restaurant.delete` crudo tira error si el restorán tiene
+  // datos (o sea, cualquiera real). Borramos los hijos en orden y todo en una
+  // transacción para que sea atómico. (Los OrderItem caen solos por su cascade.)
+  await db.$transaction([
+    db.payment.deleteMany({ where: { restaurantId } }),
+    db.order.deleteMany({ where: { restaurantId } }),          // cascade → OrderItem
+    db.tableSession.deleteMany({ where: { restaurantId } }),
+    db.table.deleteMany({ where: { restaurantId } }),
+    db.menuItem.deleteMany({ where: { restaurantId } }),
+    db.menuCategory.deleteMany({ where: { restaurantId } }),
+    db.waitlistEntry.deleteMany({ where: { restaurantId } }),
+    db.accessQR.deleteMany({ where: { restaurantId } }),
+    db.paymentMethod.deleteMany({ where: { restaurantId } }),
+    db.admin.deleteMany({ where: { restaurantId } }),          // admins legacy por-restorán
+    db.restaurant.delete({ where: { id: restaurantId } }),
+  ]);
+
+  await logActivity({
+    accountId: restaurant.accountId, restaurantId: null,
+    actorType: "SUPERADMIN", actorName: admin.email,
+    category: "CUENTA", action: "RESTAURANT_DELETE",
+    detail: `Eliminó el negocio "${restaurant.name}" y todos sus datos`,
+  });
+
   return NextResponse.json({ ok: true });
 }
