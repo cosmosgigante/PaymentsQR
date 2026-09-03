@@ -90,7 +90,9 @@ export async function POST(req: NextRequest) {
     restaurantId: table.restaurantId,
     maxDevices: table.restaurant.maxTableDevices ?? 2,
     deviceId,
-    customerEmail: safeEmail || undefined,
+    // Solo la identidad VERIFICADA (login Google, modo CASHIER) sirve para el
+    // reingreso — el email de body (ONLINE) es spoofeable, no lo usamos acá.
+    identityEmail: paymentMode === "CASHIER" ? (safeEmail || undefined) : undefined,
     startStatus: table.restaurant.confirmTableEnabled ? "PENDING_CONFIRM" : "OPEN",
   });
   if (full) {
