@@ -229,6 +229,12 @@ model TableSession {
   maxDevices     Int        @default(2)
   paymentStatus       String?  // null | "PENDING" (alguien inició el pago) | "APPROVED"
   paymentPreferenceId String?  // id de la preferencia de Checkout Pro vigente
+  // Cierre de cuenta/sesión (lo carga el staff al cerrar la mesa a mano).
+  closedBy            String?  // email/nombre de quién cerró
+  paymentSettled      Boolean? // ¿se cobró? (null = no se respondió al cerrar)
+  paymentMethod       String?  // "EFECTIVO" | "VIRTUAL" | "OTRO"
+  paymentMethodOther  String?  // detalle libre si el método es "OTRO"
+  closeComplete       Boolean  @default(false) // true si se completaron los datos de cobro
   orders         Order[]
   payments       Payment[]
   openedAt       DateTime   @default(now())

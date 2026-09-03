@@ -452,12 +452,32 @@ type SessionHist = {
   id: string;
   table: { number: number; label: string | null };
   openedAt: string; endedAt: string; wasClosed: boolean;
+  closeComplete: boolean; closedBy: string | null;
+  paymentSettled: boolean | null; paymentMethod: string | null; paymentMethodOther: string | null;
   total: number; paidTotal: number; orderCount: number;
   orders: HistOrder[];
 };
 
 function fmtWhen(iso: string) {
   return new Date(iso).toLocaleString("es-AR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
+}
+
+// Tag de estado de cierre para el historial.
+function closeTag(s: SessionHist): { text: string; cls: string } {
+  if (!s.wasClosed) return { text: "Vencida", cls: "bg-amber-50 text-amber-600" };
+  if (s.closeComplete) return { text: "Cerrada · completa", cls: "bg-emerald-50 text-emerald-600" };
+  return { text: "Cerrada · incompleta", cls: "bg-orange-50 text-orange-600" };
+}
+
+// Descripción del cobro (si se registró al cerrar).
+function cobroLabel(s: SessionHist): string | null {
+  if (!s.wasClosed) return null;
+  if (s.paymentSettled === true) {
+    const m = s.paymentMethod === "OTRO" ? (s.paymentMethodOther || "otro") : (s.paymentMethod?.toLowerCase() ?? "sin método");
+    return `Cobrado · ${m}`;
+  }
+  if (s.paymentSettled === false) return "Sin cobro registrado";
+  return null;
 }
 
 function SessionHistoryPanel() {
@@ -487,14 +507,20 @@ function SessionHistoryPanel() {
           <span className="text-sm font-bold text-gray-900 ml-1 truncate">
             {selected.table.label ?? `Mesa ${selected.table.number}`}
           </span>
-          <span className={`ml-auto text-[10px] font-bold px-2 py-0.5 rounded-full ${selected.wasClosed ? "bg-emerald-50 text-emerald-600" : "bg-amber-50 text-amber-600"}`}>
-            {selected.wasClosed ? "Cerrada" : "Vencida"}
+          <span className={`ml-auto text-[10px] font-bold px-2 py-0.5 rounded-full ${closeTag(selected).cls}`}>
+            {closeTag(selected).text}
           </span>
         </div>
         <div className="px-4 sm:px-5 py-2.5 bg-gray-50 border-b border-gray-100 flex items-center justify-between text-xs">
           <span className="text-gray-500">{fmtWhen(selected.openedAt)} → {fmtWhen(selected.endedAt)}</span>
           <span className="font-bold text-gray-900">{selected.orderCount} {selected.orderCount === 1 ? "pedido" : "pedidos"} · ${selected.total.toLocaleString("es-AR")}</span>
         </div>
+        {(cobroLabel(selected) || selected.closedBy) && (
+          <div className="px-4 sm:px-5 py-2 border-b border-gray-100 flex items-center justify-between text-[11px]">
+            {cobroLabel(selected) ? <span className="font-semibold text-gray-600">{cobroLabel(selected)}</span> : <span />}
+            {selected.closedBy && <span className="text-gray-400">Cerró: {selected.closedBy}</span>}
+          </div>
+        )}
         <div className="divide-y divide-gray-50">
           {live.length === 0 ? (
             <div className="p-8 text-center text-gray-400 text-sm">La sesión no tuvo pedidos.</div>
@@ -533,11 +559,11 @@ function SessionHistoryPanel() {
           <div className="flex-1 min-w-0">
             <p className="text-sm font-semibold text-gray-800 truncate">
               {s.table.label ?? `Mesa ${s.table.number}`}
-              <span className={`ml-2 text-[10px] font-bold px-1.5 py-0.5 rounded-full ${s.wasClosed ? "bg-emerald-50 text-emerald-600" : "bg-amber-50 text-amber-600"}`}>
-                {s.wasClosed ? "Cerrada" : "Vencida"}
+              <span className={`ml-2 text-[10px] font-bold px-1.5 py-0.5 rounded-full ${closeTag(s).cls}`}>
+                {closeTag(s).text}
               </span>
             </p>
-            <p className="text-xs text-gray-400">{fmtWhen(s.endedAt)} · {s.orderCount} {s.orderCount === 1 ? "pedido" : "pedidos"}</p>
+            <p className="text-xs text-gray-400">{fmtWhen(s.endedAt)} · {s.orderCount} {s.orderCount === 1 ? "pedido" : "pedidos"}{cobroLabel(s) ? ` · ${cobroLabel(s)}` : ""}</p>
           </div>
           <div className="text-right shrink-0">
             <p className="text-sm font-bold text-gray-900 tabular-nums">${s.total.toLocaleString("es-AR")}</p>
