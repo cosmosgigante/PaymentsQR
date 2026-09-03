@@ -76,8 +76,9 @@ export default function MesaClient({ token, table, restaurant, categories }: Pro
       // Saludo de bienvenida solo la primera vez que se escanea esta mesa.
       if (!localStorage.getItem(`pqr_welcome_${token}`)) setShowWelcome(true);
     } catch { /* ignore */ }
-    // Refresco liviano: estado de confirmación de la mesa e historial en vivo.
-    const poll = setInterval(loadSession, 15000);
+    // Refresco en vivo: la vista de rondas se maneja 100% con estos datos (fuente
+    // única), así que polleamos más seguido para que el estado se sienta al día.
+    const poll = setInterval(loadSession, 7000);
     return () => clearInterval(poll);
   }, [loadSession]);
 
@@ -96,7 +97,10 @@ export default function MesaClient({ token, table, restaurant, categories }: Pro
   }
 
   const tableLabel = table.label ?? `Mesa ${table.number}`;
-  const currentOrder = orders.length ? orders[orders.length - 1] : null;
+  // La vista de "cuenta de la mesa" se muestra si hay al menos una ronda no
+  // cancelada; si se cancelan todas, el comensal vuelve al menú para pedir.
+  const activeOrders = orders.filter((o) => o.status !== "CANCELLED");
+  const hasActiveOrders = activeOrders.length > 0;
 
   if (phase === "loading") {
     return (
@@ -123,12 +127,12 @@ export default function MesaClient({ token, table, restaurant, categories }: Pro
     );
   }
 
-  if (currentOrder && !forceMenu) {
+  if (hasActiveOrders && !forceMenu) {
     return (
       <OrderStatusView
-        orderId={currentOrder.id}
         tableToken={token}
         onPedirMas={pedirMas}
+        onRefresh={loadSession}
         sessionOrders={orders}
         pendingConfirm={pendingConfirm}
         payEnabled={payEnabled}
@@ -138,7 +142,7 @@ export default function MesaClient({ token, table, restaurant, categories }: Pro
     );
   }
 
-  if (showWelcome && !currentOrder) {
+  if (showWelcome && !hasActiveOrders) {
     return (
       <div className="min-h-screen-dvh flex flex-col items-center justify-center px-6 text-center"
         style={{ background: `linear-gradient(160deg, ${restaurant.primaryColor}1f, #ffffff 65%)`, paddingTop: "env(safe-area-inset-top)", paddingBottom: "max(1.5rem, env(safe-area-inset-bottom))" }}>
