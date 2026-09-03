@@ -42,10 +42,13 @@ export async function GET(req: NextRequest) {
     return NextResponse.redirect(`${origin}/?error=unauthorized`);
   }
 
-  // ── Flujo cliente de mesa ──────────────────────────────────────────────────
+  // ── Flujo consumidor (mesa o apartado Clientes) ────────────────────────────
+  // El consumidor NO es admin ni staff: se queda con su sesión Supabase y vuelve
+  // a donde estaba (la mesa o /mi). Sin esto, más abajo lo echaría como "unauthorized".
   if (mesaReturn) {
     const safeNext = decodeURIComponent(mesaReturn);
-    const validNext = safeNext.startsWith("/mesa/") ? safeNext : "/";
+    const validNext = (safeNext.startsWith("/mesa/") || safeNext === "/mi" || safeNext.startsWith("/mi/"))
+      ? safeNext : "/";
     const res = NextResponse.redirect(`${origin}${validNext}`);
     res.cookies.delete("pqr_return"); // limpiar cookie usada
     capturedCookies.forEach(({ name, value, options }) => {
