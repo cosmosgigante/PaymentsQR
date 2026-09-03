@@ -37,7 +37,10 @@ export async function GET(req: NextRequest) {
   });
 
   const redirectTo = req.nextUrl.searchParams.get("redirect") || "/admin";
-  const safePath = redirectTo.startsWith("/") ? redirectTo : "/admin";
+  // Solo rutas internas: debe empezar con "/" pero NO con "//" ni "/\" (que el
+  // navegador interpreta como URL externa protocolo-relativa → open redirect).
+  const isSafePath = /^\/(?![/\\])/.test(redirectTo);
+  const safePath = isSafePath ? redirectTo : "/admin";
   const res = NextResponse.redirect(new URL(safePath, req.url));
   res.cookies.set("admin_token", token, {
     httpOnly: true,
