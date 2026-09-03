@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
+import { createClient } from "@/lib/supabase/server";
 import { isRestaurantOperative } from "@/lib/restaurant";
 import { joinOrCreateSession, readDeviceId, setDeviceCookie } from "@/lib/tableSession";
 
@@ -28,11 +29,21 @@ export async function POST(req: NextRequest) {
   const { deviceId } = readDeviceId(req);
   const maxDevices = table.restaurant.maxTableDevices ?? 2;
 
+  // Identidad Google verificada (si está logueado): permite recuperar/retomar la
+  // sesión aunque se haya perdido la cookie del dispositivo. Anónimo → undefined.
+  let identityEmail: string | undefined;
+  try {
+    const supabase = await createClient();
+    const { data } = await supabase.auth.getUser();
+    identityEmail = data.user?.email?.toLowerCase();
+  } catch { /* anónimo o sin sesión */ }
+
   const { session, full } = await joinOrCreateSession({
     tableId: table.id,
     restaurantId: table.restaurantId,
     maxDevices,
     deviceId,
+    identityEmail,
     startStatus: table.restaurant.confirmTableEnabled ? "PENDING_CONFIRM" : "OPEN",
   });
 
