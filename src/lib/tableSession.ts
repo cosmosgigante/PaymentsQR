@@ -114,3 +114,45 @@ export async function joinOrCreateSession(opts: {
   });
   return { session: created, full: false };
 }
+
+// ── Estado en vivo de las mesas ──────────────────────────────────────────────
+// Para la vista de Mesas en tiempo real: cada mesa OCUPADA (con sesión activa)
+// con sus rondas, totales y desde cuándo. Fuente única (la usan la página y el
+// endpoint del poll). Devuelve un mapa tableId → estado de su sesión activa.
+
+export type LiveTableOrder = { id: string; status: string; total: number; items: { quantity: number; name: string }[] };
+export type LiveTableState = { sessionId: string; status: string; openedAt: string; orderCount: number; total: number; orders: LiveTableOrder[] };
+export type LiveTablesMap = Record<string, LiveTableState>;
+
+export async function liveTableStates(restaurantId: string): Promise<LiveTablesMap> {
+  const sessions = await db.tableSession.findMany({
+    where: { restaurantId, status: { in: ["OPEN", "PENDING_CONFIRM"] } },
+    orderBy: { openedAt: "asc" }, // si hubiera 2 en la misma mesa, gana la más reciente
+    include: {
+      table: { select: { id: true } },
+      orders: {
+        orderBy: { createdAt: "asc" },
+        include: { items: { include: { menuItem: { select: { name: true } } } } },
+      },
+    },
+  });
+
+  const map: LiveTablesMap = {};
+  for (const s of sessions) {
+    const live = s.orders.filter((o) => o.status !== "CANCELLED");
+    map[s.table.id] = {
+      sessionId: s.id,
+      status: s.status,
+      openedAt: s.openedAt.toISOString(),
+      orderCount: live.length,
+      total: live.reduce((sum, o) => sum + o.total, 0),
+      orders: live.map((o) => ({
+        id: o.id,
+        status: o.status,
+        total: o.total,
+        items: o.items.map((it) => ({ quantity: it.quantity, name: it.menuItem.name })),
+      })),
+    };
+  }
+  return map;
+}

@@ -1,10 +1,12 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { motion } from "framer-motion";
-import { Plus, QrCode, Power, Trash2, ArrowLeft, Download, X, DoorOpen, ShoppingBag } from "lucide-react";
+import { useState, useEffect, useCallback } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Plus, QrCode, Power, Trash2, ArrowLeft, Download, X, DoorOpen, ShoppingBag, Clock, ChevronRight } from "lucide-react";
 import Link from "next/link";
 import QRCode from "qrcode";
+import { ORDER_STATUS_LABELS, OrderStatus } from "@/lib/types";
+import type { LiveTablesMap } from "@/lib/tableSession";
 
 type Table = {
   id: string;
@@ -14,16 +16,27 @@ type Table = {
   isActive: boolean;
 };
 
+// "Hace X" legible a partir de un ISO.
+function sinceLabel(iso: string): string {
+  const min = Math.max(0, Math.floor((Date.now() - new Date(iso).getTime()) / 60000));
+  if (min < 1) return "recién";
+  if (min < 60) return `hace ${min} min`;
+  const h = Math.floor(min / 60);
+  return `hace ${h} h ${min % 60} min`;
+}
+
 export default function TablesManager({
   initialTables,
   restaurantSlug,
-  activeOrders = {},
+  initialLive = {},
 }: {
   initialTables: Table[];
   restaurantSlug: string;
-  activeOrders?: Record<string, number>;
+  initialLive?: LiveTablesMap;
 }) {
   const [tables, setTables] = useState<Table[]>(initialTables);
+  const [live, setLive] = useState<LiveTablesMap>(initialLive);
+  const [detailTable, setDetailTable] = useState<Table | null>(null);
   const [newNumber, setNewNumber] = useState("");
   const [newLabel, setNewLabel] = useState("");
   const [saving, setSaving] = useState(false);
@@ -31,6 +44,19 @@ export default function TablesManager({
   const [qrDataUrl, setQrDataUrl] = useState("");
   const [showDoorQr, setShowDoorQr] = useState(false);
   const [doorQrUrl, setDoorQrUrl] = useState("");
+
+  // Poll del estado en vivo de las mesas (ocupada/libre + rondas + total).
+  const refreshLive = useCallback(async () => {
+    try {
+      const r = await fetch("/api/tables/live");
+      if (r.ok) setLive(await r.json());
+    } catch { /* sin conexión: mantenemos lo último */ }
+  }, []);
+
+  useEffect(() => {
+    const poll = setInterval(refreshLive, 6000);
+    return () => clearInterval(poll);
+  }, [refreshLive]);
 
   useEffect(() => {
     if (!selectedQr) { setQrDataUrl(""); return; }
@@ -178,33 +204,62 @@ export default function TablesManager({
 
         {/* Lista */}
         <div className="space-y-2">
-          {tables.map((table, i) => (
+          {tables.map((table, i) => {
+            const st = live[table.id];
+            const occupied = table.isActive && !!st;
+            return (
             <motion.div
               key={table.id}
               initial={{ opacity: 0, y: 6 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: i * 0.04 }}
-              className={`bg-white rounded-2xl border border-zinc-100 p-4 flex items-center gap-3 min-h-[72px] ${!table.isActive ? "opacity-60" : ""}`}
+              className={`bg-white rounded-2xl border p-4 flex items-center gap-3 min-h-[72px] ${
+                !table.isActive ? "opacity-60 border-zinc-100"
+                : occupied ? "border-emerald-200" : "border-zinc-100"
+              }`}
             >
-              <div className="flex-1 min-w-0">
+              <button
+                type="button"
+                disabled={!occupied}
+                onClick={() => occupied && setDetailTable(table)}
+                className="flex-1 min-w-0 text-left disabled:cursor-default"
+              >
                 <div className="flex items-center gap-2">
-                  <p className="font-bold text-zinc-900 text-[15px] leading-snug">
+                  <span className={`w-2 h-2 rounded-full shrink-0 ${
+                    !table.isActive ? "bg-zinc-300"
+                    : occupied ? (st.status === "PENDING_CONFIRM" ? "bg-amber-400" : "bg-emerald-500")
+                    : "bg-zinc-200"
+                  }`} />
+                  <p className="font-bold text-zinc-900 text-[15px] leading-snug truncate">
                     {table.label ?? `Mesa ${table.number}`}
                   </p>
-                  {(activeOrders[table.id] ?? 0) > 0 && (
-                    <span className="inline-flex items-center gap-1 bg-amber-100 text-amber-700 text-[11px] font-bold px-2 py-0.5 rounded-full">
+                  {table.label && <span className="text-[11px] text-zinc-300 shrink-0">N°{table.number}</span>}
+                  {occupied && st.orderCount > 0 && (
+                    <span className="inline-flex items-center gap-1 bg-amber-100 text-amber-700 text-[11px] font-bold px-2 py-0.5 rounded-full shrink-0">
                       <ShoppingBag size={10} />
-                      {activeOrders[table.id]}
+                      {st.orderCount}
                     </span>
                   )}
                 </div>
-                {table.label && (
-                  <p className="text-xs text-zinc-400 mt-0.5">N° {table.number}</p>
-                )}
-                <p className={`text-xs mt-0.5 font-medium ${table.isActive ? "text-emerald-600" : "text-zinc-400"}`}>
-                  {table.isActive ? "Activa" : "Inactiva"}
+                <p className="text-xs mt-1 font-medium">
+                  {!table.isActive ? (
+                    <span className="text-zinc-400">Inactiva</span>
+                  ) : occupied ? (
+                    <span className={st.status === "PENDING_CONFIRM" ? "text-amber-600" : "text-emerald-600"}>
+                      {st.status === "PENDING_CONFIRM" ? "Por confirmar" : "Ocupada"}
+                      {" · "}{sinceLabel(st.openedAt)}
+                      {" · $"}{st.total.toLocaleString("es-AR")}
+                    </span>
+                  ) : (
+                    <span className="text-zinc-400">Libre</span>
+                  )}
                 </p>
-              </div>
+                {occupied && (
+                  <span className="inline-flex items-center gap-0.5 text-[11px] text-emerald-600 font-semibold mt-1">
+                    Ver pedidos <ChevronRight size={11} />
+                  </span>
+                )}
+              </button>
 
               <div className="flex items-center gap-1 flex-shrink-0">
                 <button
@@ -231,7 +286,8 @@ export default function TablesManager({
                 </button>
               </div>
             </motion.div>
-          ))}
+            );
+          })}
         </div>
 
         {tables.length === 0 && (
@@ -363,6 +419,76 @@ export default function TablesManager({
           </motion.div>
         </div>
       )}
+
+      {/* Detalle en vivo de la sesión de una mesa ocupada */}
+      <AnimatePresence>
+        {detailTable && live[detailTable.id] && (() => {
+          const st = live[detailTable.id];
+          return (
+            <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
+              <div className="absolute inset-0 bg-black/40" onClick={() => setDetailTable(null)} />
+              <motion.div
+                initial={{ y: "100%", opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                exit={{ y: "100%", opacity: 0 }}
+                transition={{ type: "spring", damping: 30, stiffness: 300 }}
+                className="relative bg-white rounded-t-[28px] sm:rounded-3xl w-full sm:max-w-md shadow-2xl max-h-[85vh] flex flex-col"
+                style={{ paddingBottom: "max(1rem, env(safe-area-inset-bottom))" }}
+              >
+                <div className="flex justify-center pt-3 sm:hidden">
+                  <div className="w-8 h-1 bg-zinc-200 rounded-full" />
+                </div>
+
+                <div className="px-5 pt-3 pb-3 border-b border-zinc-100 flex items-center justify-between">
+                  <div className="min-w-0">
+                    <h3 className="font-bold text-zinc-900 text-lg truncate">{detailTable.label ?? `Mesa ${detailTable.number}`}</h3>
+                    <p className="text-xs text-zinc-400 flex items-center gap-1 mt-0.5">
+                      <Clock size={11} /> {st.status === "PENDING_CONFIRM" ? "Por confirmar" : "Ocupada"} · {sinceLabel(st.openedAt)}
+                    </p>
+                  </div>
+                  <button onClick={() => setDetailTable(null)} className="w-8 h-8 rounded-full bg-zinc-100 flex items-center justify-center text-zinc-500 active:bg-zinc-200 shrink-0">
+                    <X size={15} />
+                  </button>
+                </div>
+
+                <div className="overflow-y-auto px-5 py-4 space-y-3">
+                  {st.orders.length === 0 ? (
+                    <p className="text-center text-zinc-400 text-sm py-6">La mesa está ocupada pero todavía no hizo pedidos.</p>
+                  ) : st.orders.map((o, idx) => (
+                    <div key={o.id} className="border border-zinc-100 rounded-2xl p-3.5">
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-bold text-zinc-900">Ronda {idx + 1}</span>
+                          <span className="text-zinc-300 font-mono text-[10px]">#{o.id.slice(-4).toUpperCase()}</span>
+                        </div>
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full border bg-zinc-50 text-zinc-600 border-zinc-200">
+                          {ORDER_STATUS_LABELS[o.status as OrderStatus] ?? o.status}
+                        </span>
+                      </div>
+                      <div className="space-y-1">
+                        {o.items.map((it, j) => (
+                          <div key={j} className="text-sm text-zinc-600">
+                            <span className="font-semibold text-zinc-900">{it.quantity}×</span> {it.name}
+                          </div>
+                        ))}
+                      </div>
+                      <div className="border-t border-zinc-100 mt-2.5 pt-2 flex justify-between">
+                        <span className="text-xs text-zinc-500 font-medium">Subtotal</span>
+                        <span className="text-sm font-semibold text-zinc-900 tabular-nums">${o.total.toLocaleString("es-AR")}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="px-5 pt-3 border-t border-zinc-100 flex justify-between items-center">
+                  <span className="font-semibold text-zinc-900">Total de la mesa</span>
+                  <span className="text-xl font-bold text-zinc-900 tabular-nums">${st.total.toLocaleString("es-AR")}</span>
+                </div>
+              </motion.div>
+            </div>
+          );
+        })()}
+      </AnimatePresence>
     </div>
   );
 }
