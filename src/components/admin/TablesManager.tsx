@@ -58,6 +58,39 @@ export default function TablesManager({
     return () => clearInterval(poll);
   }, [refreshLive]);
 
+  // ── Cierre de cuenta/sesión desde el detalle de la mesa ──
+  const [showCloseForm, setShowCloseForm] = useState(false);
+  const [settled, setSettled] = useState<boolean | null>(null);
+  const [method, setMethod] = useState<string | null>(null);
+  const [methodOther, setMethodOther] = useState("");
+  const [closing, setClosing] = useState(false);
+
+  // Reset del formulario cada vez que se abre/cambia el detalle de una mesa.
+  useEffect(() => {
+    setShowCloseForm(false); setSettled(null); setMethod(null); setMethodOther("");
+  }, [detailTable]);
+
+  async function closeSession(sessionId: string, withData: boolean) {
+    setClosing(true);
+    try {
+      const payload = withData
+        ? { action: "close", settled, method: settled ? method ?? undefined : undefined, methodOther: method === "OTRO" ? methodOther : undefined }
+        : { action: "close" };
+      const r = await fetch(`/api/sessions/${sessionId}`, {
+        method: "PATCH", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      if (r.ok) { setDetailTable(null); refreshLive(); }
+      else { const d = await r.json().catch(() => ({})); alert(d?.error ?? "No se pudo cerrar la mesa"); }
+    } catch { alert("No se pudo cerrar la mesa"); }
+    finally { setClosing(false); }
+  }
+
+  const chipCls = (active: boolean) =>
+    `flex-1 py-2.5 rounded-xl text-sm font-semibold border transition-colors ${
+      active ? "bg-zinc-900 text-white border-zinc-900" : "bg-white text-zinc-600 border-zinc-200 active:bg-zinc-50"
+    }`;
+
   useEffect(() => {
     if (!selectedQr) { setQrDataUrl(""); return; }
     const url = `${window.location.origin}/mesa/${selectedQr.qrToken}`;
@@ -480,9 +513,65 @@ export default function TablesManager({
                   ))}
                 </div>
 
-                <div className="px-5 pt-3 border-t border-zinc-100 flex justify-between items-center">
-                  <span className="font-semibold text-zinc-900">Total de la mesa</span>
-                  <span className="text-xl font-bold text-zinc-900 tabular-nums">${st.total.toLocaleString("es-AR")}</span>
+                <div className="px-5 pt-3 border-t border-zinc-100">
+                  <div className="flex justify-between items-center">
+                    <span className="font-semibold text-zinc-900">Total de la mesa</span>
+                    <span className="text-xl font-bold text-zinc-900 tabular-nums">${st.total.toLocaleString("es-AR")}</span>
+                  </div>
+
+                  {!showCloseForm ? (
+                    <button onClick={() => setShowCloseForm(true)}
+                      className="mt-3 w-full bg-zinc-900 active:bg-zinc-700 text-white font-bold py-3 rounded-2xl text-sm">
+                      Cerrar cuenta y mesa
+                    </button>
+                  ) : (
+                    <div className="mt-3 space-y-3">
+                      <div>
+                        <p className="text-xs font-semibold text-zinc-500 mb-1.5">¿Se cobró?</p>
+                        <div className="flex gap-2">
+                          <button onClick={() => setSettled(true)} className={chipCls(settled === true)}>Sí</button>
+                          <button onClick={() => { setSettled(false); setMethod(null); }} className={chipCls(settled === false)}>No</button>
+                        </div>
+                      </div>
+
+                      {settled === true && (
+                        <div>
+                          <p className="text-xs font-semibold text-zinc-500 mb-1.5">Método de cobro</p>
+                          <div className="flex gap-2">
+                            {(["EFECTIVO", "VIRTUAL", "OTRO"] as const).map((m) => (
+                              <button key={m} onClick={() => setMethod(m)} className={chipCls(method === m)}>
+                                {m === "EFECTIVO" ? "Efectivo" : m === "VIRTUAL" ? "Virtual" : "Otro"}
+                              </button>
+                            ))}
+                          </div>
+                          {method === "OTRO" && (
+                            <input
+                              value={methodOther}
+                              onChange={(e) => setMethodOther(e.target.value)}
+                              placeholder="¿Cuál? (ej: transferencia, QR externo…)"
+                              maxLength={80}
+                              className="mt-2 w-full bg-zinc-50 border border-zinc-100 rounded-xl px-3 py-2.5 text-[16px] focus:outline-none focus:ring-2 focus:ring-zinc-900 text-zinc-900 placeholder:text-zinc-300"
+                            />
+                          )}
+                        </div>
+                      )}
+
+                      <button
+                        onClick={() => closeSession(st.sessionId, true)}
+                        disabled={closing || settled === null || (settled === true && !method)}
+                        className="w-full bg-emerald-600 active:bg-emerald-700 disabled:opacity-50 text-white font-bold py-3 rounded-2xl text-sm"
+                      >
+                        {closing ? "Cerrando…" : "Cerrar mesa"}
+                      </button>
+                      <button
+                        onClick={() => closeSession(st.sessionId, false)}
+                        disabled={closing}
+                        className="w-full text-zinc-500 active:text-zinc-700 font-medium py-1.5 text-xs"
+                      >
+                        Cerrar sin completar datos
+                      </button>
+                    </div>
+                  )}
                 </div>
               </motion.div>
             </div>
