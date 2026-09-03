@@ -8,7 +8,7 @@ export async function GET(req: NextRequest) {
   if (!ctx) return NextResponse.json({ error: "No autorizado" }, { status: 403 });
 
   const restaurants = await db.restaurant.findMany({
-    where: { accountId: ctx.account.id },
+    where: { accountId: ctx.account.id, status: { not: "ARCHIVED" } },
     orderBy: { createdAt: "asc" },
     select: {
       id: true,

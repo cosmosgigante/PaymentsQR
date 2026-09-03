@@ -175,30 +175,22 @@ export async function DELETE(req: NextRequest) {
   });
   if (!restaurant) return NextResponse.json({ error: "Restorán no encontrado" }, { status: 404 });
 
-  // Borrado en cascada FK-safe: `Restaurant` no tiene onDelete cascade en sus
-  // relaciones, así que `restaurant.delete` crudo tira error si el restorán tiene
-  // datos (o sea, cualquiera real). Borramos los hijos en orden y todo en una
-  // transacción para que sea atómico. (Los OrderItem caen solos por su cascade.)
-  await db.$transaction([
-    db.payment.deleteMany({ where: { restaurantId } }),
-    db.order.deleteMany({ where: { restaurantId } }),          // cascade → OrderItem
-    db.tableSession.deleteMany({ where: { restaurantId } }),
-    db.table.deleteMany({ where: { restaurantId } }),
-    db.menuItem.deleteMany({ where: { restaurantId } }),
-    db.menuCategory.deleteMany({ where: { restaurantId } }),
-    db.waitlistEntry.deleteMany({ where: { restaurantId } }),
-    db.accessQR.deleteMany({ where: { restaurantId } }),
-    db.paymentMethod.deleteMany({ where: { restaurantId } }),
-    db.admin.deleteMany({ where: { restaurantId } }),          // admins legacy por-restorán
-    db.restaurant.delete({ where: { id: restaurantId } }),
-  ]);
-
-  await logActivity({
-    accountId: restaurant.accountId, restaurantId: null,
-    actorType: "SUPERADMIN", actorName: admin.email,
-    category: "CUENTA", action: "RESTAURANT_DELETE",
-    detail: `Eliminó el negocio "${restaurant.name}" y todos sus datos`,
+  // Soft-delete (recuperable): NO se borra. Se archiva marcando status ARCHIVED +
+  // isActive false. Con eso los checks de "operativo" (isRestaurantOperative) lo
+  // bloquean para clientes/comensales, y desaparece de los paneles del dueño.
+  // El superadmin lo sigue viendo y puede restaurarlo (PATCH status ACTIVE +
+  // isActive true). Los datos (pedidos, menú, mesas) quedan intactos.
+  await db.restaurant.update({
+    where: { id: restaurantId },
+    data: { status: "ARCHIVED", isActive: false },
   });
 
-  return NextResponse.json({ ok: true });
+  await logActivity({
+    accountId: restaurant.accountId, restaurantId: restaurant.id,
+    actorType: "SUPERADMIN", actorName: admin.email,
+    category: "CUENTA", action: "RESTAURANT_ARCHIVE",
+    detail: `Archivó el negocio "${restaurant.name}" (recuperable)`,
+  });
+
+  return NextResponse.json({ ok: true, archived: true });
 }
