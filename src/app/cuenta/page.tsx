@@ -13,8 +13,8 @@ export default async function CuentaPage() {
   const access = accountAccess(admin, account);
   const restaurants = await db.restaurant.findMany({
     where: access.isFull
-      ? { accountId: account.id }
-      : { accountId: account.id, id: { in: access.allowedRestaurantIds ?? [] } },
+      ? { accountId: account.id, status: { not: "ARCHIVED" } }
+      : { accountId: account.id, status: { not: "ARCHIVED" }, id: { in: access.allowedRestaurantIds ?? [] } },
     orderBy: { createdAt: "asc" },
     select: { id: true, name: true, slug: true, status: true, isActive: true, createdAt: true, vertical: true, _count: { select: { tables: true, orders: true } } },
   });

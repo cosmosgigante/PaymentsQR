@@ -3,6 +3,7 @@ import { createServerClient } from "@supabase/ssr";
 import { db } from "@/lib/db";
 import { rateLimit } from "@/lib/rateLimit";
 import { computeAccountPlan, isPlanType } from "@/lib/plans";
+import { logActivity } from "@/lib/activity";
 
 async function requireSuperAdmin(req: NextRequest) {
   const supabase = createServerClient(
@@ -168,6 +169,28 @@ export async function DELETE(req: NextRequest) {
   const { restaurantId } = await req.json().catch(() => ({})) as { restaurantId?: string };
   if (!restaurantId) return NextResponse.json({ error: "Falta restaurantId" }, { status: 400 });
 
-  await db.restaurant.delete({ where: { id: restaurantId } });
-  return NextResponse.json({ ok: true });
+  const restaurant = await db.restaurant.findUnique({
+    where: { id: restaurantId },
+    select: { id: true, name: true, accountId: true },
+  });
+  if (!restaurant) return NextResponse.json({ error: "Restorán no encontrado" }, { status: 404 });
+
+  // Soft-delete (recuperable): NO se borra. Se archiva marcando status ARCHIVED +
+  // isActive false. Con eso los checks de "operativo" (isRestaurantOperative) lo
+  // bloquean para clientes/comensales, y desaparece de los paneles del dueño.
+  // El superadmin lo sigue viendo y puede restaurarlo (PATCH status ACTIVE +
+  // isActive true). Los datos (pedidos, menú, mesas) quedan intactos.
+  await db.restaurant.update({
+    where: { id: restaurantId },
+    data: { status: "ARCHIVED", isActive: false },
+  });
+
+  await logActivity({
+    accountId: restaurant.accountId, restaurantId: restaurant.id,
+    actorType: "SUPERADMIN", actorName: admin.email,
+    category: "CUENTA", action: "RESTAURANT_ARCHIVE",
+    detail: `Archivó el negocio "${restaurant.name}" (recuperable)`,
+  });
+
+  return NextResponse.json({ ok: true, archived: true });
 }
