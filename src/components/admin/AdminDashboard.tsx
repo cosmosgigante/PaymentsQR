@@ -268,9 +268,9 @@ export default function AdminDashboard({ stats, recentOrders: initialOrders, gen
                 className={`flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-lg transition-all ${activeTab === "active" ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-700"}`}>
                 Activos {orders.length > 0 && <span className="bg-orange-100 text-orange-600 px-1.5 py-0.5 rounded-full text-[10px]">{orders.length}</span>}
               </button>
-              <button onClick={() => { setActiveTab("history"); loadHistory(); }}
+              <button onClick={() => { setActiveTab("history"); if (!isGastro) loadHistory(); }}
                 className={`flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-lg transition-all ${activeTab === "history" ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-700"}`}>
-                <History size={11} /> Historial hoy
+                <History size={11} /> Historial
               </button>
             </div>
             <AnimatePresence>
@@ -285,6 +285,7 @@ export default function AdminDashboard({ stats, recentOrders: initialOrders, gen
 
           {/* Historial */}
           {activeTab === "history" && (
+            isGastro ? <SessionHistoryPanel /> : (
             <div>
               {historyLoading ? (
                 <div className="p-8 flex justify-center"><div className="w-5 h-5 border-2 border-gray-300 border-t-blue-600 rounded-full animate-spin" /></div>
@@ -318,6 +319,7 @@ export default function AdminDashboard({ stats, recentOrders: initialOrders, gen
                 </>
               )}
             </div>
+            )
           )}
 
           {/* Activos */}
@@ -438,5 +440,111 @@ function NavCard({ href, icon, title, subtitle, iconBg, iconColor, badge = 0 }: 
         <p className="text-gray-400 text-xs mt-0.5">{subtitle}</p>
       </div>
     </Link>
+  );
+}
+
+// ── Historial de sesiones (gastronómico) ─────────────────────────────────────
+// Lista las sesiones de mesa terminadas (48h) y abre el detalle de cada una en la
+// misma pantalla (lista → detalle → volver). Los datos vienen de /api/sessions/history.
+type HistItem = { quantity: number; name: string };
+type HistOrder = { id: string; status: string; total: number; paymentMode: string; createdAt: string; items: HistItem[] };
+type SessionHist = {
+  id: string;
+  table: { number: number; label: string | null };
+  openedAt: string; endedAt: string; wasClosed: boolean;
+  total: number; paidTotal: number; orderCount: number;
+  orders: HistOrder[];
+};
+
+function fmtWhen(iso: string) {
+  return new Date(iso).toLocaleString("es-AR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
+}
+
+function SessionHistoryPanel() {
+  const [sessions, setSessions] = useState<SessionHist[] | null>(null);
+  const [selected, setSelected] = useState<SessionHist | null>(null);
+
+  useEffect(() => {
+    fetch("/api/sessions/history")
+      .then((r) => (r.ok ? r.json() : []))
+      .then((d) => setSessions(Array.isArray(d) ? d : []))
+      .catch(() => setSessions([]));
+  }, []);
+
+  if (sessions === null) {
+    return <div className="p-8 flex justify-center"><div className="w-5 h-5 border-2 border-gray-300 border-t-blue-600 rounded-full animate-spin" /></div>;
+  }
+
+  // Detalle de una sesión
+  if (selected) {
+    const live = selected.orders.filter((o) => o.status !== "CANCELLED");
+    return (
+      <div>
+        <div className="px-4 sm:px-5 py-3 border-b border-gray-50 flex items-center gap-2">
+          <button onClick={() => setSelected(null)} className="flex items-center gap-1 text-xs font-semibold text-gray-500 hover:text-gray-800">
+            <ArrowLeft size={13} /> Volver
+          </button>
+          <span className="text-sm font-bold text-gray-900 ml-1 truncate">
+            {selected.table.label ?? `Mesa ${selected.table.number}`}
+          </span>
+          <span className={`ml-auto text-[10px] font-bold px-2 py-0.5 rounded-full ${selected.wasClosed ? "bg-emerald-50 text-emerald-600" : "bg-amber-50 text-amber-600"}`}>
+            {selected.wasClosed ? "Cerrada" : "Vencida"}
+          </span>
+        </div>
+        <div className="px-4 sm:px-5 py-2.5 bg-gray-50 border-b border-gray-100 flex items-center justify-between text-xs">
+          <span className="text-gray-500">{fmtWhen(selected.openedAt)} → {fmtWhen(selected.endedAt)}</span>
+          <span className="font-bold text-gray-900">{selected.orderCount} {selected.orderCount === 1 ? "pedido" : "pedidos"} · ${selected.total.toLocaleString("es-AR")}</span>
+        </div>
+        <div className="divide-y divide-gray-50">
+          {live.length === 0 ? (
+            <div className="p-8 text-center text-gray-400 text-sm">La sesión no tuvo pedidos.</div>
+          ) : live.map((o, idx) => (
+            <div key={o.id} className="px-4 sm:px-5 py-3">
+              <div className="flex items-center justify-between mb-1.5">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-bold text-gray-900">Ronda {idx + 1}</span>
+                  <span className="text-gray-300 font-mono text-[10px]">#{o.id.slice(-4).toUpperCase()}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] font-semibold text-gray-500">{ORDER_STATUS_LABELS[o.status as OrderStatus] ?? o.status}</span>
+                  <span className="text-sm font-bold text-gray-900 tabular-nums">${o.total.toLocaleString("es-AR")}</span>
+                </div>
+              </div>
+              <p className="text-xs text-gray-400">{o.items.map((it) => `${it.quantity}× ${it.name}`).join(", ")}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  // Lista de sesiones
+  if (sessions.length === 0) {
+    return <div className="p-10 text-center"><p className="text-gray-400 text-sm">Sin sesiones cerradas en las últimas 48h</p></div>;
+  }
+
+  return (
+    <div className="divide-y divide-gray-50">
+      {sessions.map((s) => (
+        <button key={s.id} onClick={() => setSelected(s)} className="w-full text-left px-4 sm:px-5 py-3 flex items-center gap-3 hover:bg-gray-50 transition-colors">
+          <div className="w-9 h-9 rounded-xl bg-gray-100 flex items-center justify-center shrink-0">
+            <span className="font-black text-gray-500 text-sm">{s.table.number}</span>
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-semibold text-gray-800 truncate">
+              {s.table.label ?? `Mesa ${s.table.number}`}
+              <span className={`ml-2 text-[10px] font-bold px-1.5 py-0.5 rounded-full ${s.wasClosed ? "bg-emerald-50 text-emerald-600" : "bg-amber-50 text-amber-600"}`}>
+                {s.wasClosed ? "Cerrada" : "Vencida"}
+              </span>
+            </p>
+            <p className="text-xs text-gray-400">{fmtWhen(s.endedAt)} · {s.orderCount} {s.orderCount === 1 ? "pedido" : "pedidos"}</p>
+          </div>
+          <div className="text-right shrink-0">
+            <p className="text-sm font-bold text-gray-900 tabular-nums">${s.total.toLocaleString("es-AR")}</p>
+            <span className="text-gray-300 text-lg leading-none">›</span>
+          </div>
+        </button>
+      ))}
+    </div>
   );
 }
