@@ -38,6 +38,22 @@ export function canTransition(from: OrderStatus, to: OrderStatus): boolean {
   return TRANSITIONS[from]?.includes(to) ?? false;
 }
 
+// ─── Gating por configuración del restorán ──────────────────────────────────
+// Los pasos CONFIRMED (recepción en cocina) y DELIVERED (entrega en mesa) son
+// OPCIONALES: se activan por restorán con flowConfirmEnabled / flowDeliveredEnabled.
+// El gating NO puede vivir solo en la UI (los botones): la API también debe
+// rechazar entrar a un paso deshabilitado, si no "un paso funciona sin estar
+// habilitado" (una request cruda o una UI vieja lo saltaba).
+
+export type FlowConfig = { flowConfirmEnabled: boolean; flowDeliveredEnabled: boolean };
+
+/** ¿La transición hacia `to` está habilitada según los toggles del restorán? */
+export function isTransitionAllowedByFlow(to: OrderStatus, flow: FlowConfig): boolean {
+  if (to === "CONFIRMED" && !flow.flowConfirmEnabled) return false;
+  if (to === "DELIVERED" && !flow.flowDeliveredEnabled) return false;
+  return true;
+}
+
 // ─── Flujo de cocina ────────────────────────────────────────────────────────
 // Dado el estado actual y la config del restaurante, devuelve el siguiente estado.
 

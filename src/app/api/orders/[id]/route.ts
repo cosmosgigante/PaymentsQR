@@ -5,7 +5,7 @@ import { canManageAny } from "@/lib/staff";
 import { logActivity } from "@/lib/activity";
 import { emitEvent } from "@/lib/events";
 import { OrderStatus, ORDER_STATUS_LABELS } from "@/lib/types";
-import { ALL_STATUSES, canTransition } from "@/lib/orderFlow";
+import { ALL_STATUSES, canTransition, isTransitionAllowedByFlow } from "@/lib/orderFlow";
 
 // GET — accesible con token de mesa (cliente) o sesión admin
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -64,6 +64,20 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     return NextResponse.json({ error: `No se puede pasar de ${order.status} a ${status}` }, { status: 400 });
   }
 
+  // Config del flujo operativo del restorán: gatea los pasos opcionales
+  // (CONFIRMED / DELIVERED) para que la API no acepte lo que el toggle deshabilita.
+  const restaurant = await db.restaurant.findUnique({
+    where: { id: session.restaurantId },
+    select: { flowConfirmEnabled: true, flowDeliveredEnabled: true },
+  });
+  const flow = {
+    flowConfirmEnabled: !!restaurant?.flowConfirmEnabled,
+    flowDeliveredEnabled: !!restaurant?.flowDeliveredEnabled,
+  };
+  if (!isTransitionAllowedByFlow(status, flow)) {
+    return NextResponse.json({ error: "Ese paso no está habilitado en el flujo de este local" }, { status: 400 });
+  }
+
   let updated = await db.order.update({
     where: { id },
     data: { status },
@@ -75,11 +89,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   // Auto-cerrar pedidos online cuando se marcan como READY (ya pagaron, no necesita más clicks)
   // Respeta flowDeliveredEnabled: si el restaurante tiene paso de entrega, no auto-cierra
   if (status === "READY" && updated.paymentMode === "ONLINE") {
-    const restaurant = await db.restaurant.findUnique({
-      where: { id: session.restaurantId },
-      select: { flowDeliveredEnabled: true },
-    });
-    if (!restaurant?.flowDeliveredEnabled) {
+    if (!flow.flowDeliveredEnabled) {
       updated = await db.order.update({
         where: { id },
         data: { status: "PAID" },
