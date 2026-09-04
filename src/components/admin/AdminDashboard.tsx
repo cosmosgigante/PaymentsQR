@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { createClient } from "@/lib/supabase/client";
-import { ChefHat, BookOpen, QrCode, LogOut, TrendingUp, Package, Grid2X2, UtensilsCrossed, X, ArrowLeft, History, BarChart3, Users } from "lucide-react";
+import { ChefHat, BookOpen, QrCode, LogOut, TrendingUp, Package, Grid2X2, UtensilsCrossed, ArrowLeft, History, BarChart3, Users } from "lucide-react";
 import { ORDER_STATUS_LABELS, ORDER_STATUS_COLORS, OrderStatus } from "@/lib/types";
 import { useSSE } from "@/hooks/useSSE";
 import { useState, useCallback, useEffect } from "react";
@@ -400,12 +400,6 @@ export default function AdminDashboard({ stats, recentOrders: initialOrders, gen
                         </button>
                       )}
                     </div>
-                    <button
-                      onClick={() => setOrders((prev) => prev.filter((o) => o.id !== order.id))}
-                      className="w-7 h-7 rounded-full flex items-center justify-center text-gray-300 hover:text-gray-600 hover:bg-gray-100 transition-all flex-shrink-0"
-                    >
-                      <X size={13} strokeWidth={2.5} />
-                    </button>
                   </div>
                 </motion.div>
               ))}

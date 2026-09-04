@@ -64,6 +64,22 @@ export default function TablesManager({
   const [method, setMethod] = useState<string | null>(null);
   const [methodOther, setMethodOther] = useState("");
   const [closing, setClosing] = useState(false);
+  const [confirming, setConfirming] = useState(false);
+
+  // Confirmar la mesa (sale de PENDING_CONFIRM → OPEN). Antes esto no tenía UI en
+  // ningún lado → el comensal quedaba atrapado en "esperando confirmación".
+  async function confirmSession(sessionId: string) {
+    setConfirming(true);
+    try {
+      const r = await fetch(`/api/sessions/${sessionId}`, {
+        method: "PATCH", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "confirm" }),
+      });
+      if (r.ok) { setDetailTable(null); refreshLive(); }
+      else { const d = await r.json().catch(() => ({})); alert(d?.error ?? "No se pudo confirmar la mesa"); }
+    } catch { alert("No se pudo confirmar la mesa"); }
+    finally { setConfirming(false); }
+  }
 
   // Reset del formulario cada vez que se abre/cambia el detalle de una mesa.
   useEffect(() => {
@@ -514,6 +530,17 @@ export default function TablesManager({
                 </div>
 
                 <div className="px-5 pt-3 border-t border-zinc-100">
+                  {/* Confirmar mesa: si está PENDING_CONFIRM, el comensal está esperando */}
+                  {st.status === "PENDING_CONFIRM" && (
+                    <div className="mb-3 bg-amber-50 border border-amber-200 rounded-2xl p-3">
+                      <p className="text-xs text-amber-700 mb-2">El comensal está esperando que confirmes la mesa para que su pedido avance.</p>
+                      <button onClick={() => confirmSession(st.sessionId)} disabled={confirming}
+                        className="w-full bg-amber-500 active:bg-amber-600 disabled:opacity-50 text-white font-bold py-3 rounded-2xl text-sm">
+                        {confirming ? "Confirmando…" : "Confirmar mesa"}
+                      </button>
+                    </div>
+                  )}
+
                   <div className="flex justify-between items-center">
                     <span className="font-semibold text-zinc-900">Total de la mesa</span>
                     <span className="text-xl font-bold text-zinc-900 tabular-nums">${st.total.toLocaleString("es-AR")}</span>
