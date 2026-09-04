@@ -8,13 +8,15 @@ export const dynamic = "force-dynamic";
 // Apartado Clientes (portal consumidor, Slice 1): el consumidor entra con Google y
 // recupera sus "Sesiones activas" de mesa (retomar si cerró el navegador / perdió
 // la cookie del dispositivo). Es público: sin login muestra la puerta de entrada.
-export default async function MiPage() {
+export default async function MiPage({ searchParams }: { searchParams: Promise<{ tab?: string }> }) {
+  const sp = await searchParams;
+  const initialTab = (sp.tab === "descubrir" || sp.tab === "mesas") ? sp.tab : undefined;
   const supabase = await createClient();
   const { data } = await supabase.auth.getUser();
   const email = data.user?.email?.toLowerCase() ?? null;
 
   if (!email) {
-    return <MiClient user={null} sessions={[]} />;
+    return <MiClient user={null} sessions={[]} initialTab={initialTab} />;
   }
 
   const name =
@@ -62,5 +64,5 @@ export default async function MiPage() {
   const adminRec = await db.admin.findUnique({ where: { email }, select: { role: true } });
   const isSuperAdmin = adminRec?.role === "SUPERADMIN";
 
-  return <MiClient user={{ name, email }} sessions={sessions} isSuperAdmin={isSuperAdmin} />;
+  return <MiClient user={{ name, email }} sessions={sessions} isSuperAdmin={isSuperAdmin} initialTab={initialTab} />;
 }
