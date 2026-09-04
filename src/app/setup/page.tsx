@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
-import { Users, Bell, BarChart2, MessageCircle, Menu, X, LogOut, Activity, CreditCard, Building2, HeartPulse } from "lucide-react";
+import { Users, Bell, BarChart2, MessageCircle, Menu, X, LogOut, Activity, CreditCard, Building2, HeartPulse, Smartphone, Compass } from "lucide-react";
 import PanelBoundary from "@/components/setup/PanelBoundary";
 import ClientesPanel from "./panels/ClientesPanel";
 import TrazabilidadPanel from "./panels/TrazabilidadPanel";
@@ -87,6 +87,19 @@ export default function SuperAdminPage() {
             );
           })}
         </nav>
+
+        {/* Ver como consumidor — abre el portal del cliente en otra pestaña */}
+        <div className="px-3 pt-3 border-t border-white/10">
+          <p className="text-white/30 text-[10px] uppercase tracking-wider px-3 mb-1">Vista consumidor</p>
+          <a href="/mi" target="_blank" rel="noopener noreferrer"
+            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-white/60 hover:text-white hover:bg-white/8 transition-all">
+            <Smartphone size={16} /><span className="flex-1">Portal consumidor</span>
+          </a>
+          <a href="/descubrir" target="_blank" rel="noopener noreferrer"
+            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-white/60 hover:text-white hover:bg-white/8 transition-all">
+            <Compass size={16} /><span className="flex-1">Descubrir locales</span>
+          </a>
+        </div>
 
         {/* Sign out */}
         <div className="px-3 py-4 border-t border-white/10">

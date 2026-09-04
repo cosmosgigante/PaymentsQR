@@ -29,9 +29,11 @@ function sinceLabel(iso: string): string {
 export default function MiClient({
   user,
   sessions,
+  isSuperAdmin = false,
 }: {
   user: { name: string; email: string } | null;
   sessions: SessionCard[];
+  isSuperAdmin?: boolean;
 }) {
   const [loading, setLoading] = useState(false);
 
@@ -89,6 +91,13 @@ export default function MiClient({
       className="min-h-screen-dvh bg-[#fafafa]"
       style={{ paddingTop: "env(safe-area-inset-top)", paddingBottom: "max(1.5rem, env(safe-area-inset-bottom))" }}
     >
+      {/* Aviso de inspección para superadmin */}
+      {isSuperAdmin && (
+        <a href="/setup" className="block bg-amber-400 text-amber-950 text-center text-xs font-bold py-2 px-4 active:bg-amber-500">
+          👁️ Estás viendo el portal como superadmin · Volver al panel
+        </a>
+      )}
+
       {/* Header */}
       <div
         className="px-4 sm:px-6 pb-6"

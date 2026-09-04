@@ -58,5 +58,9 @@ export default async function MiPage() {
     };
   });
 
-  return <MiClient user={{ name, email }} sessions={sessions} />;
+  // ¿El que entra es un superadmin inspeccionando el portal? (para el aviso + volver al panel)
+  const adminRec = await db.admin.findUnique({ where: { email }, select: { role: true } });
+  const isSuperAdmin = adminRec?.role === "SUPERADMIN";
+
+  return <MiClient user={{ name, email }} sessions={sessions} isSuperAdmin={isSuperAdmin} />;
 }
