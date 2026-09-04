@@ -2,7 +2,7 @@
 
 import { useState, useRef } from "react";
 import Link from "next/link";
-import { ArrowLeft, CreditCard, Workflow, ShieldCheck, Users, Store, Upload, X } from "lucide-react";
+import { ArrowLeft, CreditCard, Workflow, ShieldCheck, Users, Store, Upload, X, MapPin, Navigation } from "lucide-react";
 
 type MP = {
   enabled: boolean;
@@ -18,9 +18,11 @@ type Ops = {
   waitlistEnabled: boolean; waitlistEstimatedWait: number; waitlistExpiryMinutes: number;
 };
 
+type Loc = { latitude: number | null; longitude: number | null; address: string | null; discoverable: boolean };
+
 export default function AjustesClient({
-  restaurantId, restaurantName, restaurantSlug, restaurantLogo, mercadopago, operations,
-}: { restaurantId: string; restaurantName: string; restaurantSlug: string; restaurantLogo: string | null; mercadopago: MP; operations: Ops }) {
+  restaurantId, restaurantName, restaurantSlug, restaurantLogo, mercadopago, operations, location,
+}: { restaurantId: string; restaurantName: string; restaurantSlug: string; restaurantLogo: string | null; mercadopago: MP; operations: Ops; location: Loc }) {
   // Datos del restaurante
   const [rName, setRName] = useState(restaurantName);
   const [rSlug, setRSlug] = useState(restaurantSlug);
@@ -109,6 +111,37 @@ export default function AjustesClient({
     setSavingWaitlist(false);
     setWaitlistMsg(res.ok ? "Guardado ✓" : "Error al guardar");
     setTimeout(() => setWaitlistMsg(null), 4000);
+  }
+
+  // Ubicación y descubrimiento
+  const [discoverable, setDiscoverable] = useState(location.discoverable);
+  const [address, setAddress] = useState(location.address ?? "");
+  const [lat, setLat] = useState<number | null>(location.latitude);
+  const [lng, setLng] = useState<number | null>(location.longitude);
+  const [locating, setLocating] = useState(false);
+  const [savingLoc, setSavingLoc] = useState(false);
+  const [locMsg, setLocMsg] = useState<string | null>(null);
+
+  function captureLocation() {
+    if (typeof navigator === "undefined" || !navigator.geolocation) { setLocMsg("Tu navegador no permite geolocalización"); return; }
+    setLocating(true); setLocMsg(null);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => { setLat(pos.coords.latitude); setLng(pos.coords.longitude); setLocating(false); setLocMsg("Ubicación capturada ✓ (acordate de Guardar)"); },
+      () => { setLocating(false); setLocMsg("No pudimos acceder a tu ubicación (revisá el permiso del navegador)"); },
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
+  }
+
+  async function saveLocation() {
+    setSavingLoc(true); setLocMsg(null);
+    const payload: Record<string, unknown> = { discoverable, address };
+    if (lat !== null && lng !== null) { payload.latitude = lat; payload.longitude = lng; }
+    const res = await fetch(`/api/account/restaurants/${restaurantId}/settings`, {
+      method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload),
+    });
+    setSavingLoc(false);
+    setLocMsg(res.ok ? "Guardado ✓" : "Error al guardar");
+    setTimeout(() => setLocMsg(null), 4000);
   }
 
   async function save() {
@@ -204,6 +237,55 @@ export default function AjustesClient({
           <button onClick={saveInfo} disabled={savingInfo || rName.trim().length < 2}
             className="mt-4 bg-gray-900 text-white hover:bg-gray-700 disabled:opacity-50 font-semibold text-sm px-4 py-2.5 rounded-xl transition-all">
             {savingInfo ? "Guardando..." : "Guardar"}
+          </button>
+        </section>
+
+        {/* Ubicación y descubrimiento */}
+        <section className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+          <div className="flex items-center gap-2 mb-1">
+            <MapPin size={18} className="text-blue-600" />
+            <h2 className="font-semibold text-gray-800">Ubicación y descubrimiento</h2>
+          </div>
+          <p className="text-sm text-gray-400 mb-4">Mostrá tu local a clientes que buscan lugares cerca (en la sección Descubrir).</p>
+
+          <label className="flex items-center justify-between gap-3 py-2">
+            <span className="text-sm text-gray-700">
+              <span className="font-medium">Aparecer en el descubrimiento</span>
+              <span className="block text-xs text-gray-400">Tu local se lista a quienes están cerca.</span>
+            </span>
+            <button type="button" onClick={() => setDiscoverable((v) => !v)}
+              className={`relative w-11 h-6 rounded-full transition-colors shrink-0 ${discoverable ? "bg-blue-600" : "bg-gray-200"}`}>
+              <span className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white transition-transform ${discoverable ? "translate-x-5" : ""}`} />
+            </button>
+          </label>
+
+          <div className="mt-3 border border-gray-100 rounded-xl p-3">
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-sm text-gray-600 min-w-0">
+                {lat !== null && lng !== null ? `📍 Ubicación cargada` : "Sin ubicación cargada"}
+              </span>
+              <button type="button" onClick={captureLocation} disabled={locating}
+                className="flex items-center gap-1.5 text-xs font-semibold bg-gray-900 text-white px-3 py-2 rounded-lg disabled:opacity-50 shrink-0">
+                <Navigation size={13} /> {locating ? "Ubicando…" : "Usar mi ubicación"}
+              </button>
+            </div>
+            <p className="text-[11px] text-gray-400 mt-2">Abrí esta pantalla <b>desde el local</b> y tocá el botón para tomar la ubicación exacta.</p>
+          </div>
+
+          <div className="mt-3">
+            <label className="text-xs font-medium text-gray-500">Dirección (opcional, para mostrar)</label>
+            <input type="text" value={address} onChange={(e) => setAddress(e.target.value)} maxLength={200}
+              placeholder="Ej: Av. Argentina 123"
+              className="mt-1 w-full bg-gray-50 border border-gray-100 rounded-xl px-3 py-2.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-600 placeholder:text-gray-300" />
+          </div>
+
+          {discoverable && lat === null && (
+            <p className="text-xs text-amber-600 mt-3">Para aparecer en el descubrimiento necesitás cargar tu ubicación.</p>
+          )}
+          {locMsg && <p className={`text-sm mt-3 ${locMsg.includes("✓") ? "text-emerald-600" : "text-gray-500"}`}>{locMsg}</p>}
+          <button onClick={saveLocation} disabled={savingLoc}
+            className="mt-4 bg-gray-900 text-white hover:bg-gray-700 disabled:opacity-50 font-semibold text-sm px-4 py-2.5 rounded-xl transition-all">
+            {savingLoc ? "Guardando..." : "Guardar"}
           </button>
         </section>
 
