@@ -6,7 +6,10 @@ import { useSSE } from "@/hooks/useSSE";
 import { ArrowLeft, Clock, BellRing } from "lucide-react";
 import Link from "next/link";
 import WaitlistPanel from "@/components/waiter/WaitlistPanel";
+import CloseSessionSheet, { type CloseTarget } from "@/components/CloseSessionSheet";
 import { WAITER_ACTIVE } from "@/lib/orderFlow";
+
+type LiveSession = { id: string; status: string; total: number };
 
 type OrderItem = { id: string; quantity: number; notes: string | null; menuItem: { name: string } };
 type Order = {
@@ -33,7 +36,26 @@ export default function WaiterBoard({ initialOrders }: { initialOrders: Order[] 
   const [orders, setOrders] = useState<Order[]>(initialOrders);
   const [alertTableNum, setAlertTableNum] = useState<number | null>(null);
   const [flowDelivered, setFlowDelivered] = useState(false);
+  const [sessions, setSessions] = useState<Record<number, LiveSession>>({});
+  const [closeTarget, setCloseTarget] = useState<CloseTarget | null>(null);
   const audioCtxRef = useRef<AudioContext | null>(null);
+
+  // Sesiones activas de la mesa (para "Terminar mesa" desde Mozos).
+  const fetchSessions = useCallback(async () => {
+    try {
+      const r = await fetch("/api/sessions");
+      if (!r.ok) return;
+      const data = await r.json();
+      const map: Record<number, LiveSession> = {};
+      for (const s of data) map[s.table.number] = { id: s.id, status: s.status, total: s.total };
+      setSessions(map);
+    } catch { /* ignorar */ }
+  }, []);
+  useEffect(() => {
+    fetchSessions();
+    const id = setInterval(fetchSessions, 5000);
+    return () => clearInterval(id);
+  }, [fetchSessions]);
 
   function playBeep() {
     try {
@@ -160,7 +182,7 @@ export default function WaiterBoard({ initialOrders }: { initialOrders: Order[] 
               <AnimatePresence>
                 {readyGroups.map((g) => (
                   <motion.div key={g.tableNumber} initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95 }}>
-                    <TableCard group={g} onPatch={patchOrder} flowDelivered={flowDelivered} />
+                    <TableCard group={g} onPatch={patchOrder} flowDelivered={flowDelivered} session={sessions[g.tableNumber]} onTerminar={setCloseTarget} />
                   </motion.div>
                 ))}
               </AnimatePresence>
@@ -174,7 +196,7 @@ export default function WaiterBoard({ initialOrders }: { initialOrders: Order[] 
             <p className="text-[11px] font-bold text-orange-500 uppercase tracking-widest mb-3">🟠 En proceso</p>
             <div className="space-y-3">
               {otherGroups.map((g) => (
-                <TableCard key={g.tableNumber} group={g} onPatch={patchOrder} flowDelivered={flowDelivered} />
+                <TableCard key={g.tableNumber} group={g} onPatch={patchOrder} flowDelivered={flowDelivered} session={sessions[g.tableNumber]} onTerminar={setCloseTarget} />
               ))}
             </div>
           </div>
@@ -186,11 +208,17 @@ export default function WaiterBoard({ initialOrders }: { initialOrders: Order[] 
           </div>
         )}
       </div>
+
+      <CloseSessionSheet
+        target={closeTarget}
+        onClose={() => setCloseTarget(null)}
+        onDone={fetchSessions}
+      />
     </div>
   );
 }
 
-function TableCard({ group, onPatch, flowDelivered }: { group: TableGroup; onPatch: (id: string, status: string) => void; flowDelivered: boolean }) {
+function TableCard({ group, onPatch, flowDelivered, session, onTerminar }: { group: TableGroup; onPatch: (id: string, status: string) => void; flowDelivered: boolean; session?: LiveSession; onTerminar: (t: CloseTarget) => void }) {
   const tableTotal = group.orders.reduce((s, o) => s + o.total, 0);
   const hasReady = group.orders.some((o) => o.status === "READY");
   const allDelivered = group.orders.every((o) => o.status === "DELIVERED");
@@ -264,10 +292,24 @@ function TableCard({ group, onPatch, flowDelivered }: { group: TableGroup; onPat
 
       {/* Acción global de mesa (si todos entregados) */}
       {allDelivered && (
-        <div className="px-4 py-3 border-t border-gray-100 bg-gray-50">
+        <div className="px-4 pt-3 border-t border-gray-100 bg-gray-50">
           <button onClick={() => group.orders.forEach((o) => onPatch(o.id, "PAID"))}
             className="w-full bg-gray-900 hover:bg-gray-700 text-white text-sm font-bold py-2.5 rounded-xl">
             Cobrar mesa completa ✓
+          </button>
+        </div>
+      )}
+
+      {/* Terminar mesa = cerrar cuenta → cerrar sesión (mismo proceso que Mesas) */}
+      {session && (
+        <div className={`px-4 py-3 ${allDelivered ? "bg-gray-50" : "border-t border-gray-100 bg-gray-50"}`}>
+          <button
+            onClick={() => onTerminar({ id: session.id, status: session.status, tableLabel: group.tableLabel ?? `Mesa ${group.tableNumber}`, total: session.total })}
+            className={`w-full text-sm font-bold py-2.5 rounded-xl text-white ${
+              session.status === "PENDING_CONFIRM" ? "bg-amber-500 hover:bg-amber-600" : "bg-emerald-600 hover:bg-emerald-700"
+            }`}
+          >
+            {session.status === "PENDING_CONFIRM" ? "Confirmar / Terminar mesa" : "Terminar mesa"}
           </button>
         </div>
       )}
