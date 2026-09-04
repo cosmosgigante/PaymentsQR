@@ -63,6 +63,15 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 
   await db.tableSession.update({ where: { id }, data });
 
+  // Al terminar la mesa CON cobro confirmado, los pedidos activos quedan pagados
+  // (dejan de colgar en cocina/mozos). Sin cobro confirmado, se dejan como están.
+  if (action === "close" && data.paymentSettled === true) {
+    await db.order.updateMany({
+      where: { tableSessionId: id, status: { notIn: ["PAID", "CANCELLED"] } },
+      data: { status: "PAID" },
+    });
+  }
+
   emitEvent(session.restaurantId, { type: "SESSION_UPDATED", sessionId: id, action });
 
   await logActivity({
