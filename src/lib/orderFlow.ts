@@ -54,6 +54,23 @@ export function isTransitionAllowedByFlow(to: OrderStatus, flow: FlowConfig): bo
   return true;
 }
 
+/**
+ * Próxima acción del CIRCUITO COMPLETO (cocina + mozo) para un pedido, según los
+ * toggles del restorán. Permite intervenir la orden desde CUALQUIER panel
+ * (cocina, mozos, mesas, dashboard) — la orden viaja y se puede empujar/corregir
+ * desde donde haga falta. Devuelve null si el pedido ya no tiene siguiente paso.
+ */
+export function nextOrderAction(status: OrderStatus, flow: FlowConfig): { next: OrderStatus; label: string } | null {
+  switch (status) {
+    case "PENDING":   return flow.flowConfirmEnabled ? { next: "CONFIRMED", label: "Confirmar" } : { next: "PREPARING", label: "Preparar" };
+    case "CONFIRMED": return { next: "PREPARING", label: "Preparar" };
+    case "PREPARING": return { next: "READY", label: "Listo 🔔" };
+    case "READY":     return flow.flowDeliveredEnabled ? { next: "DELIVERED", label: "Entregar" } : { next: "PAID", label: "Cobrar" };
+    case "DELIVERED": return { next: "PAID", label: "Cobrar" };
+    default:          return null; // AWAITING_PAYMENT / PAID / CANCELLED
+  }
+}
+
 // ─── Flujo de cocina ────────────────────────────────────────────────────────
 // Dado el estado actual y la config del restaurante, devuelve el siguiente estado.
 

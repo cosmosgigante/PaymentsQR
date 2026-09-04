@@ -6,6 +6,7 @@ import { Plus, QrCode, Power, Trash2, ArrowLeft, Download, X, DoorOpen, Shopping
 import Link from "next/link";
 import QRCode from "qrcode";
 import { ORDER_STATUS_LABELS, OrderStatus } from "@/lib/types";
+import { nextOrderAction } from "@/lib/orderFlow";
 import type { LiveTablesMap } from "@/lib/tableSession";
 
 type Table = {
@@ -57,6 +58,27 @@ export default function TablesManager({
     const poll = setInterval(refreshLive, 6000);
     return () => clearInterval(poll);
   }, [refreshLive]);
+
+  // Config de flujo del restorán (para saber el próximo paso de cada pedido).
+  const [flow, setFlow] = useState({ flowConfirmEnabled: false, flowDeliveredEnabled: false });
+  useEffect(() => {
+    fetch("/api/restaurant/flow").then((r) => (r.ok ? r.json() : null)).then((d) => {
+      if (d) setFlow({ flowConfirmEnabled: !!d.flowConfirmEnabled, flowDeliveredEnabled: !!d.flowDeliveredEnabled });
+    }).catch(() => {});
+  }, []);
+
+  // Avanzar un pedido desde acá (Mesas) — misma acción que cocina/mozos, se loguea
+  // con quién lo hizo (el backend registra el actor de la sesión).
+  async function patchOrder(orderId: string, status: string) {
+    try {
+      const r = await fetch(`/api/orders/${orderId}`, {
+        method: "PATCH", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status }),
+      });
+      if (r.ok) refreshLive();
+      else { const d = await r.json().catch(() => ({})); alert(d?.error ?? "No se pudo actualizar el pedido"); }
+    } catch { alert("No se pudo actualizar el pedido"); }
+  }
 
   // ── Cierre de cuenta/sesión desde el detalle de la mesa ──
   const [showCloseForm, setShowCloseForm] = useState(false);
@@ -525,6 +547,15 @@ export default function TablesManager({
                         <span className="text-xs text-zinc-500 font-medium">Subtotal</span>
                         <span className="text-sm font-semibold text-zinc-900 tabular-nums">${o.total.toLocaleString("es-AR")}</span>
                       </div>
+                      {(() => {
+                        const act = nextOrderAction(o.status as OrderStatus, flow);
+                        return act ? (
+                          <button onClick={() => patchOrder(o.id, act.next)}
+                            className="mt-2.5 w-full bg-zinc-900 active:bg-zinc-700 text-white text-xs font-bold py-2 rounded-xl">
+                            {act.label}
+                          </button>
+                        ) : null;
+                      })()}
                     </div>
                   ))}
                 </div>
