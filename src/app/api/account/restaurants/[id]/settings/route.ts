@@ -35,6 +35,10 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     waitlistEnabled?: boolean;
     waitlistEstimatedWait?: number;
     waitlistExpiryMinutes?: number;
+    latitude?: number;
+    longitude?: number;
+    address?: string;
+    discoverable?: boolean;
   };
 
   const data: Record<string, unknown> = {};
@@ -57,6 +61,11 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
   if (typeof body.waitlistEnabled === "boolean") data.waitlistEnabled = body.waitlistEnabled;
   if (typeof body.waitlistEstimatedWait === "number") data.waitlistEstimatedWait = Math.min(120, Math.max(1, Math.round(body.waitlistEstimatedWait)));
   if (typeof body.waitlistExpiryMinutes === "number") data.waitlistExpiryMinutes = Math.min(30, Math.max(1, Math.round(body.waitlistExpiryMinutes)));
+  // Ubicación y descubrimiento
+  if (typeof body.latitude === "number" && body.latitude >= -90 && body.latitude <= 90) data.latitude = body.latitude;
+  if (typeof body.longitude === "number" && body.longitude >= -180 && body.longitude <= 180) data.longitude = body.longitude;
+  if (typeof body.address === "string") data.address = body.address.trim().slice(0, 200) || null;
+  if (typeof body.discoverable === "boolean") data.discoverable = body.discoverable;
   if (Object.keys(data).length === 0) return NextResponse.json({ error: "Nada para guardar" }, { status: 400 });
 
   await db.restaurant.update({ where: { id }, data });
@@ -75,6 +84,9 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
       data.waitlistEnabled !== undefined && `lista de espera ${data.waitlistEnabled ? "ON" : "OFF"}`,
       data.waitlistEstimatedWait !== undefined && `espera ${data.waitlistEstimatedWait} min/pers.`,
       data.waitlistExpiryMinutes !== undefined && `expira en ${data.waitlistExpiryMinutes} min`,
+      data.discoverable !== undefined && `descubrimiento ${data.discoverable ? "ON" : "OFF"}`,
+      (data.latitude !== undefined || data.longitude !== undefined) && "ubicación actualizada",
+      data.address !== undefined && "dirección actualizada",
     ].filter(Boolean).join(" · ") || "sin cambios",
   });
 

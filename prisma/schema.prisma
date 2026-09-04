@@ -122,6 +122,12 @@ model Restaurant {
   businessSubtype      String         @default("BAR_RESTO")    // BAR_RESTO | KIOSCO | DESPENSA
   storeOpen            Boolean        @default(true)  // tienda kiosco abierta/cerrada (recibe pedidos)
   prepEstimateMin      Int            @default(15)    // tiempo estimado de preparación (min)
+  // Descubrimiento por ubicación (portal consumidor): el negocio opta por aparecer
+  // en el listado público de cercanía y setea su ubicación.
+  latitude             Float?
+  longitude            Float?
+  address              String?
+  discoverable         Boolean        @default(false) // aparece en /descubrir
   tables         Table[]
   waitlistEntries WaitlistEntry[]
   accessQRs      AccessQR[]
