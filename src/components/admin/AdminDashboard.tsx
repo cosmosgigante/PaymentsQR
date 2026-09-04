@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { createClient } from "@/lib/supabase/client";
 import { ChefHat, BookOpen, QrCode, LogOut, TrendingUp, Package, Grid2X2, UtensilsCrossed, ArrowLeft, History, BarChart3, Users } from "lucide-react";
 import { ORDER_STATUS_LABELS, ORDER_STATUS_COLORS, OrderStatus } from "@/lib/types";
+import { nextOrderAction } from "@/lib/orderFlow";
 import { useSSE } from "@/hooks/useSSE";
 import { useState, useCallback, useEffect } from "react";
 
@@ -78,6 +79,15 @@ export default function AdminDashboard({ stats, recentOrders: initialOrders, gen
     const id = setInterval(fetchCounts, 6000);
     return () => clearInterval(id);
   }, [fetchCounts]);
+
+  // Config de flujo (para el botón de avance del circuito completo en Activos).
+  const [flow, setFlow] = useState({ flowConfirmEnabled: false, flowDeliveredEnabled: false });
+  useEffect(() => {
+    if (!isGastro) return;
+    fetch("/api/restaurant/flow").then((r) => (r.ok ? r.json() : null)).then((d) => {
+      if (d) setFlow({ flowConfirmEnabled: !!d.flowConfirmEnabled, flowDeliveredEnabled: !!d.flowDeliveredEnabled });
+    }).catch(() => {});
+  }, [isGastro]);
 
   const handleSSE = useCallback((data: { type: string; [k: string]: unknown }) => {
     if (data.type === "NEW_ORDER") {
@@ -387,18 +397,15 @@ export default function AdminDashboard({ stats, recentOrders: initialOrders, gen
                           Entregado y cobrado ✓
                         </button>
                       )}
-                      {isGastro && order.status === "READY" && (
-                        <button onClick={() => updateStatus(order.id, "DELIVERED")}
-                          className="text-[11px] font-bold bg-emerald-500 hover:bg-emerald-600 text-white px-3 py-1.5 rounded-lg transition-all">
-                          Entregar ✓
-                        </button>
-                      )}
-                      {isGastro && order.status === "DELIVERED" && (
-                        <button onClick={() => updateStatus(order.id, "PAID")}
-                          className="text-[11px] font-bold bg-gray-900 hover:bg-gray-700 text-white px-3 py-1.5 rounded-lg transition-all">
-                          Cobrado ✓
-                        </button>
-                      )}
+                      {isGastro && (() => {
+                        const act = nextOrderAction(order.status as OrderStatus, flow);
+                        return act ? (
+                          <button onClick={() => updateStatus(order.id, act.next)}
+                            className="text-[11px] font-bold bg-gray-900 hover:bg-gray-700 text-white px-3 py-1.5 rounded-lg transition-all">
+                            {act.label}
+                          </button>
+                        ) : null;
+                      })()}
                     </div>
                   </div>
                 </motion.div>
