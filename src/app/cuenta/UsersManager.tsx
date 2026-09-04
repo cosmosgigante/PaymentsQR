@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Trash2, MonitorSmartphone, Pause, Play, Pencil, X, Check } from "lucide-react";
+import { toast } from "@/lib/toast";
 import {
   MODULES, PERM_LEVELS, DURATION_OPTIONS,
   type PermLevel, type PermissionMatrix, type ModuleKey,
@@ -138,7 +139,7 @@ export default function UsersManager({ restaurants }: { restaurants: Restaurant[
 
   async function handleDelete(id: string) {
     const token = tokens.find((t) => t.id === id);
-    if (token?.isActive) { alert("Pausá el acceso antes de eliminarlo"); return; }
+    if (token?.isActive) { toast("Pausá el acceso antes de eliminarlo"); return; }
     if (!confirm(`¿Eliminar el acceso "${token?.name}"? Esta acción no se puede deshacer.`)) return;
     setDeletingId(id);
     const res = await fetch(`/api/account/tokens/${id}`, { method: "DELETE" });

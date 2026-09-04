@@ -4,6 +4,7 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import { CheckCircle2, Clock, ChefHat, Bell, Utensils, CreditCard } from "lucide-react";
 import { OrderStatus as Status, ORDER_STATUS_LABELS } from "@/lib/types";
+import { toast } from "@/lib/toast";
 
 // Vista unificada "Cuenta de la mesa": muestra las RONDAS de la sesión (cada
 // pedido = una ronda) con sus ítems, su progreso propio y su total, más el total
@@ -154,8 +155,8 @@ export default function OrderStatusView({
       });
       const d = await r.json().catch(() => ({}));
       if (r.ok) { setConfirmCancelId(null); onRefresh(); }
-      else alert(d?.error ?? "No se pudo cancelar");
-    } catch { alert("No se pudo cancelar"); }
+      else toast(d?.error ?? "No se pudo cancelar");
+    } catch { toast("No se pudo cancelar"); }
     finally { setCancelingId(null); }
   }
 
@@ -168,8 +169,8 @@ export default function OrderStatusView({
       });
       const d = await r.json().catch(() => ({}));
       if (d?.initPoint) { window.location.href = d.initPoint; return; }
-      alert(d?.error ?? "No se pudo iniciar el pago");
-    } catch { alert("No se pudo iniciar el pago"); }
+      toast(d?.error ?? "No se pudo iniciar el pago");
+    } catch { toast("No se pudo iniciar el pago"); }
     finally { setPaying(false); }
   }
 

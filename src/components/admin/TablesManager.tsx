@@ -7,6 +7,7 @@ import Link from "next/link";
 import QRCode from "qrcode";
 import { ORDER_STATUS_LABELS, OrderStatus } from "@/lib/types";
 import { nextOrderAction } from "@/lib/orderFlow";
+import { toast } from "@/lib/toast";
 import type { LiveTablesMap } from "@/lib/tableSession";
 
 type Table = {
@@ -76,8 +77,8 @@ export default function TablesManager({
         body: JSON.stringify({ status }),
       });
       if (r.ok) refreshLive();
-      else { const d = await r.json().catch(() => ({})); alert(d?.error ?? "No se pudo actualizar el pedido"); }
-    } catch { alert("No se pudo actualizar el pedido"); }
+      else { const d = await r.json().catch(() => ({})); toast(d?.error ?? "No se pudo actualizar el pedido"); }
+    } catch { toast("No se pudo actualizar el pedido"); }
   }
 
   // ── Cierre de cuenta/sesión desde el detalle de la mesa ──
@@ -98,8 +99,8 @@ export default function TablesManager({
         body: JSON.stringify({ action: "confirm" }),
       });
       if (r.ok) { setDetailTable(null); refreshLive(); }
-      else { const d = await r.json().catch(() => ({})); alert(d?.error ?? "No se pudo confirmar la mesa"); }
-    } catch { alert("No se pudo confirmar la mesa"); }
+      else { const d = await r.json().catch(() => ({})); toast(d?.error ?? "No se pudo confirmar la mesa"); }
+    } catch { toast("No se pudo confirmar la mesa"); }
     finally { setConfirming(false); }
   }
 
@@ -119,8 +120,8 @@ export default function TablesManager({
         body: JSON.stringify(payload),
       });
       if (r.ok) { setDetailTable(null); refreshLive(); }
-      else { const d = await r.json().catch(() => ({})); alert(d?.error ?? "No se pudo cerrar la mesa"); }
-    } catch { alert("No se pudo cerrar la mesa"); }
+      else { const d = await r.json().catch(() => ({})); toast(d?.error ?? "No se pudo cerrar la mesa"); }
+    } catch { toast("No se pudo cerrar la mesa"); }
     finally { setClosing(false); }
   }
 
@@ -171,7 +172,7 @@ export default function TablesManager({
       setNewNumber("");
       setNewLabel("");
     } else {
-      alert(data.error);
+      toast(data.error);
     }
     setSaving(false);
   }
