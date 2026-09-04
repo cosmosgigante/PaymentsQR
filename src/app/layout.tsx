@@ -4,6 +4,7 @@ import "./globals.css";
 import { Analytics } from "@vercel/analytics/next";
 import PWARegister from "./pwa-register";
 import CookieBanner from "@/components/CookieBanner";
+import Toaster from "@/components/Toaster";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -45,6 +46,7 @@ export default function RootLayout({
         <PWARegister />
         {children}
         <CookieBanner />
+        <Toaster />
       </body>
     </html>
   );

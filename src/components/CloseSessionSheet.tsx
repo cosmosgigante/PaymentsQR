@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X } from "lucide-react";
+import { toast } from "@/lib/toast";
 
 // Hoja compartida para "terminar mesa": confirmar (si está por confirmar) y cerrar
 // la cuenta/sesión con datos de cobro (¿cobró?/método). La usan Mesas (dueño) y
@@ -34,8 +35,8 @@ export default function CloseSessionSheet({
         body: JSON.stringify(body),
       });
       if (r.ok) { onDone(); onClose(); }
-      else { const d = await r.json().catch(() => ({})); alert(d?.error ?? errMsg); }
-    } catch { alert(errMsg); }
+      else { const d = await r.json().catch(() => ({})); toast(d?.error ?? errMsg); }
+    } catch { toast(errMsg); }
     finally { setBusy(false); }
   }
 
