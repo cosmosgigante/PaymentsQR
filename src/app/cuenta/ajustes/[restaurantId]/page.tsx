@@ -13,7 +13,7 @@ export default async function AjustesPage({ params }: { params: Promise<{ restau
 
   const restaurant = await db.restaurant.findFirst({
     where: { id: restaurantId, accountId: admin.account.id },
-    select: { id: true, name: true, slug: true, logo: true, confirmTableEnabled: true, maxTableDevices: true, flowConfirmEnabled: true, flowDeliveredEnabled: true, waitlistEnabled: true, waitlistEstimatedWait: true, waitlistExpiryMinutes: true, latitude: true, longitude: true, address: true, discoverable: true },
+    select: { id: true, name: true, slug: true, logo: true, confirmTableEnabled: true, maxTableDevices: true, flowConfirmEnabled: true, flowDeliveredEnabled: true, waitlistEnabled: true, waitlistEstimatedWait: true, waitlistExpiryMinutes: true, country: true, city: true, latitude: true, longitude: true, address: true, discoverable: true },
   });
   if (!restaurant) redirect("/cuenta");
 
@@ -47,6 +47,8 @@ export default async function AjustesPage({ params }: { params: Promise<{ restau
         accountName: pm?.accountName ?? null,
       }}
       location={{
+        country: restaurant.country,
+        city: restaurant.city,
         latitude: restaurant.latitude,
         longitude: restaurant.longitude,
         address: restaurant.address,
