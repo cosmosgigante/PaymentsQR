@@ -131,6 +131,8 @@ export default function MesaClient({ token, table, restaurant, categories }: Pro
     return (
       <OrderStatusView
         tableToken={token}
+        restaurantName={restaurant.name}
+        primaryColor={restaurant.primaryColor}
         onPedirMas={pedirMas}
         onRefresh={loadSession}
         sessionOrders={orders}
@@ -177,6 +179,7 @@ export default function MesaClient({ token, table, restaurant, categories }: Pro
       <MenuView
         categories={categories}
         restaurantName={restaurant.name}
+        primaryColor={restaurant.primaryColor}
         tableLabel={tableLabel}
         cart={cart}
         onAdd={add}
@@ -197,7 +200,8 @@ export default function MesaClient({ token, table, restaurant, categories }: Pro
             <div className="w-full max-w-[430px]">
               <button
                 onClick={() => setCartOpen(true)}
-                className="w-full bg-zinc-900 active:bg-zinc-700 text-white font-semibold py-4 px-5 rounded-2xl shadow-xl flex items-center justify-between transition-colors min-h-[56px]"
+                style={{ background: restaurant.primaryColor || "#18181b" }}
+                className="w-full active:opacity-90 text-white font-semibold py-4 px-5 rounded-2xl shadow-xl flex items-center justify-between transition-opacity min-h-[56px]"
               >
                 <div className="flex items-center gap-2.5">
                   <div className="bg-white/10 rounded-xl w-8 h-8 flex items-center justify-center flex-shrink-0">
@@ -223,6 +227,7 @@ export default function MesaClient({ token, table, restaurant, categories }: Pro
         <CartDrawer
           cart={cart}
           tableToken={token}
+          primaryColor={restaurant.primaryColor}
           onClose={() => setCartOpen(false)}
           onUpdateQty={updateQty}
           onOrderCreated={handleOrderCreated}

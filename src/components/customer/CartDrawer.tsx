@@ -10,6 +10,7 @@ import { createClient } from "@/lib/supabase/client";
 type Props = {
   cart: CartItem[];
   tableToken: string;
+  primaryColor?: string;
   onClose: () => void;
   onUpdateQty: (menuItemId: string, delta: number) => void;
   onOrderCreated: (orderId: string) => void;
@@ -17,7 +18,8 @@ type Props = {
 
 type GoogleUser = { name: string; email: string };
 
-export default function CartDrawer({ cart, tableToken, onClose, onUpdateQty, onOrderCreated }: Props) {
+export default function CartDrawer({ cart, tableToken, primaryColor, onClose, onUpdateQty, onOrderCreated }: Props) {
+  const accent = primaryColor || "#18181b";
   const [paymentMode, setPaymentMode] = useState<"CASHIER" | "ONLINE">("CASHIER");
   const [notes, setNotes]             = useState("");
   const [googleUser, setGoogleUser]   = useState<GoogleUser | null>(null);
@@ -129,7 +131,7 @@ export default function CartDrawer({ cart, tableToken, onClose, onUpdateQty, onO
                       <Minus size={13} strokeWidth={2.5} />
                     </button>
                     <span className="w-5 text-center font-bold text-sm tabular-nums text-zinc-900">{item.quantity}</span>
-                    <button onClick={() => onUpdateQty(item.menuItemId, 1)} className="w-9 h-9 rounded-full bg-zinc-900 flex items-center justify-center text-white active:bg-zinc-700" aria-label="Agregar">
+                    <button onClick={() => onUpdateQty(item.menuItemId, 1)} style={{ background: accent }} className="w-9 h-9 rounded-full flex items-center justify-center text-white active:opacity-80" aria-label="Agregar">
                       <Plus size={13} strokeWidth={2.5} />
                     </button>
                     <span className="w-16 text-right font-semibold text-sm text-zinc-900 tabular-nums">${(item.price * item.quantity).toLocaleString("es-AR")}</span>
@@ -144,8 +146,8 @@ export default function CartDrawer({ cart, tableToken, onClose, onUpdateQty, onO
             <div className="mb-4">
               <p className="text-[11px] font-semibold text-zinc-400 uppercase tracking-widest mb-3">¿Cómo pagás?</p>
               <div className="grid grid-cols-2 gap-2">
-                <PaymentOption selected={paymentMode === "CASHIER"} onClick={() => setPaymentMode("CASHIER")} icon="🧾" title="Al final" subtitle="Clásico · efectivo o MP" />
-                <PaymentOption selected={paymentMode === "ONLINE"}  onClick={() => setPaymentMode("ONLINE")}  icon={<CreditCard size={20} strokeWidth={1.5} />} title="Ahora" subtitle="Tarjeta o billetera" />
+                <PaymentOption accent={accent} selected={paymentMode === "CASHIER"} onClick={() => setPaymentMode("CASHIER")} icon="🧾" title="Al final" subtitle="Clásico · efectivo o MP" />
+                <PaymentOption accent={accent} selected={paymentMode === "ONLINE"}  onClick={() => setPaymentMode("ONLINE")}  icon={<CreditCard size={20} strokeWidth={1.5} />} title="Ahora" subtitle="Tarjeta o billetera" />
               </div>
             </div>
 
@@ -204,7 +206,8 @@ export default function CartDrawer({ cart, tableToken, onClose, onUpdateQty, onO
             <button
               onClick={handleConfirm}
               disabled={loading || (paymentMode === "CASHIER" && !googleUser)}
-              className="w-full bg-zinc-900 active:bg-zinc-700 disabled:opacity-40 text-white font-semibold py-4 rounded-2xl transition-all text-[15px] min-h-[56px]"
+              style={{ background: accent }}
+              className="w-full active:opacity-90 disabled:opacity-40 text-white font-bold py-4 rounded-2xl transition-opacity text-[15px] min-h-[56px]"
             >
               {loading ? "Enviando pedido..." : "Enviar pedido"}
             </button>
@@ -215,12 +218,14 @@ export default function CartDrawer({ cart, tableToken, onClose, onUpdateQty, onO
   );
 }
 
-function PaymentOption({ selected, onClick, icon, title, subtitle }: { selected: boolean; onClick: () => void; icon: React.ReactNode; title: string; subtitle: string }) {
+function PaymentOption({ selected, onClick, icon, title, subtitle, accent }: { selected: boolean; onClick: () => void; icon: React.ReactNode; title: string; subtitle: string; accent: string }) {
   return (
-    <button onClick={onClick} className={`relative p-4 rounded-2xl border-2 text-left transition-all duration-200 min-h-[90px] active:scale-[0.98] ${selected ? "border-zinc-900 bg-zinc-900 text-white" : "border-zinc-100 bg-zinc-50 text-zinc-900"}`}>
+    <button onClick={onClick}
+      style={selected ? { background: accent, borderColor: accent } : undefined}
+      className={`relative p-4 rounded-2xl border-2 text-left transition-all duration-200 min-h-[90px] active:scale-[0.98] ${selected ? "text-white" : "border-zinc-100 bg-zinc-50 text-zinc-900"}`}>
       <div className={`text-xl mb-2 ${selected ? "text-white" : "text-zinc-700"}`}>{icon}</div>
       <p className="font-semibold text-sm leading-tight">{title}</p>
-      <p className={`text-xs mt-0.5 leading-tight ${selected ? "text-zinc-300" : "text-zinc-400"}`}>{subtitle}</p>
+      <p className={`text-xs mt-0.5 leading-tight ${selected ? "text-white/70" : "text-zinc-400"}`}>{subtitle}</p>
     </button>
   );
 }

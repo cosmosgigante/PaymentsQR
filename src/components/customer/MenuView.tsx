@@ -8,13 +8,15 @@ import { CartItem, MenuCategory, MenuItem } from "@/lib/types";
 type Props = {
   categories: MenuCategory[];
   restaurantName: string;
+  primaryColor?: string;
   tableLabel: string;
   cart: CartItem[];
   onAdd: (item: MenuItem) => void;
   onRemove: (menuItemId: string) => void;
 };
 
-export default function MenuView({ categories, restaurantName, tableLabel, cart, onAdd, onRemove }: Props) {
+export default function MenuView({ categories, restaurantName, primaryColor, tableLabel, cart, onAdd, onRemove }: Props) {
+  const accent = primaryColor || "#f97316";
   const [activeCategory, setActiveCategory] = useState(categories[0]?.id ?? "");
   const tabsRef = useRef<HTMLDivElement>(null);
   const cartMap = new Map(cart.map((c) => [c.menuItemId, c.quantity]));
@@ -30,12 +32,12 @@ export default function MenuView({ categories, restaurantName, tableLabel, cart,
   }
 
   return (
-    <div className="bg-[#fafafa]">
-      {/* Header */}
-      <div className="bg-white border-b border-zinc-100 px-4 pt-[max(1.5rem,env(safe-area-inset-top))] pb-4">
+    <div className="bg-[#faf7f4]">
+      {/* Header con tinte del local */}
+      <div className="border-b border-black/[0.04] px-4 pt-[max(1.5rem,env(safe-area-inset-top))] pb-4" style={{ background: `linear-gradient(160deg, ${accent}14 0%, #ffffff 80%)` }}>
         <div className="flex items-start justify-between gap-3">
-          <h1 className="text-2xl font-bold tracking-tight text-zinc-900 leading-tight">{restaurantName}</h1>
-          <span className="shrink-0 inline-flex items-center gap-1 bg-zinc-900 text-white text-[13px] font-bold px-3 py-1.5 rounded-full">
+          <h1 className="text-[26px] font-black tracking-tight text-zinc-900 leading-tight">{restaurantName}</h1>
+          <span className="shrink-0 inline-flex items-center gap-1 text-white text-[13px] font-bold px-3 py-1.5 rounded-full" style={{ background: accent }}>
             <MapPin size={13} strokeWidth={2.5} />{tableLabel}
           </span>
         </div>
@@ -160,7 +162,8 @@ export default function MenuView({ categories, restaurantName, tableLabel, cart,
                                 initial={{ scale: 0.7, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.7, opacity: 0 }}
                                 transition={{ duration: 0.12 }}
                                 onClick={() => onAdd(item)}
-                                className="w-10 h-10 bg-zinc-900 active:bg-zinc-700 text-white rounded-full flex items-center justify-center"
+                                style={{ background: accent }}
+                                className="w-10 h-10 active:opacity-80 text-white rounded-full flex items-center justify-center"
                                 aria-label={`Agregar ${item.name}`}
                               >
                                 <Plus size={18} strokeWidth={2.5} />
@@ -178,7 +181,8 @@ export default function MenuView({ categories, restaurantName, tableLabel, cart,
                                 </button>
                                 <span className="w-5 text-center font-bold text-zinc-900 text-sm tabular-nums">{qty}</span>
                                 <button onClick={() => onAdd(item)}
-                                  className="w-9 h-9 rounded-full bg-zinc-900 active:bg-zinc-700 flex items-center justify-center text-white"
+                                  style={{ background: accent }}
+                                  className="w-9 h-9 rounded-full active:opacity-80 flex items-center justify-center text-white"
                                   aria-label="Agregar uno">
                                   <Plus size={14} strokeWidth={2.5} />
                                 </button>
