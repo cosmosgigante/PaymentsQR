@@ -38,6 +38,8 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     latitude?: number;
     longitude?: number;
     address?: string;
+    country?: string;
+    city?: string;
     discoverable?: boolean;
   };
 
@@ -65,6 +67,8 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
   if (typeof body.latitude === "number" && body.latitude >= -90 && body.latitude <= 90) data.latitude = body.latitude;
   if (typeof body.longitude === "number" && body.longitude >= -180 && body.longitude <= 180) data.longitude = body.longitude;
   if (typeof body.address === "string") data.address = body.address.trim().slice(0, 200) || null;
+  if (typeof body.country === "string") data.country = body.country.trim().slice(0, 80) || null;
+  if (typeof body.city === "string") data.city = body.city.trim().slice(0, 120) || null;
   if (typeof body.discoverable === "boolean") data.discoverable = body.discoverable;
   if (Object.keys(data).length === 0) return NextResponse.json({ error: "Nada para guardar" }, { status: 400 });
 

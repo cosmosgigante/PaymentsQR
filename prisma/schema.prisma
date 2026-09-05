@@ -124,6 +124,8 @@ model Restaurant {
   prepEstimateMin      Int            @default(15)    // tiempo estimado de preparación (min)
   // Descubrimiento por ubicación (portal consumidor): el negocio opta por aparecer
   // en el listado público de cercanía y setea su ubicación.
+  country              String?
+  city                 String?
   latitude             Float?
   longitude            Float?
   address              String?

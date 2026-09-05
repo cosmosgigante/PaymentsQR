@@ -18,7 +18,7 @@ type Ops = {
   waitlistEnabled: boolean; waitlistEstimatedWait: number; waitlistExpiryMinutes: number;
 };
 
-type Loc = { latitude: number | null; longitude: number | null; address: string | null; discoverable: boolean };
+type Loc = { country: string | null; city: string | null; latitude: number | null; longitude: number | null; address: string | null; discoverable: boolean };
 
 export default function AjustesClient({
   restaurantId, restaurantName, restaurantSlug, restaurantLogo, mercadopago, operations, location,
@@ -115,12 +115,35 @@ export default function AjustesClient({
 
   // Ubicación y descubrimiento
   const [discoverable, setDiscoverable] = useState(location.discoverable);
+  const [country, setCountry] = useState(location.country ?? "");
+  const [city, setCity] = useState(location.city ?? "");
   const [address, setAddress] = useState(location.address ?? "");
   const [lat, setLat] = useState<number | null>(location.latitude);
   const [lng, setLng] = useState<number | null>(location.longitude);
   const [locating, setLocating] = useState(false);
+  const [geocoding, setGeocoding] = useState(false);
   const [savingLoc, setSavingLoc] = useState(false);
   const [locMsg, setLocMsg] = useState<string | null>(null);
+
+  // Geocodifica la dirección escrita (país + ciudad + calle) a coordenadas con
+  // OpenStreetMap. Así el negocio no necesita GPS: escribe su dirección y la ubica.
+  async function geocode() {
+    const q = [address, city, country].filter(Boolean).join(", ");
+    if (q.length < 3) { setLocMsg("Escribí al menos la dirección y la ciudad"); return; }
+    setGeocoding(true); setLocMsg(null);
+    try {
+      const r = await fetch(`/api/geo/search?q=${encodeURIComponent(q)}`);
+      const data = await r.json();
+      const hit = Array.isArray(data) && data[0];
+      if (hit) {
+        setLat(hit.lat); setLng(hit.lng);
+        if (!city && hit.city) setCity(hit.city);
+        if (!country && hit.country) setCountry(hit.country);
+        setLocMsg("Ubicación encontrada ✓ (revisá y Guardá)");
+      } else setLocMsg("No encontramos esa dirección. Probá con más detalle o usá tu ubicación.");
+    } catch { setLocMsg("No se pudo buscar la dirección"); }
+    finally { setGeocoding(false); }
+  }
 
   function captureLocation() {
     if (typeof navigator === "undefined" || !navigator.geolocation) { setLocMsg("Tu navegador no permite geolocalización"); return; }
@@ -134,7 +157,7 @@ export default function AjustesClient({
 
   async function saveLocation() {
     setSavingLoc(true); setLocMsg(null);
-    const payload: Record<string, unknown> = { discoverable, address };
+    const payload: Record<string, unknown> = { discoverable, address, country, city };
     if (lat !== null && lng !== null) { payload.latitude = lat; payload.longitude = lng; }
     const res = await fetch(`/api/account/restaurants/${restaurantId}/settings`, {
       method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload),
@@ -272,11 +295,32 @@ export default function AjustesClient({
             <p className="text-[11px] text-gray-400 mt-2">Abrí esta pantalla <b>desde el local</b> y tocá el botón para tomar la ubicación exacta.</p>
           </div>
 
-          <div className="mt-3">
-            <label className="text-xs font-medium text-gray-500">Dirección (opcional, para mostrar)</label>
-            <input type="text" value={address} onChange={(e) => setAddress(e.target.value)} maxLength={200}
-              placeholder="Ej: Av. Argentina 123"
-              className="mt-1 w-full bg-gray-50 border border-gray-100 rounded-xl px-3 py-2.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-600 placeholder:text-gray-300" />
+          <div className="mt-3 grid grid-cols-2 gap-2">
+            <div>
+              <label className="text-xs font-medium text-gray-500">País</label>
+              <input type="text" value={country} onChange={(e) => setCountry(e.target.value)} maxLength={80}
+                placeholder="Argentina"
+                className="mt-1 w-full bg-gray-50 border border-gray-100 rounded-xl px-3 py-2.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-600 placeholder:text-gray-300" />
+            </div>
+            <div>
+              <label className="text-xs font-medium text-gray-500">Ciudad</label>
+              <input type="text" value={city} onChange={(e) => setCity(e.target.value)} maxLength={120}
+                placeholder="Neuquén Capital"
+                className="mt-1 w-full bg-gray-50 border border-gray-100 rounded-xl px-3 py-2.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-600 placeholder:text-gray-300" />
+            </div>
+          </div>
+          <div className="mt-2">
+            <label className="text-xs font-medium text-gray-500">Dirección exacta</label>
+            <div className="mt-1 flex gap-2">
+              <input type="text" value={address} onChange={(e) => setAddress(e.target.value)} maxLength={200}
+                placeholder="Ej: Av. Argentina 123"
+                className="flex-1 min-w-0 bg-gray-50 border border-gray-100 rounded-xl px-3 py-2.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-600 placeholder:text-gray-300" />
+              <button type="button" onClick={geocode} disabled={geocoding}
+                className="shrink-0 flex items-center gap-1.5 text-xs font-semibold bg-blue-600 text-white px-3 py-2.5 rounded-xl disabled:opacity-50">
+                <MapPin size={13} /> {geocoding ? "Buscando…" : "Ubicar"}
+              </button>
+            </div>
+            <p className="text-[11px] text-gray-400 mt-1">Escribí la dirección y tocá “Ubicar” para encontrarla en el mapa, o usá tu ubicación actual.</p>
           </div>
 
           {discoverable && lat === null && (
