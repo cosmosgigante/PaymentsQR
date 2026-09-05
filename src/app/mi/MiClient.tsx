@@ -3,7 +3,7 @@
 import { useState, useCallback, useEffect } from "react";
 import { motion } from "framer-motion";
 import { createClient } from "@/lib/supabase/client";
-import { LogOut, Clock, ArrowUpRight, MapPin, Navigation, Compass, UtensilsCrossed } from "lucide-react";
+import { LogOut, Clock, ArrowUpRight, MapPin, Navigation, Compass, Receipt } from "lucide-react";
 
 // ── Portal de clientes: la home del consumidor (clientes de nuestros clientes) ──
 // Diseño propio, premium y neutral (no compite con el color de cada local): fondo
@@ -130,7 +130,7 @@ export default function MiClient({
             {firstName && <><br /><span style={{ color: ACCENT }}>{firstName}</span></>}
           </motion.h1>
           <p className="text-white/60 text-sm mt-2 max-w-[17rem]">
-            {firstName ? "Tus mesas y los lugares cerca tuyo, en un solo lugar." : "Tu lugar para pedir en el local y descubrir dónde comer cerca."}
+            {firstName ? "Tus sesiones y los negocios cerca tuyo, en un solo lugar." : "Tu lugar para pedir y descubrir negocios y servicios cerca."}
           </p>
         </div>
       </div>
@@ -138,10 +138,10 @@ export default function MiClient({
       {/* ── Contenido (se superpone al header) ── */}
       <div className="max-w-md mx-auto px-4 -mt-10 space-y-6 relative">
 
-        {/* Mesas activas — lo más urgente al abrir */}
+        {/* Sesiones activas — lo más urgente al abrir */}
         {sessions.length > 0 && (
           <section>
-            <SectionTitle icon={<UtensilsCrossed size={13} />}>Tus mesas activas</SectionTitle>
+            <SectionTitle icon={<Receipt size={13} />}>Tus sesiones activas</SectionTitle>
             <div className="space-y-3">
               {sessions.map((s, i) => (
                 <motion.a
@@ -154,7 +154,7 @@ export default function MiClient({
                   <div className="relative">
                     <div className="flex items-center justify-between">
                       <span className="text-[10px] font-bold uppercase tracking-widest" style={{ color: ACCENT }}>
-                        {s.pendingConfirm ? "Esperando confirmación" : "Mesa abierta"}
+                        {s.pendingConfirm ? "Esperando confirmación" : "Sesión abierta"}
                       </span>
                       <span className="flex items-center gap-1 text-white/40 text-[11px]"><Clock size={11} /> {sinceLabel(s.lastActivityAt)}</span>
                     </div>
@@ -247,7 +247,7 @@ export default function MiClient({
           <section>
             <div className="rounded-[26px] p-6 text-center border border-black/[0.04]" style={{ background: "linear-gradient(160deg, #fff 0%, #fff4f0 100%)" }}>
               <p className="font-bold text-zinc-900">Guardá tus pedidos</p>
-              <p className="text-zinc-500 text-sm mt-1 leading-relaxed">Ingresá con Google y retomá tu mesa aunque cierres el navegador.</p>
+              <p className="text-zinc-500 text-sm mt-1 leading-relaxed">Ingresá con Google y retomá tu sesión aunque cierres el navegador.</p>
               <button onClick={loginGoogle} disabled={busy}
                 className="mt-4 w-full bg-white border border-zinc-200 active:bg-zinc-50 text-zinc-900 font-bold py-3.5 rounded-2xl text-[15px] min-h-[52px] flex items-center justify-center gap-2.5 shadow-sm">
                 <GoogleIcon /> {busy ? "Abriendo…" : "Continuar con Google"}
@@ -256,10 +256,10 @@ export default function MiClient({
           </section>
         )}
 
-        {/* Sin mesas y logueado */}
+        {/* Sin sesiones y logueado */}
         {user && sessions.length === 0 && (
           <p className="text-center text-zinc-400 text-xs pt-1">
-            Cuando escanees el QR de una mesa, tu pedido va a aparecer acá.
+            Cuando escanees un QR y hagas un pedido, tu sesión va a aparecer acá.
           </p>
         )}
       </div>
